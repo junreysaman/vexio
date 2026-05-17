@@ -1,0 +1,364 @@
+[Sun May 17 06:47:47 2026] PHP 8.4.2 Development Server (http://127.0.0.1:8091) started
+[Sun May 17 06:48:08 2026] 127.0.0.1:51297 Accepted
+[Sun May 17 06:48:08 2026] 127.0.0.1:51297 [200]: GET /login
+[Sun May 17 06:48:08 2026] 127.0.0.1:51297 Closing
+[Sun May 17 06:48:08 2026] 127.0.0.1:51298 Accepted
+[Sun May 17 06:48:08 2026] 127.0.0.1:51298 [200]: GET /assets/admin/css/app.css
+[Sun May 17 06:48:08 2026] 127.0.0.1:51299 Accepted
+[Sun May 17 06:48:08 2026] 127.0.0.1:51300 Accepted
+[Sun May 17 06:48:08 2026] 127.0.0.1:51299 [200]: GET /assets/frontend/css/paper.css
+[Sun May 17 06:48:08 2026] 127.0.0.1:51301 Accepted
+[Sun May 17 06:48:08 2026] 127.0.0.1:51300 [200]: GET /assets/frontend/js/search.js
+[Sun May 17 06:48:08 2026] 127.0.0.1:51301 [200]: GET /assets/frontend/js/app.js
+[Sun May 17 06:48:08 2026] 127.0.0.1:51299 Closing
+[Sun May 17 06:48:08 2026] 127.0.0.1:51300 Closing
+[Sun May 17 06:48:08 2026] 127.0.0.1:51298 Closing
+[Sun May 17 06:48:08 2026] 127.0.0.1:51301 Closing
+[Sun May 17 06:48:09 2026] 127.0.0.1:51304 Accepted
+[Sun May 17 06:48:09 2026] 127.0.0.1:51304 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 06:48:09 2026] 127.0.0.1:51304 Closing
+[Sun May 17 06:48:23 2026] 127.0.0.1:51322 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51322 [302]: POST /authentication/v3/login
+[Sun May 17 06:48:24 2026] 127.0.0.1:51322 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51325 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51325 [200]: GET /admin/dashboard
+[Sun May 17 06:48:24 2026] 127.0.0.1:51325 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51327 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51328 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51327 [200]: GET /assets/admin/css/app.css
+[Sun May 17 06:48:24 2026] 127.0.0.1:51329 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51328 [200]: GET /assets/backend/css/paper.css
+[Sun May 17 06:48:24 2026] 127.0.0.1:51330 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51329 [200]: GET /brand.png
+[Sun May 17 06:48:24 2026] 127.0.0.1:51330 [200]: GET /uploads/tmdb/movies/poster-1669050.webp
+[Sun May 17 06:48:24 2026] 127.0.0.1:51328 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51329 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51327 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51330 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51331 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51332 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51331 [200]: GET /uploads/tmdb/movies/poster-1439930.webp
+[Sun May 17 06:48:24 2026] 127.0.0.1:51333 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51332 [200]: GET /uploads/tmdb/movies/poster-1007757.webp
+[Sun May 17 06:48:24 2026] 127.0.0.1:51334 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51333 [200]: GET /uploads/tmdb/tv/poster-37854.webp
+[Sun May 17 06:48:24 2026] 127.0.0.1:51335 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51334 [200]: GET /uploads/tmdb/tv/poster-111110.webp
+[Sun May 17 06:48:24 2026] 127.0.0.1:51336 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51335 [200]: GET /assets/backend/js/app.js
+[Sun May 17 06:48:24 2026] 127.0.0.1:51336 [200]: GET /uploads/tmdb/tv/poster-76479.webp
+[Sun May 17 06:48:24 2026] 127.0.0.1:51335 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51340 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51341 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51340 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-900.woff2
+[Sun May 17 06:48:24 2026] 127.0.0.1:51331 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51332 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51342 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51341 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 06:48:24 2026] 127.0.0.1:51342 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-700.woff2
+[Sun May 17 06:48:24 2026] 127.0.0.1:51334 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51340 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51343 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51333 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51344 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51343 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-regular.woff2
+[Sun May 17 06:48:24 2026] 127.0.0.1:51342 Closing
+[Sun May 17 06:48:24 2026] 127.0.0.1:51345 Accepted
+[Sun May 17 06:48:24 2026] 127.0.0.1:51344 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-300.woff2
+[Sun May 17 06:48:26 2026] 127.0.0.1:51345 [200]: GET /admin/importer
+[Sun May 17 06:48:26 2026] 127.0.0.1:51345 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51336 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51341 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51343 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51344 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51347 Accepted
+[Sun May 17 06:48:26 2026] 127.0.0.1:51348 Accepted
+[Sun May 17 06:48:26 2026] 127.0.0.1:51349 Accepted
+[Sun May 17 06:48:26 2026] 127.0.0.1:51350 Accepted
+[Sun May 17 06:48:26 2026] 127.0.0.1:51347 [200]: GET /assets/admin/css/app.css
+[Sun May 17 06:48:26 2026] 127.0.0.1:51348 [200]: GET /assets/backend/css/paper.css
+[Sun May 17 06:48:26 2026] 127.0.0.1:51349 [200]: GET /assets/backend/js/app.js
+[Sun May 17 06:48:26 2026] 127.0.0.1:51350 [200]: GET /brand.png
+[Sun May 17 06:48:26 2026] 127.0.0.1:51348 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51349 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51350 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51347 Closing
+[Sun May 17 06:48:26 2026] 127.0.0.1:51351 Accepted
+[Sun May 17 06:48:29 2026] 127.0.0.1:51351 [200]: GET /admin/importer/results?tab=movies&page=1&q=&year=&sort=popularity.desc
+[Sun May 17 06:48:29 2026] 127.0.0.1:51351 Closing
+[Sun May 17 06:48:29 2026] 127.0.0.1:51353 Accepted
+[Sun May 17 06:48:29 2026] 127.0.0.1:51354 Accepted
+[Sun May 17 06:48:29 2026] 127.0.0.1:51353 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-900.woff2
+[Sun May 17 06:48:29 2026] 127.0.0.1:51355 Accepted
+[Sun May 17 06:48:29 2026] 127.0.0.1:51354 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 06:48:29 2026] 127.0.0.1:51356 Accepted
+[Sun May 17 06:48:29 2026] 127.0.0.1:51355 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-700.woff2
+[Sun May 17 06:48:29 2026] 127.0.0.1:51357 Accepted
+[Sun May 17 06:48:29 2026] 127.0.0.1:51356 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-regular.woff2
+[Sun May 17 06:48:29 2026] 127.0.0.1:51353 Closing
+[Sun May 17 06:48:29 2026] 127.0.0.1:51357 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-300.woff2
+[Sun May 17 06:48:29 2026] 127.0.0.1:51355 Closing
+[Sun May 17 06:48:29 2026] 127.0.0.1:51356 Closing
+[Sun May 17 06:48:29 2026] 127.0.0.1:51357 Closing
+[Sun May 17 06:48:29 2026] 127.0.0.1:51354 Closing
+[Sun May 17 06:49:26 2026] 127.0.0.1:51423 Accepted
+[Sun May 17 06:49:27 2026] 127.0.0.1:51423 [500]: GET /admin/importer/results?tab=tv&page=1&q=&year=&sort=popularity.desc
+[Sun May 17 06:49:27 2026] 127.0.0.1:51423 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51937 Accepted
+[Sun May 17 07:01:45 2026] 127.0.0.1:51937 [200]: GET /admin/importer
+[Sun May 17 07:01:45 2026] 127.0.0.1:51937 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51941 Accepted
+[Sun May 17 07:01:45 2026] 127.0.0.1:51942 Accepted
+[Sun May 17 07:01:45 2026] 127.0.0.1:51941 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:01:45 2026] 127.0.0.1:51943 Accepted
+[Sun May 17 07:01:45 2026] 127.0.0.1:51942 [200]: GET /assets/backend/css/paper.css
+[Sun May 17 07:01:45 2026] 127.0.0.1:51944 Accepted
+[Sun May 17 07:01:45 2026] 127.0.0.1:51943 [200]: GET /dooplay/inc/core/dbmvs/assets/dbmovies.min.css
+[Sun May 17 07:01:45 2026] 127.0.0.1:51945 Accepted
+[Sun May 17 07:01:45 2026] 127.0.0.1:51944 [200]: GET /brand.png
+[Sun May 17 07:01:45 2026] 127.0.0.1:51945 [200]: GET /assets/backend/js/app.js
+[Sun May 17 07:01:45 2026] 127.0.0.1:51942 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51943 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51944 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51941 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51945 Closing
+[Sun May 17 07:01:45 2026] 127.0.0.1:51946 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51946 [200]: GET /admin/importer/results?tab=movies&page=1&q=&year=&sort=popularity.desc
+[Sun May 17 07:01:46 2026] 127.0.0.1:51946 Closing
+[Sun May 17 07:01:46 2026] 127.0.0.1:51948 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51949 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51948 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-regular.woff2
+[Sun May 17 07:01:46 2026] 127.0.0.1:51950 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51949 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-500.woff2
+[Sun May 17 07:01:46 2026] 127.0.0.1:51951 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51950 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-900.woff2
+[Sun May 17 07:01:46 2026] 127.0.0.1:51952 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51951 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:01:46 2026] 127.0.0.1:51948 Closing
+[Sun May 17 07:01:46 2026] 127.0.0.1:51956 Accepted
+[Sun May 17 07:01:46 2026] 127.0.0.1:51952 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-700.woff2
+[Sun May 17 07:01:46 2026] 127.0.0.1:51949 Closing
+[Sun May 17 07:01:46 2026] 127.0.0.1:51956 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-300.woff2
+[Sun May 17 07:01:46 2026] 127.0.0.1:51950 Closing
+[Sun May 17 07:01:46 2026] 127.0.0.1:51952 Closing
+[Sun May 17 07:01:46 2026] 127.0.0.1:51956 Closing
+[Sun May 17 07:01:46 2026] 127.0.0.1:51951 Closing
+[Sun May 17 07:02:35 2026] 127.0.0.1:52000 Accepted
+[Sun May 17 07:02:35 2026] 127.0.0.1:52000 [200]: GET /admin/importer
+[Sun May 17 07:02:35 2026] 127.0.0.1:52000 Closing
+[Sun May 17 07:02:35 2026] 127.0.0.1:52002 Accepted
+[Sun May 17 07:02:35 2026] 127.0.0.1:52003 Accepted
+[Sun May 17 07:02:35 2026] 127.0.0.1:52002 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:02:35 2026] 127.0.0.1:52004 Accepted
+[Sun May 17 07:02:35 2026] 127.0.0.1:52003 [200]: GET /assets/backend/css/paper.css
+[Sun May 17 07:02:35 2026] 127.0.0.1:52005 Accepted
+[Sun May 17 07:02:35 2026] 127.0.0.1:52004 [200]: GET /dooplay/inc/core/dbmvs/assets/dbmovies.min.css
+[Sun May 17 07:02:35 2026] 127.0.0.1:52006 Accepted
+[Sun May 17 07:02:35 2026] 127.0.0.1:52005 [200]: GET /brand.png
+[Sun May 17 07:02:35 2026] 127.0.0.1:52006 [200]: GET /assets/backend/js/app.js
+[Sun May 17 07:02:35 2026] 127.0.0.1:52003 Closing
+[Sun May 17 07:02:35 2026] 127.0.0.1:52004 Closing
+[Sun May 17 07:02:35 2026] 127.0.0.1:52005 Closing
+[Sun May 17 07:02:35 2026] 127.0.0.1:52002 Closing
+[Sun May 17 07:02:35 2026] 127.0.0.1:52006 Closing
+[Sun May 17 07:02:36 2026] 127.0.0.1:52007 Accepted
+[Sun May 17 07:02:36 2026] 127.0.0.1:52008 Accepted
+[Sun May 17 07:02:37 2026] 127.0.0.1:52007 [200]: GET /admin/importer/results?tab=movies&page=1&q=&year=&sort=popularity.desc
+[Sun May 17 07:02:37 2026] 127.0.0.1:52007 Closing
+[Sun May 17 07:02:37 2026] 127.0.0.1:52009 Accepted
+[Sun May 17 07:02:37 2026] 127.0.0.1:52008 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-regular.woff2
+[Sun May 17 07:02:37 2026] 127.0.0.1:52010 Accepted
+[Sun May 17 07:02:37 2026] 127.0.0.1:52009 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-900.woff2
+[Sun May 17 07:02:37 2026] 127.0.0.1:52011 Accepted
+[Sun May 17 07:02:37 2026] 127.0.0.1:52010 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:02:37 2026] 127.0.0.1:52012 Accepted
+[Sun May 17 07:02:37 2026] 127.0.0.1:52011 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-700.woff2
+[Sun May 17 07:02:37 2026] 127.0.0.1:52008 Closing
+[Sun May 17 07:02:37 2026] 127.0.0.1:52017 Accepted
+[Sun May 17 07:02:37 2026] 127.0.0.1:52012 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-300.woff2
+[Sun May 17 07:02:37 2026] 127.0.0.1:52009 Closing
+[Sun May 17 07:02:37 2026] 127.0.0.1:52017 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-500.woff2
+[Sun May 17 07:02:37 2026] 127.0.0.1:52011 Closing
+[Sun May 17 07:02:37 2026] 127.0.0.1:52012 Closing
+[Sun May 17 07:02:37 2026] 127.0.0.1:52017 Closing
+[Sun May 17 07:02:37 2026] 127.0.0.1:52010 Closing
+[Sun May 17 07:04:50 2026] 127.0.0.1:52146 Accepted
+[Sun May 17 07:04:51 2026] 127.0.0.1:52146 [200]: GET /admin/importer
+[Sun May 17 07:04:51 2026] 127.0.0.1:52146 Closing
+[Sun May 17 07:04:51 2026] 127.0.0.1:52148 Accepted
+[Sun May 17 07:04:51 2026] 127.0.0.1:52149 Accepted
+[Sun May 17 07:04:51 2026] 127.0.0.1:52148 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:04:51 2026] 127.0.0.1:52150 Accepted
+[Sun May 17 07:04:51 2026] 127.0.0.1:52149 [200]: GET /assets/backend/css/paper.css
+[Sun May 17 07:04:51 2026] 127.0.0.1:52151 Accepted
+[Sun May 17 07:04:51 2026] 127.0.0.1:52150 [200]: GET /dooplay/inc/core/dbmvs/assets/dbmovies.min.css
+[Sun May 17 07:04:51 2026] 127.0.0.1:52152 Accepted
+[Sun May 17 07:04:51 2026] 127.0.0.1:52151 [200]: GET /brand.png
+[Sun May 17 07:04:51 2026] 127.0.0.1:52152 [200]: GET /assets/backend/js/app.js
+[Sun May 17 07:04:51 2026] 127.0.0.1:52149 Closing
+[Sun May 17 07:04:51 2026] 127.0.0.1:52150 Closing
+[Sun May 17 07:04:51 2026] 127.0.0.1:52151 Closing
+[Sun May 17 07:04:51 2026] 127.0.0.1:52148 Closing
+[Sun May 17 07:04:51 2026] 127.0.0.1:52152 Closing
+[Sun May 17 07:04:51 2026] 127.0.0.1:52153 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52153 [200]: GET /admin/importer/results?tab=movies&page=1&q=&year=&sort=popularity.desc
+[Sun May 17 07:04:52 2026] 127.0.0.1:52153 Closing
+[Sun May 17 07:04:52 2026] 127.0.0.1:52154 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52155 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52154 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-regular.woff2
+[Sun May 17 07:04:52 2026] 127.0.0.1:52156 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52155 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-900.woff2
+[Sun May 17 07:04:52 2026] 127.0.0.1:52156 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:04:52 2026] 127.0.0.1:52154 Closing
+[Sun May 17 07:04:52 2026] 127.0.0.1:52155 Closing
+[Sun May 17 07:04:52 2026] 127.0.0.1:52156 Closing
+[Sun May 17 07:04:52 2026] 127.0.0.1:52161 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52161 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-700.woff2
+[Sun May 17 07:04:52 2026] 127.0.0.1:52162 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52162 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-300.woff2
+[Sun May 17 07:04:52 2026] 127.0.0.1:52161 Closing
+[Sun May 17 07:04:52 2026] 127.0.0.1:52163 Accepted
+[Sun May 17 07:04:52 2026] 127.0.0.1:52163 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-500.woff2
+[Sun May 17 07:04:52 2026] 127.0.0.1:52162 Closing
+[Sun May 17 07:04:52 2026] 127.0.0.1:52163 Closing
+[Sun May 17 07:08:59 2026] 127.0.0.1:52365 Accepted
+[Sun May 17 07:08:59 2026] 127.0.0.1:52365 [302]: GET /login
+[Sun May 17 07:08:59 2026] 127.0.0.1:52365 Closing
+[Sun May 17 07:08:59 2026] 127.0.0.1:52366 Accepted
+[Sun May 17 07:08:59 2026] 127.0.0.1:52366 [200]: GET /admin/dashboard
+[Sun May 17 07:08:59 2026] 127.0.0.1:52366 Closing
+[Sun May 17 07:08:59 2026] 127.0.0.1:52368 Accepted
+[Sun May 17 07:08:59 2026] 127.0.0.1:52369 Accepted
+[Sun May 17 07:08:59 2026] 127.0.0.1:52368 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:08:59 2026] 127.0.0.1:52370 Accepted
+[Sun May 17 07:08:59 2026] 127.0.0.1:52369 [200]: GET /assets/backend/css/paper.css
+[Sun May 17 07:08:59 2026] 127.0.0.1:52371 Accepted
+[Sun May 17 07:08:59 2026] 127.0.0.1:52370 [200]: GET /brand.png
+[Sun May 17 07:08:59 2026] 127.0.0.1:52371 [200]: GET /uploads/tmdb/movies/poster-1669050.webp
+[Sun May 17 07:08:59 2026] 127.0.0.1:52369 Closing
+[Sun May 17 07:08:59 2026] 127.0.0.1:52370 Closing
+[Sun May 17 07:08:59 2026] 127.0.0.1:52368 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52371 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52372 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52373 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52372 [200]: GET /uploads/tmdb/tv/poster-76479.webp
+[Sun May 17 07:09:00 2026] 127.0.0.1:52374 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52373 [200]: GET /assets/backend/js/app.js
+[Sun May 17 07:09:00 2026] 127.0.0.1:52374 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-900.woff2
+[Sun May 17 07:09:00 2026] 127.0.0.1:52373 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52374 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52372 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52375 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52375 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:09:00 2026] 127.0.0.1:52375 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52376 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52377 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52376 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-700.woff2
+[Sun May 17 07:09:00 2026] 127.0.0.1:52377 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-regular.woff2
+[Sun May 17 07:09:00 2026] 127.0.0.1:52376 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52377 Closing
+[Sun May 17 07:09:00 2026] 127.0.0.1:52378 Accepted
+[Sun May 17 07:09:00 2026] 127.0.0.1:52378 [200]: GET /assets/admin/fonts/roboto/roboto-v16-latin-300.woff2
+[Sun May 17 07:09:00 2026] 127.0.0.1:52378 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52409 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52409 [302]: POST /logout
+[Sun May 17 07:09:27 2026] 127.0.0.1:52409 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52411 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52411 [200]: GET /login
+[Sun May 17 07:09:27 2026] 127.0.0.1:52411 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52412 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52413 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52414 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52412 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:09:27 2026] 127.0.0.1:52413 [200]: GET /assets/frontend/css/paper.css
+[Sun May 17 07:09:27 2026] 127.0.0.1:52415 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52414 [200]: GET /assets/frontend/js/app.js
+[Sun May 17 07:09:27 2026] 127.0.0.1:52415 [200]: GET /assets/frontend/js/search.js
+[Sun May 17 07:09:27 2026] 127.0.0.1:52413 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52414 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52415 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52412 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52416 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52416 [200]: GET /uploads/tmdb/movies/backdrop-1669050.webp
+[Sun May 17 07:09:27 2026] 127.0.0.1:52416 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52417 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52417 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:09:27 2026] 127.0.0.1:52417 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52418 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52418 [200]: GET /login
+[Sun May 17 07:09:27 2026] 127.0.0.1:52418 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52419 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52420 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52419 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:09:27 2026] 127.0.0.1:52421 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52420 [200]: GET /assets/frontend/css/paper.css
+[Sun May 17 07:09:27 2026] 127.0.0.1:52422 Accepted
+[Sun May 17 07:09:27 2026] 127.0.0.1:52421 [200]: GET /assets/frontend/js/app.js
+[Sun May 17 07:09:27 2026] 127.0.0.1:52422 [200]: GET /assets/frontend/js/search.js
+[Sun May 17 07:09:27 2026] 127.0.0.1:52420 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52421 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52422 Closing
+[Sun May 17 07:09:27 2026] 127.0.0.1:52419 Closing
+[Sun May 17 07:09:28 2026] 127.0.0.1:52423 Accepted
+[Sun May 17 07:09:28 2026] 127.0.0.1:52424 Accepted
+[Sun May 17 07:09:28 2026] 127.0.0.1:52423 [200]: GET /uploads/tmdb/movies/backdrop-1669050.webp
+[Sun May 17 07:09:28 2026] 127.0.0.1:52424 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:09:28 2026] 127.0.0.1:52423 Closing
+[Sun May 17 07:09:28 2026] 127.0.0.1:52424 Closing
+[Sun May 17 07:09:48 2026] 127.0.0.1:52433 Accepted
+[Sun May 17 07:09:48 2026] 127.0.0.1:52433 [200]: GET /login
+[Sun May 17 07:09:48 2026] 127.0.0.1:52433 Closing
+[Sun May 17 07:09:48 2026] 127.0.0.1:52434 Accepted
+[Sun May 17 07:09:48 2026] 127.0.0.1:52435 Accepted
+[Sun May 17 07:09:48 2026] 127.0.0.1:52434 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:09:48 2026] 127.0.0.1:52436 Accepted
+[Sun May 17 07:09:48 2026] 127.0.0.1:52435 [200]: GET /assets/frontend/css/paper.css
+[Sun May 17 07:09:48 2026] 127.0.0.1:52437 Accepted
+[Sun May 17 07:09:48 2026] 127.0.0.1:52436 [200]: GET /assets/frontend/js/app.js
+[Sun May 17 07:09:48 2026] 127.0.0.1:52437 [200]: GET /assets/frontend/js/search.js
+[Sun May 17 07:09:48 2026] 127.0.0.1:52435 Closing
+[Sun May 17 07:09:48 2026] 127.0.0.1:52436 Closing
+[Sun May 17 07:09:48 2026] 127.0.0.1:52437 Closing
+[Sun May 17 07:09:48 2026] 127.0.0.1:52434 Closing
+[Sun May 17 07:09:49 2026] 127.0.0.1:52442 Accepted
+[Sun May 17 07:09:49 2026] 127.0.0.1:52443 Accepted
+[Sun May 17 07:09:49 2026] 127.0.0.1:52442 [200]: GET /uploads/tmdb/movies/backdrop-1669050.webp
+[Sun May 17 07:09:49 2026] 127.0.0.1:52443 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:09:49 2026] 127.0.0.1:52442 Closing
+[Sun May 17 07:09:49 2026] 127.0.0.1:52443 Closing
+[Sun May 17 07:15:32 2026] 127.0.0.1:52687 Accepted
+[Sun May 17 07:15:32 2026] 127.0.0.1:52687 [302]: GET /admin/content?type=tv_show
+[Sun May 17 07:15:33 2026] 127.0.0.1:52687 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52691 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52691 [200]: GET /login
+[Sun May 17 07:15:33 2026] 127.0.0.1:52691 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52692 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52693 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52692 [200]: GET /assets/admin/css/app.css
+[Sun May 17 07:15:33 2026] 127.0.0.1:52694 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52693 [200]: GET /assets/frontend/css/paper.css
+[Sun May 17 07:15:33 2026] 127.0.0.1:52695 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52694 [200]: GET /assets/frontend/js/app.js
+[Sun May 17 07:15:33 2026] 127.0.0.1:52695 [200]: GET /assets/frontend/js/search.js
+[Sun May 17 07:15:33 2026] 127.0.0.1:52693 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52694 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52695 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52692 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52696 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52697 Accepted
+[Sun May 17 07:15:33 2026] 127.0.0.1:52696 [200]: GET /uploads/tmdb/movies/backdrop-1669050.webp
+[Sun May 17 07:15:33 2026] 127.0.0.1:52697 [200]: GET /assets/admin/fonts/paperIcons.ttf?8quail
+[Sun May 17 07:15:33 2026] 127.0.0.1:52696 Closing
+[Sun May 17 07:15:33 2026] 127.0.0.1:52697 Closing
+[Sun May 17 07:16:12 2026] 127.0.0.1:52722 Accepted
+[Sun May 17 07:16:12 2026] 127.0.0.1:52722 [200]: GET /login
+[Sun May 17 07:16:12 2026] 127.0.0.1:52722 Closing
+[Sun May 17 07:16:12 2026] 127.0.0.1:52723 Accepted
+[Sun May 17 07:16:13 2026] 127.0.0.1:52723 [302]: POST /login
+[Sun May 17 07:16:13 2026] 127.0.0.1:52723 Closing
+[Sun May 17 07:16:13 2026] 127.0.0.1:52725 Accepted
+[Sun May 17 07:16:13 2026] 127.0.0.1:52725 [200]: GET /admin/content?type=tv_show
+[Sun May 17 07:16:13 2026] 127.0.0.1:52725 Closing
+[Sun May 17 07:16:13 2026] 127.0.0.1:52727 Accepted
+[Sun May 17 07:16:13 2026] 127.0.0.1:52727 [200]: GET /admin/content/1/edit
+[Sun May 17 07:16:13 2026] 127.0.0.1:52727 Closing

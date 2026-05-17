@@ -1,0 +1,242 @@
+<script>
+function togglePanel(head) {
+  head.classList.toggle('open');
+  const body = head.nextElementSibling;
+  if (body) body.classList.toggle('open');
+}
+
+function openFilterDrawer() {
+  const drawer = document.getElementById('filter-drawer');
+  const sidebar = document.getElementById('sidebar');
+  const drawerBody = document.getElementById('drawerFilters');
+  if (!drawer || !sidebar || !drawerBody) return;
+
+  drawerBody.innerHTML = '';
+  drawerBody.appendChild(sidebar);
+  drawer.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFilterDrawer() {
+  const drawer = document.getElementById('filter-drawer');
+  const layout = document.querySelector('.archive-layout');
+  const sidebar = document.getElementById('sidebar');
+  if (layout && sidebar) layout.insertBefore(sidebar, layout.firstElementChild);
+  if (drawer) drawer.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(window.__archiveToastTimer);
+  window.__archiveToastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function updateRating(input) {
+  const value = Number(input.value || 0);
+  const pct = (value / 10) * 100;
+  input.style.setProperty('--pct', pct + '%');
+  const label = document.getElementById('ratingVal');
+  if (label) label.textContent = `${value.toFixed(1)}+`;
+}
+
+function selectedType() {
+  return document.querySelector('input[name="type"]:checked')?.value || 'all';
+}
+
+function selectedGenres() {
+  return Array.from(document.querySelectorAll('input[name="genre[]"]:checked')).map((input) => input.value);
+}
+
+function filterState() {
+  return {
+    type: selectedType(),
+    genres: selectedGenres(),
+    rating: Number(document.getElementById('ratingSlider')?.value || 0),
+    yearFrom: Number(document.getElementById('yearFrom')?.value || 0),
+    yearTo: Number(document.getElementById('yearTo')?.value || 0),
+  };
+}
+
+function cardMatches(card, state) {
+  const type = card.dataset.type || '';
+  const genres = (card.dataset.genres || '').split(',').filter(Boolean);
+  const year = Number(card.dataset.year || 0);
+  const rating = Number(card.dataset.rating || 0);
+
+  if (state.type !== 'all' && type !== state.type) return false;
+  if (state.genres.length && !state.genres.some((genre) => genres.includes(genre))) return false;
+  if (state.rating > 0 && rating < state.rating) return false;
+  if (state.yearFrom > 0 && year < state.yearFrom) return false;
+  if (state.yearTo > 0 && year > state.yearTo) return false;
+
+  return true;
+}
+
+function updateActiveFilters(state) {
+  const container = document.getElementById('activeFilters');
+  if (!container) return;
+
+  const badges = [];
+  if (state.type !== 'all') badges.push({ key: 'type', label: state.type === 'movie' ? 'Movies' : 'TV Shows' });
+  state.genres.forEach((slug) => {
+    const input = document.querySelector(`input[name="genre[]"][value="${CSS.escape(slug)}"]`);
+    badges.push({ key: 'genre', value: slug, label: input?.closest('label')?.querySelector('.fc-label')?.textContent || slug });
+  });
+  if (state.rating > 0) badges.push({ key: 'rating', label: `Rating ${state.rating.toFixed(1)}+` });
+  if (state.yearFrom > 0 || state.yearTo > 0) {
+    badges.push({ key: 'year', label: `${state.yearFrom || 'Any'} - ${state.yearTo || 'Any'}` });
+  }
+
+  container.innerHTML = badges.map((badge) => (
+    `<span class="af-badge">${escapeHtml(badge.label)} <button type="button" onclick="removeFilter('${badge.key}','${escapeHtml(badge.value || '')}')">&times;</button></span>`
+  )).join('') + (badges.length ? '<button class="af-clear-all" type="button" onclick="clearAllFilters()">Clear All</button>' : '');
+}
+
+function updateFilterBadgeCount() {
+  const count = document.querySelectorAll('#activeFilters .af-badge').length;
+  const badge = document.getElementById('filterBadge');
+  if (!badge) return;
+  badge.textContent = String(count);
+  badge.style.display = count ? '' : 'none';
+}
+
+function updateFilters() {
+  const state = filterState();
+  let visible = 0;
+  document.querySelectorAll('#cardGrid .acard').forEach((card) => {
+    const show = cardMatches(card, state);
+    card.hidden = !show;
+    if (show) visible += 1;
+  });
+
+  document.getElementById('resultNum').textContent = visible.toLocaleString();
+  document.getElementById('archiveEmpty').hidden = visible !== 0;
+  updateActiveFilters(state);
+  updateFilterBadgeCount();
+  sortCards(document.getElementById('sortSelect')?.value || 'popular', false);
+}
+
+function sortCards(value, notify = true) {
+  const grid = document.getElementById('cardGrid');
+  if (!grid) return;
+
+  const cards = Array.from(grid.querySelectorAll('.acard'));
+  const sorted = cards.sort((left, right) => {
+    if (value === 'rating') return Number(right.dataset.rating || 0) - Number(left.dataset.rating || 0);
+    if (value === 'newest') return String(right.dataset.created || '').localeCompare(String(left.dataset.created || ''));
+    if (value === 'oldest') return String(left.dataset.created || '').localeCompare(String(right.dataset.created || ''));
+    if (value === 'az') return String(left.dataset.title || '').localeCompare(String(right.dataset.title || ''));
+    if (value === 'za') return String(right.dataset.title || '').localeCompare(String(left.dataset.title || ''));
+    return Number(right.dataset.views || 0) - Number(left.dataset.views || 0);
+  });
+
+  sorted.forEach((card) => grid.appendChild(card));
+  if (notify) showToast('Results sorted');
+}
+
+function applyFilters() {
+  updateFilters();
+  closeFilterDrawer();
+  showToast('Filters applied');
+}
+
+function resetFilters() {
+  document.querySelectorAll('input[name="genre[]"]').forEach((input) => input.checked = false);
+  document.querySelector('input[name="type"][value="all"]')?.click();
+  const slider = document.getElementById('ratingSlider');
+  if (slider) {
+    slider.value = 0;
+    updateRating(slider);
+  }
+  const from = document.getElementById('yearFrom');
+  const to = document.getElementById('yearTo');
+  if (from) from.value = '';
+  if (to) to.value = '';
+  updateFilters();
+  showToast('Filters reset');
+}
+
+function removeFilter(key, value) {
+  if (key === 'type') document.querySelector('input[name="type"][value="all"]')?.click();
+  if (key === 'genre') {
+    const input = document.querySelector(`input[name="genre[]"][value="${CSS.escape(value)}"]`);
+    if (input) input.checked = false;
+  }
+  if (key === 'rating') {
+    const slider = document.getElementById('ratingSlider');
+    if (slider) {
+      slider.value = 0;
+      updateRating(slider);
+    }
+  }
+  if (key === 'year') {
+    document.getElementById('yearFrom').value = '';
+    document.getElementById('yearTo').value = '';
+  }
+  updateFilters();
+}
+
+function clearAllFilters() {
+  resetFilters();
+}
+
+function filterGenreList(term) {
+  const needle = term.trim().toLowerCase();
+  document.querySelectorAll('#genreList .fc-item').forEach((item) => {
+    const text = item.textContent.toLowerCase();
+    item.hidden = needle !== '' && !text.includes(needle);
+  });
+}
+
+function fillSearch(term) {
+  const input = document.getElementById('searchInput');
+  if (!input) return;
+  input.value = term;
+  input.focus();
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  })[char]);
+}
+
+function initArchivePage() {
+  const slider = document.getElementById('ratingSlider');
+  if (slider) updateRating(slider);
+  updateFilters();
+
+  const overlay = document.getElementById('search-overlay');
+  ['searchOpen', 'mobileSearchOpen'].forEach((id) => {
+    const button = document.getElementById(id);
+    if (button) {
+      button.addEventListener('click', () => {
+        overlay?.classList.add('open');
+        setTimeout(() => document.getElementById('searchInput')?.focus(), 150);
+      });
+    }
+  });
+  document.getElementById('searchClose')?.addEventListener('click', () => overlay?.classList.remove('open'));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      overlay?.classList.remove('open');
+      closeFilterDrawer();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      overlay?.classList.add('open');
+      setTimeout(() => document.getElementById('searchInput')?.focus(), 150);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initArchivePage);
+</script>

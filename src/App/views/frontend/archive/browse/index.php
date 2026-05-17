@@ -1,0 +1,22 @@
+<?= $this->start('styles') ?>
+<?= $this->includePartial('/frontend/archive/browse/components/styles') ?>
+<?= $this->end() ?>
+
+<?= $this->start('content') ?>
+
+<main id="archive-main">
+    <?= $this->includePartial('/frontend/archive/browse/components/archive-hero') ?>
+
+    <section class="container archive-layout">
+        <?= $this->includePartial('/frontend/archive/browse/components/archive-sidebar-dynamic') ?>
+        <?= $this->includePartial('/frontend/archive/browse/components/archive-results-dynamic') ?>
+    </section>
+
+    <?= $this->includePartial('/frontend/archive/browse/components/archive-bottom') ?>
+</main>
+
+<?= $this->end() ?>
+
+<?= $this->start('scripts') ?>
+<?= $this->includePartial('/frontend/archive/browse/components/scripts') ?>
+<?= $this->end() ?>

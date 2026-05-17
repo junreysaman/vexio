@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VEXIO — Watch: Stellar Drift · S2 E7 · "The Void Between Stars"</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Crimson+Pro:ital,wght@1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════════
+   RESET & DESIGN TOKENS
+═══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:       #060910;
+  --bg2:      #0c1018;
+  --bg3:      #121824;
+  --card:     #0f1520;
+  --border:   rgba(255,255,255,.07);
+  --border2:  rgba(255,255,255,.12);
+  --accent:   #e8173f;
+  --accent2:  #ff5e7d;
+  --cyan:     #00c8f0;
+  --gold:     #ffc340;
+  --purple:   #8b5cf6;
+  --green:    #22c55e;
+  --text:     #f0f4ff;
+  --muted:    #64748b;
+  --muted2:   #8899b0;
+  --dim:      #1e2a3a;
+  --r:        10px;
+  --nav-h:    68px;
+  --bot-nav-h:64px;
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;line-height:1.6;
+  overflow-x:hidden;
+  padding-bottom:var(--bot-nav-h);
+}
+@media(min-width:769px){body{padding-bottom:0;}}
+a{text-decoration:none;color:inherit;}
+img{display:block;max-width:100%;}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit;}
+ul{list-style:none;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--dim);border-radius:99px;}
+
+/* ═══════════════════════════════════════════════════════
+   TOP NAVIGATION
+═══════════════════════════════════════════════════════ */
+#topnav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:var(--nav-h);
+  display:flex;align-items:center;
+  padding:0 40px;
+  background:rgba(6,9,16,.96);
+  backdrop-filter:blur(20px);
+  box-shadow:0 1px 0 var(--border);
+}
+.vx-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:32px;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--accent2) 0%,var(--accent) 50%,#c2001f 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  flex-shrink:0;margin-right:48px;
+}
+.vx-logo sup{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:9px;font-weight:700;letter-spacing:1px;
+  -webkit-text-fill-color:var(--cyan);
+  background:none;-webkit-background-clip:unset;
+  position:relative;top:-16px;left:2px;
+}
+.nav-links{display:flex;align-items:center;gap:4px;flex:1;}
+.nav-link{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:600;
+  color:var(--muted2);
+  transition:color .2s,background .2s;white-space:nowrap;
+}
+.nav-link svg{width:16px;height:16px;flex-shrink:0;}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,.05);}
+.nav-link.active{color:var(--text);background:rgba(232,23,63,.1);}
+.nav-link.active svg{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.nav-search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:99px;padding:8px 16px;cursor:pointer;
+  transition:border-color .2s,background .2s;min-width:200px;
+}
+.nav-search-bar:hover{border-color:var(--cyan);}
+.nav-search-bar svg{width:15px;height:15px;color:var(--muted);}
+.nav-search-bar span{font-size:12px;color:var(--muted);flex:1;}
+.nav-search-bar kbd{font-family:inherit;font-size:10px;color:var(--muted);background:var(--dim);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;}
+.nav-sign-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:9px 22px;border-radius:99px;
+  font-size:13px;font-weight:700;
+  background:var(--accent);color:#fff;
+  transition:background .2s,transform .15s;
+  box-shadow:0 0 20px rgba(232,23,63,.35);
+}
+.nav-sign-btn:hover{background:var(--accent2);transform:translateY(-1px);}
+@media(max-width:768px){
+  .nav-links,.nav-search-bar,.nav-sign-btn{display:none;}
+  #topnav{padding:0 20px;}
+  .vx-logo{margin-right:0;}
+  .mobile-search-btn{display:flex!important;}
+}
+.mobile-search-btn{
+  display:none;width:38px;height:38px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--border);
+  align-items:center;justify-content:center;
+  color:var(--muted);
+}
+.mobile-search-btn svg{width:16px;height:16px;}
+
+/* ═══════════════════════════════════════════════════════
+   BOTTOM NAV — MOBILE
+═══════════════════════════════════════════════════════ */
+#botnav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  height:var(--bot-nav-h);
+  background:rgba(6,9,16,.97);
+  backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);
+  padding:0 4px;
+}
+@media(max-width:768px){#botnav{display:flex;align-items:stretch;}}
+.bot-nav-item{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;
+  padding:8px 4px;color:var(--muted);
+  font-size:10px;font-weight:600;letter-spacing:.3px;
+  transition:color .2s;border-radius:10px;
+  -webkit-tap-highlight-color:transparent;
+}
+.bot-nav-item svg{width:20px;height:20px;}
+.bot-nav-item.active{color:var(--accent);}
+.bot-nav-item.home-btn{color:var(--text);}
+.bot-nav-item.home-btn .home-icon-wrap{
+  width:44px;height:44px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),#9b14cf);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(232,23,63,.5);margin-top:-10px;
+}
+.bot-nav-item.home-btn svg{width:22px;height:22px;color:#fff;}
+
+/* ═══════════════════════════════════════════════════════
+   AD SYSTEM
+═══════════════════════════════════════════════════════ */
+.ad-box{
+  background:var(--bg3);border:1px dashed rgba(255,255,255,.1);
+  border-radius:var(--r);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  color:var(--muted);position:relative;overflow:hidden;
+}
+.ad-box::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,23,63,.03),rgba(0,200,240,.03));}
+.ad-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);opacity:.6;}
+.ad-copy{font-size:11px;font-weight:600;color:var(--muted2);}
+.ad-sub{font-size:10px;color:var(--muted);}
+.ad-728{width:min(728px,100%);height:90px;}
+.ad-300{width:300px;height:250px;flex-shrink:0;}
+.ad-160{width:160px;min-height:600px;}
+.ad-strip{width:100%;height:50px;}
+@media(max-width:768px){.ad-728{height:60px;}.ad-300{width:100%;max-width:340px;height:100px;}}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════ */
+.container{max-width:1440px;margin:0 auto;padding:0 48px;}
+@media(max-width:768px){.container{padding:0 16px;}}
+.page-wrap{padding-top:var(--nav-h);}
+.top-ad-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 0;display:flex;justify-content:center;align-items:center;}
+.watch-layout{display:grid;grid-template-columns:1fr 340px;gap:0;min-height:calc(100vh - var(--nav-h));}
+@media(max-width:1200px){.watch-layout{grid-template-columns:1fr 300px;}}
+@media(max-width:900px){.watch-layout{grid-template-columns:1fr;}}
+.watch-main{min-width:0;}
+.watch-sidebar{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;}
+@media(max-width:900px){.watch-sidebar{border-left:none;border-top:1px solid var(--border);}}
+
+/* ═══════════════════════════════════════════════════════
+   VIDEO PLAYER
+═══════════════════════════════════════════════════════ */
+.player-wrap{
+  position:relative;background:#000;
+  aspect-ratio:16/9;width:100%;overflow:hidden;cursor:pointer;
+}
+.player-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+.player-backdrop{position:absolute;inset:0;background:linear-gradient(135deg,#000a1a 0%,#001430 30%,#0a001f 60%,#000810 100%);}
+.player-particles{position:absolute;inset:0;overflow:hidden;}
+.particle{position:absolute;border-radius:50%;animation:floatParticle linear infinite;opacity:0;}
+@keyframes floatParticle{
+  0%{transform:translateY(100vh) scale(0);opacity:0;}
+  10%{opacity:.6;}90%{opacity:.4;}
+  100%{transform:translateY(-20px) scale(1.2);opacity:0;}
+}
+.player-grid-overlay{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,200,240,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,240,.04) 1px,transparent 1px);
+  background-size:40px 40px;animation:gridShift 20s linear infinite;
+}
+@keyframes gridShift{0%{transform:translateY(0);}100%{transform:translateY(40px);}}
+
+/* Next Episode Countdown Overlay */
+.next-ep-overlay{
+  position:absolute;inset:0;z-index:20;
+  background:rgba(6,9,16,.92);backdrop-filter:blur(10px);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  padding:32px;
+}
+.next-ep-overlay.show{display:flex;}
+.next-ep-card{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:16px;padding:24px 32px;max-width:480px;width:100%;
+  display:flex;gap:20px;align-items:center;
+}
+.nec-thumb{
+  width:120px;height:70px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(145deg,#001433,#003377);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:1px;
+  color:rgba(255,255,255,.3);text-align:center;
+  position:relative;overflow:hidden;
+}
+.nec-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,200,240,.1),rgba(139,92,246,.1));}
+.nec-info{flex:1;}
+.nec-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cyan);text-transform:uppercase;margin-bottom:4px;}
+.nec-title{font-size:15px;font-weight:800;margin-bottom:6px;line-height:1.3;}
+.nec-meta{font-size:12px;color:var(--muted2);}
+.nec-countdown{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--accent2);line-height:1;text-align:center;}
+.nec-countdown-label{font-size:11px;color:var(--muted);text-align:center;}
+.nec-buttons{display:flex;gap:10px;margin-top:16px;}
+.nec-btn-play{
+  flex:1;padding:10px;border-radius:10px;
+  background:var(--accent);color:#fff;
+  font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:background .2s;
+}
+.nec-btn-play:hover{background:var(--accent2);}
+.nec-btn-cancel{
+  padding:10px 16px;border-radius:10px;
+  background:var(--bg3);border:1px solid var(--border);
+  font-size:13px;font-weight:600;color:var(--muted2);
+  transition:border-color .2s,color .2s;
+}
+.nec-btn-cancel:hover{border-color:var(--border2);color:var(--text);}
+
+.player-center{
+  position:relative;z-index:5;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+}
+.play-ring{
+  width:90px;height:90px;border-radius:50%;
+  border:2px solid rgba(232,23,63,.4);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;animation:ringPulse 2s ease-in-out infinite;
+  cursor:pointer;transition:transform .2s;
+}
+.play-ring:hover{transform:scale(1.08);}
+@keyframes ringPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(232,23,63,.4),0 0 30px rgba(232,23,63,.2);}
+  50%{box-shadow:0 0 0 18px rgba(232,23,63,0),0 0 50px rgba(232,23,63,.3);}
+}
+.play-ring-inner{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#9b14cf);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(232,23,63,.5);
+}
+.play-ring-inner svg{width:26px;height:26px;margin-left:3px;}
+.player-ep-badge{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:6px 16px;
+  font-size:12px;font-weight:700;color:rgba(255,255,255,.8);
+}
+.player-ep-badge .ep-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);}
+.player-title-overlay{
+  text-align:center;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(20px,3.5vw,44px);
+  letter-spacing:3px;
+  text-shadow:0 4px 24px rgba(0,0,0,.8);
+  color:#fff;
+}
+.player-subtitle{font-size:13px;color:rgba(255,255,255,.5);font-weight:500;margin-top:-14px;}
+
+/* Player Controls */
+.player-controls-overlay{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:24px 20px 16px;
+  background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,transparent 100%);z-index:6;
+}
+.progress-bar{
+  width:100%;height:4px;border-radius:99px;
+  background:rgba(255,255,255,.2);margin-bottom:14px;
+  cursor:pointer;position:relative;overflow:visible;
+}
+.progress-fill{
+  height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  width:58%;position:relative;transition:width .1s;
+}
+.progress-fill::after{
+  content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);
+  width:14px;height:14px;border-radius:50%;
+  background:#fff;box-shadow:0 0 10px rgba(0,200,240,.6);
+}
+.progress-buffered{position:absolute;top:0;left:0;height:100%;border-radius:99px;background:rgba(255,255,255,.12);width:75%;}
+
+/* Chapter Markers */
+.chapter-marker{
+  position:absolute;top:-3px;width:2px;height:10px;
+  background:rgba(255,255,255,.4);border-radius:1px;
+  transform:translateX(-50%);z-index:1;
+}
+.chapter-marker:hover::after{
+  content:attr(data-label);
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.9);border:1px solid var(--border2);
+  color:#fff;font-size:10px;font-weight:600;white-space:nowrap;
+  padding:3px 8px;border-radius:4px;
+}
+
+.controls-row{display:flex;align-items:center;gap:12px;}
+.ctrl-btn{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.8);transition:color .2s,background .2s;flex-shrink:0;
+}
+.ctrl-btn:hover{color:#fff;background:rgba(255,255,255,.12);}
+.ctrl-btn svg{width:18px;height:18px;}
+.ctrl-btn.play-main{background:var(--accent);color:#fff;box-shadow:0 0 16px rgba(232,23,63,.4);}
+.ctrl-btn.play-main:hover{background:var(--accent2);}
+.ctrl-btn.skip-ep{
+  display:flex;align-items:center;gap:4px;
+  width:auto;padding:0 10px;border-radius:20px;
+  font-size:11px;font-weight:700;color:rgba(255,255,255,.7);
+  border:1px solid rgba(255,255,255,.2);
+}
+.ctrl-btn.skip-ep:hover{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);}
+.ctrl-btn.skip-ep svg{width:14px;height:14px;}
+.ctrl-time{font-size:12px;font-weight:600;color:rgba(255,255,255,.7);white-space:nowrap;margin-left:4px;}
+.ctrl-sep{color:rgba(255,255,255,.3);}
+.ctrl-right{margin-left:auto;display:flex;align-items:center;gap:4px;}
+.volume-wrap{display:flex;align-items:center;gap:6px;}
+.volume-slider{width:72px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);position:relative;cursor:pointer;}
+.volume-fill{height:100%;border-radius:99px;background:rgba(255,255,255,.7);width:80%;}
+.quality-badge{padding:4px 9px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.5px;background:var(--gold);color:#000;cursor:pointer;transition:opacity .2s;}
+.quality-badge:hover{opacity:.8;}
+
+/* Player top bar */
+.player-top-bar{
+  position:absolute;top:0;left:0;right:0;
+  padding:16px 20px;
+  background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,transparent 100%);
+  z-index:6;display:flex;align-items:center;gap:12px;
+}
+.player-back-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:8px;
+  font-size:12px;font-weight:600;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);
+  color:rgba(255,255,255,.8);transition:background .2s,color .2s;
+}
+.player-back-btn:hover{background:rgba(0,0,0,.8);color:#fff;}
+.player-back-btn svg{width:14px;height:14px;}
+.player-top-title{font-size:13px;font-weight:700;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.player-ep-nav{display:flex;align-items:center;gap:6px;}
+.ep-nav-btn{
+  display:flex;align-items:center;gap:4px;
+  padding:5px 12px;border-radius:6px;
+  font-size:11px;font-weight:700;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.7);transition:all .2s;white-space:nowrap;
+}
+.ep-nav-btn:hover{background:rgba(0,0,0,.8);color:#fff;border-color:rgba(255,255,255,.3);}
+.ep-nav-btn svg{width:12px;height:12px;}
+.ep-nav-btn.next-ep-btn{background:rgba(0,200,240,.15);border-color:rgba(0,200,240,.3);color:var(--cyan);}
+.ep-nav-btn.next-ep-btn:hover{background:rgba(0,200,240,.25);}
+
+/* ═══════════════════════════════════════════════════════
+   SERVER / EPISODE SELECTOR BAR
+═══════════════════════════════════════════════════════ */
+.server-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 0;}
+.server-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.server-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.server-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.server-tab{
+  padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;
+  border:1px solid var(--border);background:var(--bg3);color:var(--muted2);
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;
+}
+.server-tab:hover{border-color:var(--cyan);color:var(--cyan);}
+.server-tab.active{background:rgba(0,200,240,.1);border-color:var(--cyan);color:var(--cyan);}
+.server-tab svg{width:12px;height:12px;}
+.server-divider{width:1px;height:24px;background:var(--border);flex-shrink:0;}
+.lang-tabs{display:flex;gap:6px;}
+.lang-tab{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:800;letter-spacing:.5px;border:1px solid var(--border);background:var(--bg3);color:var(--muted2);cursor:pointer;transition:all .2s;}
+.lang-tab.active.sub{background:rgba(139,92,246,.1);border-color:var(--purple);color:var(--purple);}
+.lang-tab.active.dub{background:rgba(34,197,94,.1);border-color:var(--green);color:var(--green);}
+.lang-tab:hover{border-color:var(--border2);color:var(--text);}
+
+/* ═══════════════════════════════════════════════════════
+   SEASON / EPISODE SELECTOR BAR (TV-specific)
+═══════════════════════════════════════════════════════ */
+.season-bar{
+  background:var(--bg);border-bottom:1px solid var(--border);
+  padding:12px 0;
+}
+.season-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.season-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.season-select-wrap{position:relative;}
+.season-select{
+  appearance:none;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:7px 34px 7px 12px;
+  font-size:12px;font-weight:700;color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;
+  transition:border-color .2s;outline:none;
+}
+.season-select:focus,.season-select:hover{border-color:var(--cyan);}
+.season-select-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted2);}
+.season-select-icon svg{width:12px;height:12px;}
+.ep-quick-nav{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px;flex:1;}
+.ep-quick-nav::-webkit-scrollbar{height:2px;}
+.ep-chip{
+  padding:5px 11px;border-radius:6px;font-size:11px;font-weight:700;
+  border:1px solid var(--border);background:var(--bg3);color:var(--muted2);
+  cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
+  position:relative;
+}
+.ep-chip:hover{border-color:var(--border2);color:var(--text);}
+.ep-chip.active{background:rgba(232,23,63,.1);border-color:var(--accent);color:var(--accent2);}
+.ep-chip.watched::after{
+  content:'✓';position:absolute;top:-4px;right:-4px;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--green);color:#000;
+  font-size:8px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+  line-height:12px;text-align:center;
+}
+.ep-chip.watched{opacity:.6;}
+.ep-chip.watched.active{opacity:1;}
+
+/* ═══════════════════════════════════════════════════════
+   CONTENT AREA
+═══════════════════════════════════════════════════════ */
+.content-pad{padding:0 0 40px;}
+.breadcrumb{display:flex;align-items:center;gap:8px;padding:14px 0;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+.breadcrumb a{color:var(--muted2);transition:color .2s;}
+.breadcrumb a:hover{color:var(--accent2);}
+.breadcrumb svg{width:13px;height:13px;opacity:.5;}
+
+/* Show Hero Info */
+.show-info-wrap{display:flex;gap:24px;padding:20px 0 24px;align-items:flex-start;}
+@media(max-width:600px){.show-info-wrap{flex-direction:column;gap:16px;}}
+.show-poster{
+  width:100px;height:150px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:1px;
+  color:rgba(255,255,255,.25);text-align:center;padding:6px;
+  position:relative;overflow:hidden;
+}
+.show-poster-badge{
+  position:absolute;top:6px;right:6px;
+  padding:3px 7px;border-radius:4px;
+  font-size:9px;font-weight:800;background:var(--purple);color:#fff;
+}
+.show-details{flex:1;min-width:0;}
+.show-type-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:99px;
+  font-size:11px;font-weight:700;letter-spacing:.5px;
+  background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);
+  color:var(--purple);margin-bottom:10px;
+}
+.show-type-pill svg{width:12px;height:12px;}
+.show-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);letter-spacing:2px;line-height:1.1;margin-bottom:8px;}
+.show-title span{color:var(--cyan);}
+.ep-now-label{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:8px;
+  background:rgba(0,200,240,.06);border:1px solid rgba(0,200,240,.15);
+  margin-bottom:10px;
+}
+.ep-now-label .en-badge{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--cyan);}
+.ep-now-label .en-title{font-size:13px;font-weight:700;}
+.ep-now-label .en-sep{color:var(--muted);font-size:10px;}
+.ep-now-label .en-duration{font-size:11px;color:var(--muted2);}
+.show-meta-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.mmeta-tag{padding:3px 9px;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.5px;}
+.mmeta-tag.hd{background:rgba(0,200,240,.12);color:var(--cyan);border:1px solid rgba(0,200,240,.25);}
+.mmeta-tag.sub{background:rgba(139,92,246,.12);color:var(--purple);border:1px solid rgba(139,92,246,.25);}
+.mmeta-tag.dub{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.mmeta-tag.ongoing{background:rgba(255,195,64,.12);color:var(--gold);border:1px solid rgba(255,195,64,.25);}
+.mmeta-rating{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:800;color:var(--gold);}
+.mmeta-rating svg{width:13px;height:13px;}
+.mmeta-dot{width:3px;height:3px;border-radius:50%;background:var(--dim);}
+.show-desc{font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:16px;max-width:720px;}
+.show-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.btn-primary{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 28px;border-radius:10px;
+  font-size:14px;font-weight:800;
+  background:var(--accent);color:#fff;
+  transition:background .2s,transform .15s,box-shadow .2s;
+  box-shadow:0 0 24px rgba(232,23,63,.4);
+}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn-primary svg{width:18px;height:18px;}
+.btn-secondary{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 22px;border-radius:10px;
+  font-size:14px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text);
+  transition:border-color .2s,background .2s;
+}
+.btn-secondary:hover{border-color:var(--cyan);background:rgba(0,200,240,.05);}
+.btn-secondary svg{width:16px;height:16px;}
+.btn-icon{
+  width:44px;height:44px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--muted2);transition:all .2s;
+}
+.btn-icon:hover{border-color:var(--border2);color:var(--text);}
+.btn-icon svg{width:18px;height:18px;}
+.btn-icon.liked{color:var(--accent);border-color:rgba(232,23,63,.3);background:rgba(232,23,63,.08);}
+
+/* ═══════════════════════════════════════════════════════
+   SHOW STATS GRID
+═══════════════════════════════════════════════════════ */
+.details-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+  gap:10px;margin-bottom:24px;
+}
+.detail-card{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;transition:border-color .2s;
+}
+.detail-card:hover{border-color:var(--border2);}
+.detail-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.detail-val{font-size:14px;font-weight:800;}
+.detail-val.gold{color:var(--gold);}
+.detail-val.cyan{color:var(--cyan);}
+.detail-val.accent{color:var(--accent2);}
+.detail-val.purple{color:var(--purple);}
+
+/* ═══════════════════════════════════════════════════════
+   GENRE PILLS
+═══════════════════════════════════════════════════════ */
+.genres-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;}
+.genre-pill{
+  padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg3);color:var(--muted2);
+  cursor:pointer;transition:all .2s;
+}
+.genre-pill:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION TITLES
+═══════════════════════════════════════════════════════ */
+.sec-mini-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.sec-mini-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;gap:10px;}
+.sec-mini-title .icon-wrap{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#9b14cf);display:flex;align-items:center;justify-content:center;}
+.sec-mini-title .icon-wrap svg{width:12px;height:12px;color:#fff;}
+.sec-mini-title .accent{color:var(--accent2);}
+.see-all{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--accent2);transition:gap .2s;}
+.see-all:hover{gap:10px;}
+.see-all svg{width:13px;height:13px;}
+
+/* ═══════════════════════════════════════════════════════
+   TABS (Episodes / Details / Cast / Comments)
+═══════════════════════════════════════════════════════ */
+.content-tabs{
+  display:flex;align-items:center;gap:4px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:28px;padding-bottom:0;
+  overflow-x:auto;
+}
+.content-tabs::-webkit-scrollbar{height:0;}
+.ctab{
+  padding:12px 18px;font-size:13px;font-weight:700;
+  color:var(--muted2);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .2s,border-color .2s;white-space:nowrap;
+}
+.ctab:hover{color:var(--text);}
+.ctab.active{color:var(--text);border-color:var(--accent);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ═══════════════════════════════════════════════════════
+   EPISODE LIST (in tabs)
+═══════════════════════════════════════════════════════ */
+.ep-list-controls{
+  display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;
+}
+.ep-sort-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;
+  border:1px solid var(--border);background:var(--bg3);color:var(--muted2);
+  cursor:pointer;transition:all .2s;
+}
+.ep-sort-btn:hover,.ep-sort-btn.active{border-color:var(--cyan);color:var(--cyan);}
+.ep-sort-btn svg{width:13px;height:13px;}
+.ep-search{
+  flex:1;background:var(--bg3);border:1px solid var(--border);
+  border-radius:7px;padding:7px 14px;font-size:12px;
+  color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;outline:none;
+  transition:border-color .2s;max-width:240px;
+}
+.ep-search:focus{border-color:var(--cyan);}
+.ep-search::placeholder{color:var(--muted);}
+.ep-count-badge{font-size:12px;color:var(--muted);margin-left:auto;}
+
+.ep-list{display:flex;flex-direction:column;gap:2px;}
+.ep-row{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 14px;border-radius:10px;
+  cursor:pointer;transition:background .2s;
+  border:1px solid transparent;position:relative;
+}
+.ep-row:hover{background:rgba(255,255,255,.03);border-color:var(--border);}
+.ep-row.current{background:rgba(232,23,63,.05);border-color:rgba(232,23,63,.2);}
+.ep-row.current::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:2px 0 0 2px;}
+.ep-row.watched{opacity:.55;}
+.ep-row.watched.current{opacity:1;}
+.ep-thumb{
+  width:100px;height:58px;border-radius:7px;flex-shrink:0;overflow:hidden;
+  position:relative;background:var(--bg3);
+}
+.ep-thumb-ph{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:8px;letter-spacing:1px;
+  color:rgba(255,255,255,.25);text-align:center;
+}
+.ep-thumb-progress{
+  position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:rgba(255,255,255,.1);
+}
+.ep-thumb-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.ep-play-hover{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0);transition:background .2s;
+}
+.ep-row:hover .ep-play-hover{background:rgba(0,0,0,.55);}
+.ep-play-hover svg{width:24px;height:24px;color:#fff;opacity:0;transition:opacity .2s;}
+.ep-row:hover .ep-play-hover svg{opacity:1;}
+.ep-num-badge{
+  position:absolute;top:4px;left:4px;
+  background:rgba(0,0,0,.8);color:#fff;
+  font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;
+}
+.ep-duration-badge{
+  position:absolute;bottom:4px;right:4px;
+  background:rgba(0,0,0,.8);color:#fff;
+  font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;
+}
+.ep-info{flex:1;min-width:0;}
+.ep-meta-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.ep-num-label{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);text-transform:uppercase;}
+.ep-airdate{font-size:10px;color:var(--muted);}
+.ep-title-text{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+.ep-desc-text{font-size:11px;color:var(--muted2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ep-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.ep-watched-icon{width:20px;height:20px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;}
+.ep-watched-icon svg{width:11px;height:11px;color:#000;}
+.ep-score{display:flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--gold);}
+.ep-score svg{width:10px;height:10px;}
+@media(max-width:600px){
+  .ep-thumb{width:80px;height:48px;}
+  .ep-desc-text{display:none;}
+}
+
+/* ═══════════════════════════════════════════════════════
+   CAST SECTION
+═══════════════════════════════════════════════════════ */
+.cast-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;}
+.cast-row::-webkit-scrollbar{height:2px;}
+.cast-card{flex-shrink:0;text-align:center;cursor:pointer;width:80px;transition:transform .2s;}
+.cast-card:hover{transform:translateY(-3px);}
+.cast-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:rgba(255,255,255,.7);margin:0 auto 7px;}
+.ca1{background:linear-gradient(145deg,#1a0533,#4a0a8c);}
+.ca2{background:linear-gradient(145deg,#001a33,#003d80);}
+.ca3{background:linear-gradient(145deg,#330015,#80002b);}
+.ca4{background:linear-gradient(145deg,#001a1a,#004455);}
+.ca5{background:linear-gradient(145deg,#1a1a00,#3d3d00);}
+.ca6{background:linear-gradient(145deg,#1a0010,#4d003a);}
+.cast-name{font-size:11px;font-weight:700;line-height:1.2;margin-bottom:2px;}
+.cast-role{font-size:10px;color:var(--muted);line-height:1.2;}
+
+/* ═══════════════════════════════════════════════════════
+   RATING WIDGET
+═══════════════════════════════════════════════════════ */
+.rating-widget{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:20px;margin-bottom:20px;
+  display:flex;gap:20px;align-items:center;flex-wrap:wrap;
+}
+.rating-score-big{text-align:center;flex-shrink:0;}
+.rsb-num{font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:1;background:linear-gradient(135deg,var(--gold),#ff9500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.rsb-stars{display:flex;gap:3px;justify-content:center;margin-bottom:4px;}
+.rsb-stars svg{width:14px;height:14px;color:var(--gold);}
+.rsb-count{font-size:11px;color:var(--muted);}
+.rating-bars{flex:1;min-width:160px;}
+.rbar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.rbar-label{font-size:11px;font-weight:600;color:var(--muted2);width:30px;text-align:right;}
+.rbar-track{flex:1;height:6px;border-radius:99px;background:var(--dim);}
+.rbar-fill{height:100%;border-radius:99px;background:var(--gold);}
+.rbar-count{font-size:11px;color:var(--muted);width:28px;}
+.rating-user-wrap{flex-shrink:0;text-align:center;}
+.rating-user-label{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.user-stars{display:flex;gap:6px;justify-content:center;}
+.user-star{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all .2s;color:var(--muted);}
+.user-star:hover{background:rgba(255,195,64,.1);border-color:var(--gold);color:var(--gold);}
+.user-star.active{background:rgba(255,195,64,.15);border-color:var(--gold);color:var(--gold);}
+.user-star svg{width:16px;height:16px;}
+
+/* ═══════════════════════════════════════════════════════
+   COMMENTS
+═══════════════════════════════════════════════════════ */
+.comment-input-row{display:flex;gap:12px;margin-bottom:24px;align-items:flex-start;}
+.ci-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--accent),#9b14cf);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;}
+.ci-box{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:none;transition:border-color .2s;min-height:44px;caret-color:var(--cyan);}
+.ci-box:focus{border-color:var(--cyan);}
+.ci-box::placeholder{color:var(--muted);}
+.comment-list{display:flex;flex-direction:column;gap:20px;}
+.comment{display:flex;gap:12px;}
+.c-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.c-body{flex:1;}
+.c-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.c-name{font-size:13px;font-weight:700;}
+.c-time{font-size:11px;color:var(--muted);}
+.c-badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(232,23,63,.15);color:var(--accent2);}
+.c-text{font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:8px;}
+.c-actions{display:flex;gap:12px;}
+.c-action{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;transition:color .2s;}
+.c-action:hover{color:var(--accent2);}
+.c-action svg{width:12px;height:12px;}
+.c-action.liked{color:var(--accent);}
+.ep-spoiler-tag{font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--gold);padding:1px 6px;border:1px solid rgba(255,195,64,.3);border-radius:3px;background:rgba(255,195,64,.08);}
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR — EPISODES UP NEXT
+═══════════════════════════════════════════════════════ */
+.sidebar-head{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sidebar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;}
+.sidebar-season-badge{
+  padding:4px 10px;border-radius:6px;
+  font-size:11px;font-weight:800;
+  background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);
+  color:var(--purple);
+}
+.sidebar-sort{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted2);cursor:pointer;transition:color .2s;}
+.sidebar-sort:hover{color:var(--cyan);}
+.sidebar-sort svg{width:13px;height:13px;}
+.sidebar-ad-slot{padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:center;}
+
+/* Episode Card in Sidebar */
+.ep-sidebar-card{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .2s;display:flex;gap:12px;
+  align-items:flex-start;position:relative;
+}
+.ep-sidebar-card:hover{background:rgba(255,255,255,.03);}
+.ep-sidebar-card.current{background:rgba(0,200,240,.04);}
+.ep-sidebar-card.current::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan);border-radius:0 2px 2px 0;}
+.ep-sidebar-card.watched{opacity:.55;}
+.ep-sidebar-card.watched.current{opacity:1;}
+.esc-thumb{
+  width:88px;height:52px;border-radius:7px;overflow:hidden;flex-shrink:0;
+  position:relative;background:var(--bg3);
+}
+.esc-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:7px;letter-spacing:1px;color:rgba(255,255,255,.25);text-align:center;}
+.esc-play-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0);transition:background .2s;}
+.ep-sidebar-card:hover .esc-play-icon{background:rgba(0,0,0,.5);}
+.esc-play-icon svg{width:22px;height:22px;color:#fff;opacity:0;transition:opacity .2s;}
+.ep-sidebar-card:hover .esc-play-icon svg{opacity:1;}
+.esc-duration{position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,.8);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;}
+.esc-ep-progress{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,.1);}
+.esc-ep-progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));}
+.esc-info{flex:1;min-width:0;}
+.esc-label{font-size:9px;font-weight:800;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;display:flex;align-items:center;gap:5px;}
+.esc-watched-check{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;border-radius:50%;background:var(--green);}
+.esc-watched-check svg{width:8px;height:8px;color:#000;}
+.esc-title{font-size:12px;font-weight:700;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.esc-meta{font-size:10px;color:var(--muted2);}
+.esc-score{display:flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--gold);flex-shrink:0;padding-top:2px;}
+.esc-score svg{width:9px;height:9px;}
+
+/* Continue Watching Banner */
+.continue-banner{
+  padding:12px 16px;
+  background:rgba(0,200,240,.04);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.continue-banner-icon{width:32px;height:32px;border-radius:8px;background:rgba(0,200,240,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.continue-banner-icon svg{width:16px;height:16px;color:var(--cyan);}
+.continue-banner-info{flex:1;}
+.continue-banner-label{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--cyan);text-transform:uppercase;margin-bottom:1px;}
+.continue-banner-text{font-size:12px;font-weight:600;color:var(--muted2);}
+.continue-banner-progress-bar{height:3px;background:rgba(255,255,255,.1);border-radius:99px;margin-top:6px;}
+.continue-banner-progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:99px;width:58%;}
+
+/* ═══════════════════════════════════════════════════════
+   RELATED SHOWS ROW
+═══════════════════════════════════════════════════════ */
+.related-section{padding:32px 0;border-top:1px solid var(--border);}
+.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+.rcard{cursor:pointer;transition:transform .25s;}
+.rcard:hover{transform:translateY(-5px);}
+.rcard-thumb{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:2/3;background:var(--bg3);margin-bottom:10px;}
+.rcard-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.25);text-align:center;padding:8px;}
+.rcard-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(6,9,16,.95) 100%);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;}
+.rcard:hover .rcard-overlay{opacity:1;}
+.rcard-play-btn{width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(232,23,63,.6);}
+.rcard-play-btn svg{width:18px;height:18px;margin-left:2px;}
+.rcard-badge{position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;}
+.badge-hd{background:rgba(34,197,94,.2);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.badge-new{background:var(--accent);color:#fff;}
+.badge-ongoing{background:rgba(255,195,64,.2);color:var(--gold);border:1px solid rgba(255,195,64,.3);}
+.rcard-score{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:3px;font-size:10px;font-weight:700;background:rgba(0,0,0,.75);padding:3px 7px;border-radius:5px;color:var(--gold);}
+.rcard-score svg{width:10px;height:10px;}
+.rcard-title{font-size:12px;font-weight:700;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.rcard-meta{font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:5px;}
+.rcard-dot{width:3px;height:3px;border-radius:50%;background:var(--dim);}
+
+/* ═══════════════════════════════════════════════════════
+   INLINE AD
+═══════════════════════════════════════════════════════ */
+.inline-ad-wrap{padding:20px 0;display:flex;justify-content:center;}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+#toast{
+  position:fixed;bottom:calc(var(--bot-nav-h) + 16px);right:20px;z-index:999;
+  padding:12px 18px;border-radius:10px;
+  background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text);font-size:13px;font-weight:500;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transform:translateY(80px);opacity:0;
+  transition:transform .3s,opacity .3s;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1;}
+@media(min-width:769px){#toast{bottom:20px;}}
+
+/* ═══════════════════════════════════════════════════════
+   SEARCH OVERLAY
+═══════════════════════════════════════════════════════ */
+#search-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(6,9,16,.97);backdrop-filter:blur(24px);
+  display:flex;flex-direction:column;align-items:center;
+  padding-top:100px;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+#search-overlay.open{opacity:1;pointer-events:all;}
+.so-inner{width:100%;max-width:680px;padding:0 24px;}
+.so-box{display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--cyan);padding-bottom:14px;}
+.so-box svg{width:26px;height:26px;color:var(--cyan);flex-shrink:0;}
+.so-box input{flex:1;background:none;border:none;outline:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:300;color:var(--text);caret-color:var(--cyan);}
+.so-box input::placeholder{color:var(--muted);}
+.so-tags{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
+.so-tag{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all .2s;}
+.so-tag:hover{border-color:var(--cyan);color:var(--cyan);}
+.so-close{position:absolute;top:18px;right:20px;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--muted);cursor:pointer;transition:color .2s,background .2s;}
+.so-close:hover{color:var(--text);background:var(--bg3);}
+
+/* ═══════════════════════════════════════════════════════
+   POSTER COLOR PALETTES
+═══════════════════════════════════════════════════════ */
+.c1{background:linear-gradient(145deg,#001433,#003d99);}
+.c2{background:linear-gradient(145deg,#001433,#0a2060);}
+.c3{background:linear-gradient(145deg,#1a0033,#4a0099);}
+.c4{background:linear-gradient(145deg,#001a1a,#004466);}
+.c5{background:linear-gradient(145deg,#1a0010,#550033);}
+.c6{background:linear-gradient(145deg,#0a0a00,#2a2a00);}
+.c7{background:linear-gradient(145deg,#000f1a,#003355);}
+.c8{background:linear-gradient(145deg,#1a0a00,#553300);}
+
+/* ═══════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════ */
+.footer-mini{background:var(--bg);border-top:1px solid var(--border);padding:28px 0;}
+.footer-mini-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.foot-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;background:linear-gradient(135deg,var(--accent2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.foot-links{display:flex;gap:20px;flex-wrap:wrap;}
+.foot-links a{font-size:12px;color:var(--muted);transition:color .2s;}
+.foot-links a:hover{color:var(--text);}
+.foot-copy{font-size:12px;color:var(--muted);}
+
+/* ═══════════════════════════════════════════════════════
+   WATCHLIST NOTIFY BANNER
+═══════════════════════════════════════════════════════ */
+.notify-banner{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;
+  background:rgba(139,92,246,.06);
+  border:1px solid rgba(139,92,246,.15);
+  border-radius:10px;margin-bottom:20px;
+}
+.notify-banner svg{width:18px;height:18px;color:var(--purple);flex-shrink:0;}
+.notify-banner-text{flex:1;font-size:12px;color:var(--muted2);}
+.notify-banner-text strong{color:var(--text);}
+.notify-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.3);color:var(--purple);transition:all .2s;white-space:nowrap;}
+.notify-btn:hover{background:rgba(139,92,246,.3);}
+</style>
+</head>
+<body>
+
+<!-- ═══════ TOP NAVIGATION ═══════ -->
+<nav id="topnav">
+  <a href="#" class="vx-logo">VEXIO<sup>HD</sup></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </a>
+    <a href="/#now-airing" class="nav-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      Browse
+    </a>
+    <a href="/#genres" class="nav-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+      Genre
+    </a>
+    <a href="/#now-airing" class="nav-link active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+      TV Shows
+    </a>
+    <a href="/#trending" class="nav-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      Trending
+    </a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-search-bar" id="searchOpen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span>Search shows, episodes…</span>
+      <kbd>⌘K</kbd>
+    </div>
+    <a href="#" class="nav-sign-btn">Sign In</a>
+    <button class="mobile-search-btn" id="mobileSearchOpen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══════ SEARCH OVERLAY ═══════ -->
+<div id="search-overlay">
+  <button class="so-close" id="searchClose">✕</button>
+  <div class="so-inner">
+    <div class="so-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search shows, episodes…" autocomplete="off"/>
+    </div>
+    <div class="so-tags">
+      <span class="so-tag">🔥 Trending</span>
+      <span class="so-tag">📺 New Shows</span>
+      <span class="so-tag">🚀 Sci-Fi</span>
+      <span class="so-tag">🧠 Thriller</span>
+      <span class="so-tag">💀 Horror</span>
+      <span class="so-tag">💘 Romance</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ PAGE WRAP ═══════ -->
+<div class="page-wrap">
+
+  <!-- TOP LEADERBOARD AD -->
+  <div class="top-ad-bar">
+    <div class="ad-box ad-728">
+      <span class="ad-label">Advertisement</span>
+      <span class="ad-copy">✦ DUMMY LEADERBOARD AD — 728×90 ✦</span>
+      <span class="ad-sub">Placeholder / Demo Placement</span>
+    </div>
+  </div>
+
+  <!-- WATCH LAYOUT -->
+  <div class="watch-layout">
+
+    <!-- ══ MAIN COLUMN ══ -->
+    <div class="watch-main">
+
+      <!-- VIDEO PLAYER -->
+      <div class="player-wrap" id="playerWrap">
+        <div class="player-bg">
+          <div class="player-backdrop"></div>
+          <div class="player-grid-overlay"></div>
+          <div class="player-particles" id="particles"></div>
+          <div class="player-center">
+            <div class="play-ring" onclick="initPlay()">
+              <div class="play-ring-inner">
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </div>
+            </div>
+            <div class="player-ep-badge">
+              <div class="ep-dot"></div>
+              S2 · E7
+            </div>
+            <div class="player-title-overlay">STELLAR <span style="color:var(--cyan)">DRIFT</span></div>
+            <div class="player-subtitle">"The Void Between Stars" · 47m</div>
+          </div>
+        </div>
+
+        <!-- Next Episode Overlay -->
+        <div class="next-ep-overlay" id="nextEpOverlay">
+          <div style="text-align:center;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:4px;">Up Next</div>
+            <div class="nec-countdown" id="nextCountdown">5</div>
+            <div class="nec-countdown-label">seconds until next episode</div>
+          </div>
+          <div class="next-ep-card">
+            <div class="nec-thumb c1">S2 · E8</div>
+            <div class="nec-info">
+              <div class="nec-label">Season 2, Episode 8</div>
+              <div class="nec-title">"Echoes of the Singularity"</div>
+              <div class="nec-meta">44m · Airdate: Mar 22, 2024</div>
+              <div class="nec-buttons">
+                <button class="nec-btn-play" onclick="playNextEpisode()">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Play Now
+                </button>
+                <button class="nec-btn-cancel" onclick="cancelNextEp()">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Bar -->
+        <div class="player-top-bar">
+          <button class="player-back-btn" onclick="showToast('← Back to Stellar Drift')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <div class="player-top-title">Stellar Drift — S2:E7 "The Void Between Stars" [4K HDR]</div>
+          <div class="player-ep-nav">
+            <button class="ep-nav-btn" onclick="showToast('← Previous: S2 E6 — Fractured Horizon')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Prev EP
+            </button>
+            <button class="ep-nav-btn next-ep-btn" onclick="triggerNextEp()">
+              Next EP
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="player-controls-overlay">
+          <div class="progress-bar" id="progressBar" onclick="seekVideo(event)">
+            <div class="progress-buffered"></div>
+            <!-- Chapter markers -->
+            <div class="chapter-marker" style="left:18%" data-label="Act I"></div>
+            <div class="chapter-marker" style="left:42%" data-label="Act II"></div>
+            <div class="chapter-marker" style="left:74%" data-label="Act III"></div>
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="controls-row">
+            <button class="ctrl-btn" onclick="skipBack()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 2 12 11 7 11 17"/><polyline points="22 17 13 12 22 7 22 17"/></svg>
+            </button>
+            <button class="ctrl-btn play-main" id="playBtn" onclick="togglePlay()">
+              <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <button class="ctrl-btn" onclick="skipFwd()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 22 12 13 7 13 17"/><polyline points="2 17 11 12 2 7 2 17"/></svg>
+            </button>
+            <button class="ctrl-btn skip-ep" onclick="showToast('⏭ Intro skipped!')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 22 12 13 7 13 17"/><line x1="2" y1="12" x2="2" y2="12"/></svg>
+              Skip Intro
+            </button>
+            <div class="volume-wrap">
+              <button class="ctrl-btn" onclick="toggleMute()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              </button>
+              <div class="volume-slider" onclick="setVolume(event)">
+                <div class="volume-fill" id="volFill"></div>
+              </div>
+            </div>
+            <span class="ctrl-time"><span id="curTime">27:14</span> <span class="ctrl-sep">/</span> 47:03</span>
+            <div class="ctrl-right">
+              <span class="quality-badge" onclick="showToast('Quality selector opened')">4K</span>
+              <button class="ctrl-btn" onclick="showToast('Subtitles: English')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 9h.01M11 9h.01M15 9h.01M7 13h.01M11 13h.01M15 13h.01"/></svg>
+              </button>
+              <button class="ctrl-btn" onclick="showToast('Settings opened')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M4.93 4.93a10 10 0 0 0 0 14.14M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+              </button>
+              <button class="ctrl-btn" onclick="toggleFullscreen()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /player-wrap -->
+
+      <!-- SERVER / LANGUAGE SELECTOR -->
+      <div class="server-bar">
+        <div class="container">
+          <div class="server-inner">
+            <span class="server-label">Server</span>
+            <div class="server-tabs">
+              <button class="server-tab active" onclick="selectServer(this,'VX-1')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2m20 0-4 4m4-4-4-4M2 12l4 4M2 12l4-4"/></svg>
+                VX-1 <span style="color:var(--green);font-size:9px;">●</span>
+              </button>
+              <button class="server-tab" onclick="selectServer(this,'VX-2')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2m20 0-4 4m4-4-4-4M2 12l4 4M2 12l4-4"/></svg>
+                VX-2
+              </button>
+              <button class="server-tab" onclick="selectServer(this,'HD-Fast')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2m20 0-4 4m4-4-4-4M2 12l4 4M2 12l4-4"/></svg>
+                HD-Fast
+              </button>
+              <button class="server-tab" onclick="selectServer(this,'Backup')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2m20 0-4 4m4-4-4-4M2 12l4 4M2 12l4-4"/></svg>
+                Backup
+              </button>
+            </div>
+            <div class="server-divider"></div>
+            <div class="lang-tabs">
+              <button class="lang-tab active sub" onclick="selectLang(this,'sub')">SUB</button>
+              <button class="lang-tab dub" onclick="selectLang(this,'dub')">DUB</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEASON / EPISODE QUICK NAV -->
+      <div class="season-bar">
+        <div class="container">
+          <div class="season-inner">
+            <span class="season-label">Season</span>
+            <div class="season-select-wrap">
+              <select class="season-select" onchange="showToast('Switched to ' + this.options[this.selectedIndex].text)">
+                <option>Season 1 (12 eps)</option>
+                <option selected>Season 2 (10 eps)</option>
+                <option>Season 3 (8 eps) — Ongoing</option>
+              </select>
+              <span class="season-select-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </div>
+            <div class="ep-quick-nav" id="epQuickNav">
+              <button class="ep-chip watched" onclick="selectEpChip(this,1)" data-ep="1">E1</button>
+              <button class="ep-chip watched" onclick="selectEpChip(this,2)" data-ep="2">E2</button>
+              <button class="ep-chip watched" onclick="selectEpChip(this,3)" data-ep="3">E3</button>
+              <button class="ep-chip watched" onclick="selectEpChip(this,4)" data-ep="4">E4</button>
+              <button class="ep-chip watched" onclick="selectEpChip(this,5)" data-ep="5">E5</button>
+              <button class="ep-chip watched" onclick="selectEpChip(this,6)" data-ep="6">E6</button>
+              <button class="ep-chip active" onclick="selectEpChip(this,7)" data-ep="7">E7</button>
+              <button class="ep-chip" onclick="selectEpChip(this,8)" data-ep="8">E8</button>
+              <button class="ep-chip" onclick="selectEpChip(this,9)" data-ep="9">E9</button>
+              <button class="ep-chip" onclick="selectEpChip(this,10)" data-ep="10">E10</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENT AREA -->
+      <div class="container">
+        <div class="content-pad">
+
+          <!-- BREADCRUMB -->
+          <div class="breadcrumb">
+            <a href="#">Home</a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            <a href="#">TV Shows</a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            <a href="#">Sci-Fi</a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            <a href="#">Stellar Drift</a>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            <span>S2 E7</span>
+          </div>
+
+          <!-- SHOW HERO INFO -->
+          <div class="show-info-wrap">
+            <div class="show-poster c1">
+              <div class="show-poster-badge">S3 ONGOING</div>
+              STELLAR<br/>DRIFT
+            </div>
+            <div class="show-details">
+              <div class="show-type-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                TV Series · Sci-Fi · 2022 – Present
+              </div>
+              <div class="show-title">Stellar <span>Drift</span></div>
+
+              <!-- Currently Playing Episode -->
+              <div class="ep-now-label">
+                <span class="en-badge">NOW PLAYING</span>
+                <span class="en-sep">·</span>
+                <span class="en-title">S2 E7 — "The Void Between Stars"</span>
+                <span class="en-sep">·</span>
+                <span class="en-duration">47m</span>
+              </div>
+
+              <div class="show-meta-row">
+                <span class="mmeta-tag hd">4K HDR</span>
+                <span class="mmeta-tag sub">SUB</span>
+                <span class="mmeta-tag dub">DUB</span>
+                <span class="mmeta-tag ongoing">● ONGOING</span>
+                <div class="mmeta-rating">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  9.1
+                </div>
+                <div class="mmeta-dot"></div>
+                <span style="font-size:12px;color:var(--muted2)">3 Seasons</span>
+                <div class="mmeta-dot"></div>
+                <span style="font-size:12px;color:var(--muted2)">30 Episodes</span>
+                <div class="mmeta-dot"></div>
+                <span style="font-size:12px;color:var(--muted2)">TV-MA</span>
+              </div>
+              <div class="show-desc">
+                When Earth's last generation-ship loses contact with its destination colony, Commander Yara Nyx must navigate a fractured crew, rogue AI mutinies, and the terrifying silence that suggests they are not alone in the void.
+              </div>
+              <div class="show-actions">
+                <button class="btn-primary" onclick="initPlay()">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Resume S2 E7
+                </button>
+                <button class="btn-secondary" onclick="showToast('Added to Watchlist ✓')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Watchlist
+                </button>
+                <button class="btn-icon liked" id="likeBtn" onclick="toggleLike()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </button>
+                <button class="btn-icon" onclick="showToast('Link copied to clipboard!')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                </button>
+                <button class="btn-icon" onclick="showToast('Download started!')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STATS GRID -->
+          <div class="details-grid">
+            <div class="detail-card">
+              <div class="detail-label">IMDb Rating</div>
+              <div class="detail-val gold">★ 9.1 / 10</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Episodes</div>
+              <div class="detail-val">30 Total</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Premiered</div>
+              <div class="detail-val cyan">Sep 04, 2022</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Status</div>
+              <div class="detail-val" style="color:var(--gold)">Ongoing ●</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Studio</div>
+              <div class="detail-val">Orbit Films</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Views</div>
+              <div class="detail-val accent">18.7M</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Quality</div>
+              <div class="detail-val">4K · HDR10</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Network</div>
+              <div class="detail-val purple">APEX+</div>
+            </div>
+          </div>
+
+          <!-- GENRES -->
+          <div class="genres-row">
+            <span class="genre-pill">🚀 Sci-Fi</span>
+            <span class="genre-pill">🌌 Space Opera</span>
+            <span class="genre-pill">🤖 AI / Android</span>
+            <span class="genre-pill">🎭 Drama</span>
+            <span class="genre-pill">🧠 Thriller</span>
+            <span class="genre-pill">🌑 Mystery</span>
+            <span class="genre-pill">⚡ Action</span>
+          </div>
+
+          <!-- NOTIFY BANNER -->
+          <div class="notify-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div class="notify-banner-text"><strong>Season 3</strong> is currently airing — new episodes every Friday. <strong>E8 drops in 3 days.</strong></div>
+            <button class="notify-btn" onclick="showToast('🔔 Notifications enabled for Stellar Drift!')">Notify Me</button>
+          </div>
+
+          <!-- INLINE AD -->
+          <div class="inline-ad-wrap">
+            <div class="ad-box ad-728">
+              <span class="ad-label">Advertisement</span>
+              <span class="ad-copy">✦ DUMMY MID-PAGE AD — 728×90 ✦</span>
+              <span class="ad-sub">Placeholder / Demo Placement</span>
+            </div>
+          </div>
+
+          <!-- TABS -->
+          <div class="content-tabs">
+            <button class="ctab active" onclick="switchTab('episodes',this)">📺 Episodes</button>
+            <button class="ctab" onclick="switchTab('cast',this)">🎭 Cast & Crew</button>
+            <button class="ctab" onclick="switchTab('details',this)">ℹ️ Details</button>
+            <button class="ctab" onclick="switchTab('comments',this)">💬 Comments (2.1k)</button>
+          </div>
+
+          <!-- TAB: EPISODES -->
+          <div class="tab-panel active" id="tab-episodes">
+            <div class="ep-list-controls">
+              <button class="ep-sort-btn active" onclick="showToast('Sorted: Oldest First')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>
+                Asc
+              </button>
+              <button class="ep-sort-btn" onclick="showToast('Sorted: Newest First')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="9" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                Desc
+              </button>
+              <input type="text" class="ep-search" placeholder="Search episode…"/>
+              <span class="ep-count-badge">10 episodes · Season 2</span>
+            </div>
+            <div class="ep-list">
+
+              <!-- E1 - Watched -->
+              <div class="ep-row watched" onclick="selectEpisode(1)">
+                <div class="ep-thumb c2">
+                  <div class="ep-thumb-ph">S2 E1</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E1</span>
+                  <span class="ep-duration-badge">44m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:100%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 1</span><span class="ep-airdate">Jan 12, 2024</span></div>
+                  <div class="ep-title-text">Fractured Horizon</div>
+                  <div class="ep-desc-text">After the mutiny, Commander Nyx wakes aboard the Argo's secondary bay to find half the crew missing. With navigation offline, the journey to find them begins.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-watched-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.2</div>
+                </div>
+              </div>
+
+              <!-- E2 -->
+              <div class="ep-row watched" onclick="selectEpisode(2)">
+                <div class="ep-thumb c3">
+                  <div class="ep-thumb-ph">S2 E2</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E2</span>
+                  <span class="ep-duration-badge">41m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:100%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 2</span><span class="ep-airdate">Jan 19, 2024</span></div>
+                  <div class="ep-title-text">The Signal at Perihelion</div>
+                  <div class="ep-desc-text">A distress beacon from a derelict vessel forces the crew to choose between rescue and survival, as ARIA reveals a hidden sub-routine she's been running for 40 years.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-watched-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.8</div>
+                </div>
+              </div>
+
+              <!-- E3 -->
+              <div class="ep-row watched" onclick="selectEpisode(3)">
+                <div class="ep-thumb c4">
+                  <div class="ep-thumb-ph">S2 E3</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E3</span>
+                  <span class="ep-duration-badge">49m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:100%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 3</span><span class="ep-airdate">Jan 26, 2024</span></div>
+                  <div class="ep-title-text">Gravity Well</div>
+                  <div class="ep-desc-text">Trapped in the gravitational pull of a brown dwarf, the Argo must burn its last reserves — or leave three crew members stranded in the void forever.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-watched-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.0</div>
+                </div>
+              </div>
+
+              <!-- E4 -->
+              <div class="ep-row watched" onclick="selectEpisode(4)">
+                <div class="ep-thumb c5">
+                  <div class="ep-thumb-ph">S2 E4</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E4</span>
+                  <span class="ep-duration-badge">52m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:100%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 4</span><span class="ep-airdate">Feb 02, 2024</span></div>
+                  <div class="ep-title-text">Cold Equations</div>
+                  <div class="ep-desc-text">The crew discovers the colony ship was never lost — it was hidden. Someone on board has known the destination all along and has been lying for years.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-watched-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.4</div>
+                </div>
+              </div>
+
+              <!-- E5 -->
+              <div class="ep-row watched" onclick="selectEpisode(5)">
+                <div class="ep-thumb c6">
+                  <div class="ep-thumb-ph">S2 E5</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E5</span>
+                  <span class="ep-duration-badge">46m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:100%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 5</span><span class="ep-airdate">Feb 09, 2024</span></div>
+                  <div class="ep-title-text">Red Dwarf Protocol</div>
+                  <div class="ep-desc-text">ARIA crosses the line the crew feared most. Dr. Sarev must choose whether to shut her down or trust her judgment — and what it would mean to do either.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-watched-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.1</div>
+                </div>
+              </div>
+
+              <!-- E6 -->
+              <div class="ep-row watched" onclick="selectEpisode(6)">
+                <div class="ep-thumb c7">
+                  <div class="ep-thumb-ph">S2 E6</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E6</span>
+                  <span class="ep-duration-badge">51m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:100%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 6</span><span class="ep-airdate">Feb 16, 2024</span></div>
+                  <div class="ep-title-text">Phantom Payload</div>
+                  <div class="ep-desc-text">A hidden cargo bay — sealed since launch — is finally breached. What's inside will permanently divide the crew and set the Argo on an irreversible course.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-watched-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.3</div>
+                </div>
+              </div>
+
+              <!-- E7 - CURRENT -->
+              <div class="ep-row current" onclick="selectEpisode(7)">
+                <div class="ep-thumb c1">
+                  <div class="ep-thumb-ph">S2 E7</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E7</span>
+                  <span class="ep-duration-badge">47m</span>
+                  <div class="ep-thumb-progress"><div class="ep-thumb-progress-fill" style="width:58%"></div></div>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label" style="color:var(--accent);">▶ NOW PLAYING</span><span class="ep-airdate">Mar 01, 2024</span></div>
+                  <div class="ep-title-text">"The Void Between Stars"</div>
+                  <div class="ep-desc-text">Nyx faces a choice no commander should ever have to make. With ARIA silent and the crew fractured, she must confront what they left behind — and whether it ever let them go.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div style="font-size:10px;font-weight:700;color:var(--cyan);">58%</div>
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.7</div>
+                </div>
+              </div>
+
+              <!-- E8 -->
+              <div class="ep-row" onclick="selectEpisode(8)">
+                <div class="ep-thumb c2">
+                  <div class="ep-thumb-ph">S2 E8</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E8</span>
+                  <span class="ep-duration-badge">44m</span>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 8</span><span class="ep-airdate">Mar 08, 2024</span></div>
+                  <div class="ep-title-text">Echoes of the Singularity</div>
+                  <div class="ep-desc-text">The Argo receives a transmission from the future — or something pretending to be. ARIA's cryptic response leaves the crew questioning everything they thought they knew about time.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.0</div>
+                </div>
+              </div>
+
+              <!-- E9 -->
+              <div class="ep-row" onclick="selectEpisode(9)">
+                <div class="ep-thumb c8">
+                  <div class="ep-thumb-ph">S2 E9</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E9</span>
+                  <span class="ep-duration-badge">55m</span>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 9</span><span class="ep-airdate">Mar 15, 2024</span></div>
+                  <div class="ep-title-text">Last Light at Andromeda</div>
+                  <div class="ep-desc-text">The penultimate episode of Season 2 delivers the collision everyone feared — as two crew factions clash in the Argo's corridors, something outside begins to respond.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.5</div>
+                </div>
+              </div>
+
+              <!-- E10 -->
+              <div class="ep-row" onclick="selectEpisode(10)">
+                <div class="ep-thumb c3">
+                  <div class="ep-thumb-ph">S2 E10</div>
+                  <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <span class="ep-num-badge">E10</span>
+                  <span class="ep-duration-badge">61m</span>
+                </div>
+                <div class="ep-info">
+                  <div class="ep-meta-top"><span class="ep-num-label">Episode 10 — Finale</span><span class="ep-airdate">Mar 22, 2024</span></div>
+                  <div class="ep-title-text">Event Horizon</div>
+                  <div class="ep-desc-text">The Season 2 finale. Everything converges. No one is safe. The Argo finally arrives — but arrival was never the destination. A jaw-dropping cliffhanger sets up Season 3.</div>
+                </div>
+                <div class="ep-row-right">
+                  <div class="ep-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.8</div>
+                </div>
+              </div>
+
+            </div>
+          </div><!-- /tab-episodes -->
+
+          <!-- TAB: CAST -->
+          <div class="tab-panel" id="tab-cast">
+            <div class="sec-mini-head" style="margin-bottom:20px;">
+              <div class="sec-mini-title">
+                <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                MAIN <span class="accent">CAST</span>
+              </div>
+              <a href="#" class="see-all" onclick="showToast('Full cast list')">Full Credits <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></a>
+            </div>
+            <div class="cast-row" style="margin-bottom:28px;">
+              <div class="cast-card" onclick="showToast('Zara Nyx — Commander')">
+                <div class="cast-avatar ca1">ZN</div>
+                <div class="cast-name">Lyra Voss</div>
+                <div class="cast-role">Cmdr. Yara Nyx</div>
+              </div>
+              <div class="cast-card" onclick="showToast('Dr. Sarev profile')">
+                <div class="cast-avatar ca2">DS</div>
+                <div class="cast-name">Karan Mehta</div>
+                <div class="cast-role">Dr. Sarev</div>
+              </div>
+              <div class="cast-card" onclick="showToast('ARIA profile')">
+                <div class="cast-avatar ca3">AR</div>
+                <div class="cast-name">Sena Okafor</div>
+                <div class="cast-role">ARIA (Voice)</div>
+              </div>
+              <div class="cast-card" onclick="showToast('Pilot Dax profile')">
+                <div class="cast-avatar ca4">DX</div>
+                <div class="cast-name">Tomas Brek</div>
+                <div class="cast-role">Pilot Dax</div>
+              </div>
+              <div class="cast-card" onclick="showToast('Col. Wren profile')">
+                <div class="cast-avatar ca5">CW</div>
+                <div class="cast-name">Isla Crane</div>
+                <div class="cast-role">Col. Wren</div>
+              </div>
+              <div class="cast-card" onclick="showToast('Engineer Rho profile')">
+                <div class="cast-avatar ca6">ER</div>
+                <div class="cast-name">Finn Aldric</div>
+                <div class="cast-role">Engineer Rho</div>
+              </div>
+              <div class="cast-card" onclick="showToast('Medic Sola profile')">
+                <div class="cast-avatar ca2">MS</div>
+                <div class="cast-name">Anya Petrov</div>
+                <div class="cast-role">Medic Sola</div>
+              </div>
+            </div>
+            <div class="sec-mini-head" style="margin-bottom:16px;"><div class="sec-mini-title"><div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>CREW</div></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:28px;">
+              <div class="detail-card"><div class="detail-label">Creator</div><div class="detail-val" style="font-size:13px;">Marcus Zel</div></div>
+              <div class="detail-card"><div class="detail-label">Showrunner</div><div class="detail-val" style="font-size:13px;">Ana Fontaine</div></div>
+              <div class="detail-card"><div class="detail-label">Director (S2)</div><div class="detail-val" style="font-size:13px;">Hiroshi Naka</div></div>
+              <div class="detail-card"><div class="detail-label">Music</div><div class="detail-val" style="font-size:13px;">Elara Quinn</div></div>
+              <div class="detail-card"><div class="detail-label">VFX Supervisor</div><div class="detail-val" style="font-size:13px;">Devon Cole</div></div>
+              <div class="detail-card"><div class="detail-label">Cinematography</div><div class="detail-val" style="font-size:13px;">Yuki Hara</div></div>
+            </div>
+          </div>
+
+          <!-- TAB: DETAILS -->
+          <div class="tab-panel" id="tab-details">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+              <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Episode Synopsis</div>
+                <div style="font-size:13px;color:var(--muted2);line-height:1.7;">
+                  Commander Nyx, alone on the observation deck, confronts the transmission she has been hiding from the crew for three episodes. Meanwhile, ARIA's silence is broken by a single line of code — one that Dr. Sarev recognizes as his own handwriting from 22 years ago. The episode explores the nature of consciousness, memory, and what it means to carry the weight of humanity's last hope across the infinite dark.
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Production Notes</div>
+                <div style="font-size:13px;color:var(--muted2);line-height:1.7;">
+                  Shot over 18 days on a practical set in Reykjavik, this episode features the longest unbroken take in the series — a 9-minute walk-and-talk across the Argo's bridge. Director Hiroshi Naka described it as "a letter to silence." The score, by Elara Quinn, uses a modified theremin recorded inside a decompression chamber.
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Content Warnings</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;">
+              <span class="genre-pill">⚠️ Themes of loss</span>
+              <span class="genre-pill">🧠 Psychological tension</span>
+              <span class="genre-pill">🌑 Depiction of isolation</span>
+            </div>
+          </div>
+
+          <!-- TAB: COMMENTS -->
+          <div class="tab-panel" id="tab-comments">
+            <div class="comment-input-row">
+              <div class="ci-avatar">V</div>
+              <textarea class="ci-box" placeholder="Share your thoughts on this episode… (No spoilers please!)" rows="1"></textarea>
+            </div>
+            <div class="comment-list">
+              <div class="comment">
+                <div class="c-avatar ca1">SK</div>
+                <div class="c-body">
+                  <div class="c-header">
+                    <span class="c-name">StarKid_99</span>
+                    <span class="c-time">2 hours ago</span>
+                    <span class="c-badge">TOP FAN</span>
+                    <span class="ep-spoiler-tag">SPOILER</span>
+                  </div>
+                  <div class="c-text">The 9-minute continuous shot on the bridge was absolutely breathtaking. When Nyx finally reads the transmission out loud — I had to pause the episode. That single moment recontextualizes everything from Season 1.</div>
+                  <div class="c-actions">
+                    <span class="c-action liked"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>2.4k</span>
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Reply</span>
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</span>
+                  </div>
+                </div>
+              </div>
+              <div class="comment">
+                <div class="c-avatar ca3">NR</div>
+                <div class="c-body">
+                  <div class="c-header"><span class="c-name">NebulaRider</span><span class="c-time">5 hours ago</span></div>
+                  <div class="c-text">ARIA's single line of code reveal has to be the best mystery setup in TV this year. The implications alone kept me up at 2AM writing theories. Show of the decade, full stop.</div>
+                  <div class="c-actions">
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>891</span>
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Reply</span>
+                  </div>
+                </div>
+              </div>
+              <div class="comment">
+                <div class="c-avatar ca5">VX</div>
+                <div class="c-body">
+                  <div class="c-header"><span class="c-name">VoidExplorer</span><span class="c-time">8 hours ago</span></div>
+                  <div class="c-text">The score in this episode deserves its own award. Using a theremin inside a decompression chamber — you can literally feel the pressure drop every time a scene cuts to the exterior. Goosebumps.</div>
+                  <div class="c-actions">
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>567</span>
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Reply</span>
+                  </div>
+                </div>
+              </div>
+              <div class="comment">
+                <div class="c-avatar ca2">DR</div>
+                <div class="c-body">
+                  <div class="c-header"><span class="c-name">DriftReviews</span><span class="c-time">1 day ago</span><span class="c-badge">CRITIC</span></div>
+                  <div class="c-text">Hiroshi Naka directs this one with the confidence of someone who knows exactly what they have. Every frame feels deliberate. Easily the standout episode of the entire series so far. 10/10.</div>
+                  <div class="c-actions">
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>1.1k</span>
+                    <span class="c-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Reply</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RATING WIDGET -->
+          <div class="rating-widget" style="margin-top:28px;">
+            <div class="rating-score-big">
+              <div class="rsb-num">9.7</div>
+              <div class="rsb-stars">
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div class="rsb-count">S2 E7 · 31,284 ratings</div>
+            </div>
+            <div class="rating-bars">
+              <div class="rbar-row"><span class="rbar-label">5★</span><div class="rbar-track"><div class="rbar-fill" style="width:82%;"></div></div><span class="rbar-count">25.7k</span></div>
+              <div class="rbar-row"><span class="rbar-label">4★</span><div class="rbar-track"><div class="rbar-fill" style="width:12%;"></div></div><span class="rbar-count">3.7k</span></div>
+              <div class="rbar-row"><span class="rbar-label">3★</span><div class="rbar-track"><div class="rbar-fill" style="width:4%;"></div></div><span class="rbar-count">1.2k</span></div>
+              <div class="rbar-row"><span class="rbar-label">2★</span><div class="rbar-track"><div class="rbar-fill" style="width:1%;"></div></div><span class="rbar-count">0.4k</span></div>
+              <div class="rbar-row"><span class="rbar-label">1★</span><div class="rbar-track"><div class="rbar-fill" style="width:0.5%;"></div></div><span class="rbar-count">0.2k</span></div>
+            </div>
+            <div class="rating-user-wrap">
+              <div class="rating-user-label">Rate this episode</div>
+              <div class="user-stars">
+                <div class="user-star" onclick="rateEp(1)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                <div class="user-star" onclick="rateEp(2)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                <div class="user-star" onclick="rateEp(3)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                <div class="user-star" onclick="rateEp(4)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                <div class="user-star" onclick="rateEp(5)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RELATED SHOWS -->
+          <div class="related-section">
+            <div class="sec-mini-head">
+              <div class="sec-mini-title">
+                <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
+                YOU MAY ALSO <span class="accent">LIKE</span>
+              </div>
+              <a href="#" class="see-all" onclick="showToast('Browse all shows')">Browse All <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></a>
+            </div>
+            <div class="related-grid">
+              <div class="rcard" onclick="showToast('Opening: Arc of Silence')">
+                <div class="rcard-thumb c2">
+                  <div class="rcard-ph">ARC OF SILENCE</div>
+                  <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                  <span class="rcard-badge badge-ongoing">Ongoing</span>
+                  <span class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.9</span>
+                </div>
+                <div class="rcard-title">Arc of Silence</div>
+                <div class="rcard-meta"><span>2023</span><div class="rcard-dot"></div><span>Sci-Fi</span></div>
+              </div>
+              <div class="rcard" onclick="showToast('Opening: Pulsar Protocol')">
+                <div class="rcard-thumb c3">
+                  <div class="rcard-ph">PULSAR PROTOCOL</div>
+                  <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                  <span class="rcard-badge badge-hd">HD</span>
+                  <span class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.5</span>
+                </div>
+                <div class="rcard-title">Pulsar Protocol</div>
+                <div class="rcard-meta"><span>2021</span><div class="rcard-dot"></div><span>Thriller</span></div>
+              </div>
+              <div class="rcard" onclick="showToast('Opening: Erebus Station')">
+                <div class="rcard-thumb c4">
+                  <div class="rcard-ph">EREBUS STATION</div>
+                  <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                  <span class="rcard-badge badge-new">NEW</span>
+                  <span class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.0</span>
+                </div>
+                <div class="rcard-title">Erebus Station</div>
+                <div class="rcard-meta"><span>2024</span><div class="rcard-dot"></div><span>Horror</span></div>
+              </div>
+              <div class="rcard" onclick="showToast('Opening: Dark Matter Relay')">
+                <div class="rcard-thumb c5">
+                  <div class="rcard-ph">DARK MATTER RELAY</div>
+                  <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                  <span class="rcard-badge badge-hd">4K</span>
+                  <span class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.7</span>
+                </div>
+                <div class="rcard-title">Dark Matter Relay</div>
+                <div class="rcard-meta"><span>2022</span><div class="rcard-dot"></div><span>Drama</span></div>
+              </div>
+              <div class="rcard" onclick="showToast('Opening: Lightspeed Accord')">
+                <div class="rcard-thumb c7">
+                  <div class="rcard-ph">LIGHTSPEED ACCORD</div>
+                  <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                  <span class="rcard-badge badge-ongoing">Ongoing</span>
+                  <span class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.3</span>
+                </div>
+                <div class="rcard-title">Lightspeed Accord</div>
+                <div class="rcard-meta"><span>2023</span><div class="rcard-dot"></div><span>Sci-Fi</span></div>
+              </div>
+              <div class="rcard" onclick="showToast('Opening: The Kepler Divide')">
+                <div class="rcard-thumb c8">
+                  <div class="rcard-ph">THE KEPLER DIVIDE</div>
+                  <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+                  <span class="rcard-badge badge-hd">HD</span>
+                  <span class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.8</span>
+                </div>
+                <div class="rcard-title">The Kepler Divide</div>
+                <div class="rcard-meta"><span>2021</span><div class="rcard-dot"></div><span>Mystery</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /container -->
+
+      <!-- FOOTER -->
+      <footer class="footer-mini">
+        <div class="container">
+          <div class="footer-mini-inner">
+            <div class="foot-logo">VEXIO</div>
+            <div class="foot-links">
+              <a href="#">Home</a>
+              <a href="#">Browse</a>
+              <a href="#">TV Shows</a>
+              <a href="#">Movies</a>
+              <a href="#">TV Shows</a>
+              <a href="#">DMCA</a>
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+              <a href="#">Contact</a>
+            </div>
+            <div class="foot-copy">© 2024 VEXIO. All rights reserved.</div>
+          </div>
+        </div>
+      </footer>
+
+    </div><!-- /watch-main -->
+
+    <!-- ══ SIDEBAR ══ -->
+    <div class="watch-sidebar">
+
+      <!-- Sidebar Header -->
+      <div class="sidebar-head">
+        <div>
+          <div class="sidebar-title">EPISODES</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="sidebar-season-badge">S2</span>
+          <button class="sidebar-sort" onclick="showToast('Episodes list reversed')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="9" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            Sort
+          </button>
+        </div>
+      </div>
+
+      <!-- Continue Watching Banner -->
+      <div class="continue-banner">
+        <div class="continue-banner-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <div class="continue-banner-info">
+          <div class="continue-banner-label">▶ Currently Watching</div>
+          <div class="continue-banner-text">S2 E7 — 27:14 / 47:03</div>
+          <div class="continue-banner-progress-bar">
+            <div class="continue-banner-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Ad -->
+      <div class="sidebar-ad-slot">
+        <div class="ad-box ad-300">
+          <span class="ad-label">Advertisement</span>
+          <span class="ad-copy">✦ DUMMY SIDEBAR AD — 300×250 ✦</span>
+          <span class="ad-sub">Placeholder / Demo Placement</span>
+        </div>
+      </div>
+
+      <!-- Episode List in Sidebar -->
+      <!-- E1 Watched -->
+      <div class="ep-sidebar-card watched" onclick="selectEpisode(1)">
+        <div class="esc-thumb c2">
+          <div class="esc-ph">S2 E1</div>
+          <div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+          <span class="esc-duration">44m</span>
+          <div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:100%"></div></div>
+        </div>
+        <div class="esc-info">
+          <div class="esc-label">Episode 1 <span class="esc-watched-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+          <div class="esc-title">Fractured Horizon</div>
+          <div class="esc-meta">Jan 12, 2024</div>
+        </div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.2</div>
+      </div>
+
+      <div class="ep-sidebar-card watched" onclick="selectEpisode(2)">
+        <div class="esc-thumb c3"><div class="esc-ph">S2 E2</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">41m</span><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:100%"></div></div></div>
+        <div class="esc-info"><div class="esc-label">Episode 2 <span class="esc-watched-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="esc-title">The Signal at Perihelion</div><div class="esc-meta">Jan 19, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>8.8</div>
+      </div>
+
+      <div class="ep-sidebar-card watched" onclick="selectEpisode(3)">
+        <div class="esc-thumb c4"><div class="esc-ph">S2 E3</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">49m</span><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:100%"></div></div></div>
+        <div class="esc-info"><div class="esc-label">Episode 3 <span class="esc-watched-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="esc-title">Gravity Well</div><div class="esc-meta">Jan 26, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.0</div>
+      </div>
+
+      <div class="ep-sidebar-card watched" onclick="selectEpisode(4)">
+        <div class="esc-thumb c5"><div class="esc-ph">S2 E4</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">52m</span><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:100%"></div></div></div>
+        <div class="esc-info"><div class="esc-label">Episode 4 <span class="esc-watched-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="esc-title">Cold Equations</div><div class="esc-meta">Feb 02, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.4</div>
+      </div>
+
+      <div class="ep-sidebar-card watched" onclick="selectEpisode(5)">
+        <div class="esc-thumb c6"><div class="esc-ph">S2 E5</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">46m</span><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:100%"></div></div></div>
+        <div class="esc-info"><div class="esc-label">Episode 5 <span class="esc-watched-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="esc-title">Red Dwarf Protocol</div><div class="esc-meta">Feb 09, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.1</div>
+      </div>
+
+      <div class="ep-sidebar-card watched" onclick="selectEpisode(6)">
+        <div class="esc-thumb c7"><div class="esc-ph">S2 E6</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">51m</span><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:100%"></div></div></div>
+        <div class="esc-info"><div class="esc-label">Episode 6 <span class="esc-watched-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="esc-title">Phantom Payload</div><div class="esc-meta">Feb 16, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.3</div>
+      </div>
+
+      <!-- E7 CURRENT -->
+      <div class="ep-sidebar-card current" onclick="selectEpisode(7)">
+        <div class="esc-thumb c1"><div class="esc-ph">S2 E7</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">47m</span><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:58%"></div></div></div>
+        <div class="esc-info"><div class="esc-label" style="color:var(--cyan);">▶ NOW PLAYING</div><div class="esc-title">"The Void Between Stars"</div><div class="esc-meta">Mar 01, 2024 · 27:14 left</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.7</div>
+      </div>
+
+      <div class="ep-sidebar-card" onclick="selectEpisode(8)">
+        <div class="esc-thumb c2"><div class="esc-ph">S2 E8</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">44m</span></div>
+        <div class="esc-info"><div class="esc-label">Episode 8</div><div class="esc-title">Echoes of the Singularity</div><div class="esc-meta">Mar 08, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.0</div>
+      </div>
+
+      <div class="ep-sidebar-card" onclick="selectEpisode(9)">
+        <div class="esc-thumb c8"><div class="esc-ph">S2 E9</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">55m</span></div>
+        <div class="esc-info"><div class="esc-label">Episode 9</div><div class="esc-title">Last Light at Andromeda</div><div class="esc-meta">Mar 15, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.5</div>
+      </div>
+
+      <div class="ep-sidebar-card" onclick="selectEpisode(10)">
+        <div class="esc-thumb c3"><div class="esc-ph">S2 E10</div><div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span class="esc-duration">61m</span></div>
+        <div class="esc-info"><div class="esc-label">Episode 10 — Finale</div><div class="esc-title">Event Horizon</div><div class="esc-meta">Mar 22, 2024</div></div>
+        <div class="esc-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>9.8</div>
+      </div>
+
+    </div><!-- /watch-sidebar -->
+
+  </div><!-- /watch-layout -->
+</div><!-- /page-wrap -->
+
+<!-- ═══════ BOTTOM NAV MOBILE ═══════ -->
+<nav id="botnav">
+  <a href="/" class="bot-nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </a>
+  <a href="/#now-airing" class="bot-nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+    Browse
+  </a>
+  <a href="/" class="bot-nav-item home-btn active">
+    <div class="home-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    Watch
+  </a>
+  <a href="/#trending" class="bot-nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    My List
+  </a>
+  <a href="/login" class="bot-nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profile
+  </a>
+</nav>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+/* ─── PARTICLES ───────────────────────────────────── */
+function spawnParticles() {
+  const container = document.getElementById('particles');
+  const colors = ['#00c8f0','#8b5cf6','#e8173f','#ffc340','#ff5e7d'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 4 + 2;
+    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${Math.random()*8+6}s;animation-delay:${Math.random()*8}s;`;
+    container.appendChild(p);
+  }
+}
+spawnParticles();
+
+/* ─── PLAYER STATE ───────────────────────────────── */
+let isPlaying = false;
+let isMuted = false;
+let volume = 0.8;
+let progress = 58;
+let userRating = 0;
+
+const EP_TOTAL = 47 * 60 + 3;
+
+function initPlay() {
+  isPlaying = true;
+  updatePlayBtn();
+  showToast('▶ Playing S2 E7 — "The Void Between Stars" · 4K HDR');
+  simulateProgress();
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  updatePlayBtn();
+  showToast(isPlaying ? '▶ Playing' : '⏸ Paused');
+  if (isPlaying) simulateProgress();
+}
+
+function updatePlayBtn() {
+  const icon = document.getElementById('playIcon');
+  icon.innerHTML = isPlaying
+    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+    : '<polygon points="5 3 19 12 5 21 5 3"/>';
+}
+
+let progressInterval;
+function simulateProgress() {
+  clearInterval(progressInterval);
+  if (!isPlaying) return;
+  progressInterval = setInterval(() => {
+    if (!isPlaying) { clearInterval(progressInterval); return; }
+    progress = Math.min(progress + 0.05, 100);
+    document.getElementById('progressFill').style.width = progress + '%';
+    const curSecs = Math.floor(EP_TOTAL * progress / 100);
+    const m = Math.floor(curSecs / 60);
+    const s = curSecs % 60;
+    document.getElementById('curTime').textContent = m + ':' + String(s).padStart(2,'0');
+    if (progress >= 98) {
+      clearInterval(progressInterval);
+      isPlaying = false;
+      updatePlayBtn();
+      triggerNextEp();
+    }
+  }, 300);
+}
+
+function seekVideo(e) {
+  const bar = e.currentTarget;
+  const rect = bar.getBoundingClientRect();
+  progress = Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100));
+  document.getElementById('progressFill').style.width = progress + '%';
+  showToast('Seeked to ' + Math.round(progress) + '%');
+}
+
+function skipBack() { progress = Math.max(0, progress - 4); document.getElementById('progressFill').style.width = progress + '%'; showToast('⏮ −10s'); }
+function skipFwd()  { progress = Math.min(100, progress + 4); document.getElementById('progressFill').style.width = progress + '%'; showToast('⏭ +10s'); }
+
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById('volFill').style.width = isMuted ? '0%' : (volume*100)+'%';
+  showToast(isMuted ? '🔇 Muted' : '🔊 Unmuted');
+}
+function setVolume(e) {
+  const track = e.currentTarget;
+  const rect = track.getBoundingClientRect();
+  volume = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  document.getElementById('volFill').style.width = (volume*100)+'%';
+  isMuted = volume === 0;
+}
+function toggleFullscreen() { showToast('⛶ Fullscreen toggled'); }
+
+/* ─── NEXT EPISODE OVERLAY ──────────────────────── */
+let countdownTimer, countdownVal = 5;
+
+function triggerNextEp() {
+  const overlay = document.getElementById('nextEpOverlay');
+  overlay.classList.add('show');
+  countdownVal = 5;
+  document.getElementById('nextCountdown').textContent = countdownVal;
+  countdownTimer = setInterval(() => {
+    countdownVal--;
+    document.getElementById('nextCountdown').textContent = countdownVal;
+    if (countdownVal <= 0) { clearInterval(countdownTimer); playNextEpisode(); }
+  }, 1000);
+}
+
+function playNextEpisode() {
+  clearInterval(countdownTimer);
+  document.getElementById('nextEpOverlay').classList.remove('show');
+  progress = 0;
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('curTime').textContent = '0:00';
+  showToast('▶ Now Playing S2 E8 — "Echoes of the Singularity"');
+  setTimeout(() => { isPlaying = true; updatePlayBtn(); simulateProgress(); }, 500);
+}
+
+function cancelNextEp() {
+  clearInterval(countdownTimer);
+  document.getElementById('nextEpOverlay').classList.remove('show');
+  showToast('Autoplay cancelled');
+}
+
+/* ─── EPISODE SELECTION ──────────────────────────── */
+function selectEpisode(n) {
+  showToast(`▶ Loading S2 E${n}`);
+  progress = 0;
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('curTime').textContent = '0:00';
+  isPlaying = false; updatePlayBtn();
+  // Update quick nav chips
+  document.querySelectorAll('.ep-chip').forEach(c => {
+    c.classList.remove('active');
+    if (parseInt(c.dataset.ep) === n) c.classList.add('active');
+  });
+}
+
+function selectEpChip(el, n) {
+  document.querySelectorAll('.ep-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  showToast(`▶ Loading S2 E${n}`);
+}
+
+/* ─── SERVER / LANG ──────────────────────────────── */
+function selectServer(el, name) {
+  document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  showToast('Server: ' + name + ' selected');
+}
+function selectLang(el, type) {
+  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  showToast(type === 'sub' ? '🔤 Subtitled (SUB) selected' : '🎙 Dubbed (DUB) selected');
+}
+
+/* ─── TABS ───────────────────────────────────────── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+/* ─── LIKE ───────────────────────────────────────── */
+function toggleLike() {
+  const btn = document.getElementById('likeBtn');
+  btn.classList.toggle('liked');
+  showToast(btn.classList.contains('liked') ? '❤️ Added to favorites' : '🤍 Removed from favorites');
+}
+
+/* ─── RATING ─────────────────────────────────────── */
+function rateEp(n) {
+  userRating = n;
+  document.querySelectorAll('.user-star').forEach((s, i) => s.classList.toggle('active', i < n));
+  showToast('⭐ You rated S2 E7 — ' + n + '/5! Thanks!');
+}
+
+/* ─── SEARCH ─────────────────────────────────────── */
+document.getElementById('searchOpen').addEventListener('click', () => {
+  document.getElementById('search-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('searchInput').focus(), 150);
+});
+document.getElementById('mobileSearchOpen').addEventListener('click', () => {
+  document.getElementById('search-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('searchInput').focus(), 150);
+});
+document.getElementById('searchClose').addEventListener('click', () => {
+  document.getElementById('search-overlay').classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('search-overlay').classList.remove('open');
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('search-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('searchInput').focus(), 150);
+  }
+});
+
+/* ─── TOAST ──────────────────────────────────────── */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>

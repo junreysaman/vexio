@@ -1,0 +1,24 @@
+{
+    "name": "paper/php-framework",
+    "description": "Paper-PHPFramework: a clean PHP framework starter with homepage, login, and Paper admin dashboard.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "vlucas/phpdotenv": "^5.6",
+        "guzzlehttp/guzzle": "^7.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "Framework\\": "src/Framework",
+            "App\\": "src/App"
+        }
+    },
+    "scripts": {
+        "serve": "php -S 127.0.0.1:8091 -t public",
+        "create-controller": "php cli.php create-controller",
+        "create-middleware": "php cli.php create-middleware",
+        "create-service": "php cli.php create-service",
+        "db:install": "php cli.php install"
+    }
+}

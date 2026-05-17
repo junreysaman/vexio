@@ -1,0 +1,22 @@
+<svg width="32" height="32" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fav-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a0508"/>
+      <stop offset="100%" stop-color="#060910"/>
+    </linearGradient>
+    <linearGradient id="fav-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff5e7d"/>
+      <stop offset="100%" stop-color="#c2001f"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#fav-bg)"/>
+  <!-- Hex shield -->
+  <path d="M32 4 L56 18 L56 46 L32 60 L8 46 L8 18 Z"
+        fill="none" stroke="url(#fav-red)" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- V letterform -->
+  <path d="M18 20 L32 44 L46 20"
+        fill="none" stroke="url(#fav-red)" stroke-width="5.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Play accent -->
+  <polygon points="26,30 38,32 26,34" fill="#00c8f0" opacity="0.95"/>
+</svg>
