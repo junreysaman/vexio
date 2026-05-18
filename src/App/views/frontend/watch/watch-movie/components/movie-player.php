@@ -1,10 +1,22 @@
+<?php $embedUrl = (string) ($item['embedUrl'] ?? $item['embed_url'] ?? ''); ?>
 <div class="watch-layout">
 
     <!-- ══ MAIN COLUMN ══ -->
     <div class="watch-main">
 
       <!-- VIDEO PLAYER -->
-      <div class="player-wrap" id="playerWrap">
+      <div class="player-wrap" id="playerWrap" data-player-embed-url="<?= escape($embedUrl) ?>">
+        <?php if ($embedUrl !== ''): ?>
+          <iframe
+            class="embedded-player-frame"
+            id="embeddedPlayerFrame"
+            title="<?= escape((string) ($item['title'] ?? 'Movie')) ?> player"
+            loading="lazy"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowfullscreen
+            referrerpolicy="origin"
+          ></iframe>
+        <?php endif; ?>
         <!-- Cinematic backdrop -->
         <div class="player-bg">
           <div class="player-backdrop" style="background-image:url('<?= escape(($item['backdrop_image'] ?? $item['backdrop_url'] ?? $item['poster_image'] ?? $item['poster_url'] ?? '')) ?>');background-size:cover;background-position:center;"></div>

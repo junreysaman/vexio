@@ -1,18 +1,22 @@
 /* ── Film holes ── */
 function buildHoles(id, n) {
     const el = document.getElementById(id);
+    if (!el) return;
     for (let i = 0; i < n; i++) { const d = document.createElement('div'); d.className = 'fh'; el.appendChild(d); }
 }
 buildHoles('fh1', 60); buildHoles('fh2', 60);
-document.getElementById('yr').textContent = new Date().getFullYear();
+const yearEl = document.getElementById('yr');
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 /* ── Timecode ── */
 let frame = 0, tcRunning = true;
 function updateTC() {
     if (!tcRunning) return;
+    const tc = document.getElementById('tc');
+    if (!tc) return;
     const f = frame % 30, s = Math.floor(frame / 30) % 60, m = Math.floor(frame / 1800) % 60, h = Math.floor(frame / 108000);
     const pad = n => String(n).padStart(2, '0');
-    document.getElementById('tc').textContent = `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
+    tc.textContent = `${pad(h)}:${pad(m)}:${pad(s)}:${pad(f)}`;
     frame++; requestAnimationFrame(updateTC);
 }
 updateTC();
@@ -24,6 +28,8 @@ const pctEl = document.getElementById('lpct');
 const msgEl = document.getElementById('lmsg');
 const loader = document.getElementById('loader');
 const app = document.getElementById('app');
+
+if (fill && pctEl && msgEl && loader && app) {
 
 let loadStart = null;
 const LOAD_DUR = 3200;
@@ -56,3 +62,4 @@ function animateLoader(ts) {
     }
 }
 requestAnimationFrame(animateLoader);
+}

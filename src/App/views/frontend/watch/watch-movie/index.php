@@ -13,3 +13,7 @@
 
 
 <?= $this->end() ?>
+
+<?= $this->start('scripts') ?>
+<script src="/assets/frontend/js/watch-movie.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-movie.js') ?>"></script>
+<?= $this->end() ?>

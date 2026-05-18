@@ -74,6 +74,7 @@ class WatchTvController
                 'episode' => $episode,
                 'seasons' => $data['seasons'] ?? [],
                 'episodes' => $data['episodes'] ?? [],
+                'related' => $data['related'] ?? [],
                 'watchUrl' => $episode['watchUrl'] ?? ($episode['watch_url'] ?? null),
             ]
         ));

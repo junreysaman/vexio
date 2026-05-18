@@ -216,6 +216,8 @@ class TmdbImporterService
         $images = $this->imageLines($movie['images']['backdrops'] ?? []);
         $cast = $this->castMeta($movie['credits']['cast'] ?? []);
         $directors = $this->directorMeta($movie['credits']['crew'] ?? []);
+        $castProfiles = $this->castProfileMeta($movie['credits']['cast'] ?? [], 'movie-' . $tmdbMovieId . '/cast');
+        $crewProfiles = $this->crewProfileMeta($movie['credits']['crew'] ?? [], 'movie-' . $tmdbMovieId . '/crew');
         $payload = [
             'title' => (string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie'),
             'slug' => MediaUrl::slugify((string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie')),
@@ -255,7 +257,7 @@ class TmdbImporterService
         ];
 
         $id = $this->upsertMediaItem('movie', $tmdbMovieId, $payload);
-        $this->syncMovieDooPlayData($id, $movie, $imdbId, $images, $youtube, $cast, $directors);
+        $this->syncMovieDooPlayData($id, $movie, $imdbId, $images, $youtube, $cast, $directors, $castProfiles, $crewProfiles);
 
         return $this->db->findById('media_items', $id);
     }
@@ -270,6 +272,9 @@ class TmdbImporterService
         $images = $this->imageLines($show['images']['backdrops'] ?? []);
         $cast = $this->castMeta($show['credits']['cast'] ?? []);
         $creators = $this->creatorMeta($show['created_by'] ?? []);
+        $castProfiles = $this->castProfileMeta($show['credits']['cast'] ?? [], 'tv-' . $tmdbTvId . '/cast');
+        $crewSource = array_merge($show['created_by'] ?? [], $show['aggregate_credits']['crew'] ?? [], $show['credits']['crew'] ?? []);
+        $crewProfiles = $this->crewProfileMeta($crewSource, 'tv-' . $tmdbTvId . '/crew');
         $payload = [
             'title' => (string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'),
             'slug' => MediaUrl::slugify((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series')),
@@ -307,7 +312,7 @@ class TmdbImporterService
         ];
 
         $id = $this->upsertMediaItem('tv_show', $tmdbTvId, $payload);
-        $this->syncTvShowDooPlayData($id, $show, $images, $youtube, $cast, $creators);
+        $this->syncTvShowDooPlayData($id, $show, $images, $youtube, $cast, $creators, $castProfiles, $crewProfiles);
 
         return $this->db->findById('media_items', $id);
     }
@@ -709,7 +714,9 @@ class TmdbImporterService
         ?string $images,
         ?string $youtube,
         ?string $cast,
-        ?string $directors
+        ?string $directors,
+        ?string $castProfiles,
+        ?string $crewProfiles
     ): void {
         $releaseYear = (string) $this->yearFromDate($movie['release_date'] ?? null);
         $this->syncMeta('item', $itemId, [
@@ -731,6 +738,8 @@ class TmdbImporterService
             'runtime' => $movie['runtime'] ?? null,
             'dt_cast' => $cast,
             'dt_dir' => $directors,
+            'cast_profiles' => $castProfiles,
+            'crew_profiles' => $crewProfiles,
         ]);
 
         $this->syncTerms('item', $itemId, 'genres', $this->names($movie['genres'] ?? []));
@@ -745,7 +754,9 @@ class TmdbImporterService
         ?string $images,
         ?string $youtube,
         ?string $cast,
-        ?string $creators
+        ?string $creators,
+        ?string $castProfiles,
+        ?string $crewProfiles
     ): void {
         $releaseYear = (string) $this->yearFromDate($show['first_air_date'] ?? null);
         $runtime = $show['episode_run_time'][0] ?? null;
@@ -765,6 +776,8 @@ class TmdbImporterService
             'imdbVotes' => $show['vote_count'] ?? null,
             'dt_cast' => $cast,
             'dt_creator' => $creators,
+            'cast_profiles' => $castProfiles,
+            'crew_profiles' => $crewProfiles,
         ]);
 
         $this->syncTerms('item', $itemId, 'genres', $this->names($show['genres'] ?? []));
@@ -911,6 +924,11 @@ class TmdbImporterService
         }
 
         return $this->imageBaseUrl . '/' . ltrim($path, '/');
+    }
+
+    private function profileUrl(?string $path): ?string
+    {
+        return $this->imageUrl($path);
     }
 
     private function yearFromDate(?string $date): ?int
@@ -1080,6 +1098,87 @@ class TmdbImporterService
         }
 
         return $items === [] ? null : implode('', $items);
+    }
+
+    private function castProfileMeta(array $cast, string $folder): ?string
+    {
+        $items = [];
+
+        foreach ($cast as $person) {
+            $name = trim((string) ($person['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $profilePath = trim((string) ($person['profile_path'] ?? ''));
+            $profileImage = $profilePath !== ''
+                ? $this->downloadImageAsWebp(
+                    $this->profileUrl($profilePath),
+                    'people/' . trim($folder, '/'),
+                    'person-' . ((int) ($person['id'] ?? 0) ?: $this->slug($name))
+                )
+                : null;
+
+            $items[] = [
+                'tmdb_id' => (int) ($person['id'] ?? 0),
+                'name' => $name,
+                'character' => trim((string) ($person['character'] ?? '')),
+                'profile_path' => $profilePath !== '' ? $profilePath : null,
+                'profile_image' => $profileImage,
+            ];
+
+            if (count($items) === 12) {
+                break;
+            }
+        }
+
+        return $items === [] ? null : json_encode($items, JSON_UNESCAPED_SLASHES);
+    }
+
+    private function crewProfileMeta(array $crew, string $folder): ?string
+    {
+        $items = [];
+        $seen = [];
+
+        foreach ($crew as $person) {
+            $name = trim((string) ($person['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $job = trim((string) (($person['job'] ?? '') ?: ($person['known_for_department'] ?? '') ?: ($person['department'] ?? '') ?: 'Crew'));
+            $key = ((int) ($person['id'] ?? 0)) . ':' . strtolower($name) . ':' . strtolower($job);
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $profilePath = trim((string) ($person['profile_path'] ?? ''));
+            $profileImage = $profilePath !== ''
+                ? $this->downloadImageAsWebp(
+                    $this->profileUrl($profilePath),
+                    'people/' . trim($folder, '/'),
+                    'person-' . ((int) ($person['id'] ?? 0) ?: $this->slug($name))
+                )
+                : null;
+
+            $items[] = [
+                'tmdb_id' => (int) ($person['id'] ?? 0),
+                'name' => $name,
+                'job' => $job,
+                'profile_path' => $profilePath !== '' ? $profilePath : null,
+                'profile_image' => $profileImage,
+            ];
+
+            if (count($items) === 12) {
+                break;
+            }
+        }
+
+        return $items === [] ? null : json_encode($items, JSON_UNESCAPED_SLASHES);
     }
 
     private function directorMeta(array $crew): ?string

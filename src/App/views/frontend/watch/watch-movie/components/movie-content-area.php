@@ -4,12 +4,20 @@ $poster = $item['poster_image'] ?? $item['poster_url'] ?? '';
 $backdrop = $item['backdrop_image'] ?? $item['backdrop_url'] ?? $poster;
 $title = $item['title'] ?? 'Unknown Title';
 $genres = $item['genres'] ?? '';
+$genreNames = is_array($item['genre_names'] ?? null)
+  ? array_filter(array_map('trim', $item['genre_names']))
+  : array_filter(array_map('trim', explode(',', (string) $genres)));
 $year = $item['release_year'] ?? 'N/A';
 $rating = $item['tmdb_rating'] ?? 'N/A';
 $votes = number_format((int) ($item['tmdb_vote_count'] ?? 0));
 $views = number_format((int) ($item['views'] ?? 0));
 $runtime = $item['runtime_minutes'] ?? null;
-$releaseDate = $item['release_date'] ?? $item['release_year'] ?? 'N/A';
+$releaseDateRaw = $item['release_date'] ?? $item['release_year'] ?? '';
+$releaseDate = 'N/A';
+if ($releaseDateRaw !== '') {
+  $releaseTimestamp = strtotime((string) $releaseDateRaw);
+  $releaseDate = $releaseTimestamp ? date('F j, Y', $releaseTimestamp) : (string) $releaseDateRaw;
+}
 $language = $item['original_language'] ?? 'EN';
 $country = $item['country'] ?? $item['origin_country'] ?? 'N/A';
 $status = $item['status'] ?? 'published';
@@ -19,6 +27,32 @@ $tagline = $item['tagline'] ?? '';
 $cast = $item['dt_cast'] ?? '';
 $director = $item['dt_dir'] ?? '';
 $imdbId = $item['imdb_id'] ?? '';
+$castProfiles = json_decode((string) ($item['cast_profiles'] ?? '[]'), true);
+$castProfiles = is_array($castProfiles) ? $castProfiles : [];
+$crewProfiles = json_decode((string) ($item['crew_profiles'] ?? '[]'), true);
+$crewProfiles = is_array($crewProfiles) ? $crewProfiles : [];
+$legacyCast = [];
+if (preg_match_all('/\[[^;]*;([^,\]]+)(?:,([^\]]*))?\]/', (string) $cast, $matches, PREG_SET_ORDER)) {
+  foreach ($matches as $match) {
+    $legacyCast[] = [
+      'name' => trim((string) ($match[1] ?? '')),
+      'character' => trim((string) ($match[2] ?? 'Cast')),
+    ];
+  }
+} else {
+  foreach (array_filter(array_map('trim', explode(',', (string) $cast))) as $name) {
+    $legacyCast[] = ['name' => $name, 'character' => 'Cast'];
+  }
+}
+$legacyCrew = [];
+if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SET_ORDER)) {
+  foreach ($matches as $match) {
+    $legacyCrew[] = [
+      'name' => trim((string) ($match[1] ?? '')),
+      'job' => 'Director',
+    ];
+  }
+}
 ?>
 <!-- CONTENT AREA -->
       <div class="container">
@@ -97,7 +131,7 @@ $imdbId = $item['imdb_id'] ?? '';
             </div>
             <div class="detail-card">
               <div class="detail-label">Release</div>
-              <div class="detail-val cyan"><?= escape((string) $releaseDate) ?></div>
+              <div class="detail-val"><?= escape((string) $releaseDate) ?></div>
             </div>
             <div class="detail-card">
               <div class="detail-label">Language</div>
@@ -123,23 +157,16 @@ $imdbId = $item['imdb_id'] ?? '';
 
           <!-- GENRES -->
           <div class="genres-row">
-            <?php if ($genres): ?>
-              <?php foreach (array_slice(explode(',', $genres), 0, 6) as $g): ?>
-                <span class="genre-pill"><?= escape(trim($g)) ?></span>
+            <?php if ($genreNames !== []): ?>
+              <?php foreach (array_slice($genreNames, 0, 6) as $g): ?>
+                <span class="genre-pill"><?= escape($g) ?></span>
               <?php endforeach; ?>
             <?php else: ?>
               <span class="genre-pill">No genres</span>
             <?php endif; ?>
           </div>
 
-          <!-- INLINE AD -->
-          <div class="inline-ad-wrap">
-            <div class="ad-box ad-728">
-              <span class="ad-label">Advertisement</span>
-              <span class="ad-copy">✦ MID-PAGE BANNER AD — 728×90 ✦</span>
-              <span class="ad-sub">Sponsor / Google AdSense</span>
-            </div>
-          </div>
+          <?= $this->includePartial('/frontend/watch/watch-movie/ad/movie-midpage-ad') ?>
 
           <!-- CAST -->
           <div class="sec-mini-head">
@@ -155,43 +182,58 @@ $imdbId = $item['imdb_id'] ?? '';
             </a>
           </div>
           <div class="cast-row" style="margin-bottom:28px;">
-            <div class="cast-card" onclick="showToast('Yuki Tanaka profile')">
-              <div class="cast-avatar ca1">YT</div>
-              <div class="cast-name">Yuki Tanaka</div>
-              <div class="cast-role">ARIA-7</div>
-            </div>
-            <div class="cast-card" onclick="showToast('Kenji Mori profile')">
-              <div class="cast-avatar ca2">KM</div>
-              <div class="cast-name">Kenji Mori</div>
-              <div class="cast-role">Detective Rao</div>
-            </div>
-            <div class="cast-card" onclick="showToast('Sera Wolff profile')">
-              <div class="cast-avatar ca3">SW</div>
-              <div class="cast-name">Sera Wolff</div>
-              <div class="cast-role">Dr. Voss</div>
-            </div>
-            <div class="cast-card" onclick="showToast('Omar Al-Rashid profile')">
-              <div class="cast-avatar ca4">OA</div>
-              <div class="cast-name">Omar Al-Rashid</div>
-              <div class="cast-role">Director Kane</div>
-            </div>
-            <div class="cast-card" onclick="showToast('Lena Frost profile')">
-              <div class="cast-avatar ca5">LF</div>
-              <div class="cast-name">Lena Frost</div>
-              <div class="cast-role">Nexus</div>
-            </div>
-            <div class="cast-card" onclick="showToast('Hiro Nakamura profile')">
-              <div class="cast-avatar ca6">HN</div>
-              <div class="cast-name">Hiro Nakamura</div>
-              <div class="cast-role">Ghost</div>
-            </div>
-            <div class="cast-card" onclick="showToast('Mia Chen profile')">
-              <div class="cast-avatar ca1" style="background:linear-gradient(145deg,#001433,#1a2a4d)">MC</div>
-              <div class="cast-name">Mia Chen</div>
-              <div class="cast-role">Echo</div>
-            </div>
+            <?php foreach (array_slice($castProfiles, 0, 10) as $idx => $person): ?>
+              <?php
+              $name = trim((string) ($person['name'] ?? ''));
+              $role = trim((string) (($person['character'] ?? '') ?: 'Cast'));
+              $image = trim((string) ($person['profile_image'] ?? ''));
+              ?>
+              <?php if ($name !== ''): ?>
+                <div class="cast-card" onclick="showToast('Profile opened')">
+                  <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?php if ($image !== ''): ?><img src="<?= escape($image) ?>" alt="<?= escape($name) ?>"><?php else: ?><?= escape(strtoupper(substr($name, 0, 2))) ?><?php endif; ?></div>
+                  <div class="cast-name"><?= escape($name) ?></div>
+                  <div class="cast-role"><?= escape($role !== '' ? $role : 'Cast') ?></div>
+                </div>
+              <?php endif; ?>
+            <?php endforeach; ?>
+            <?php if ($castProfiles === []): ?>
+              <?php foreach (array_slice($legacyCast, 0, 10) as $idx => $person): ?>
+                <?php
+                $name = trim((string) ($person['name'] ?? ''));
+                $role = trim((string) ($person['character'] ?? 'Cast'));
+                ?>
+                <?php if ($name !== ''): ?>
+                  <div class="cast-card" onclick="showToast('Profile opened')">
+                    <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?= escape(strtoupper(substr($name, 0, 2))) ?></div>
+                    <div class="cast-name"><?= escape($name) ?></div>
+                    <div class="cast-role"><?= escape($role !== '' ? $role : 'Cast') ?></div>
+                  </div>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            <?php endif; ?>
+            <?php if ($castProfiles === [] && $legacyCast === []): ?>
+              <div class="detail-card"><div class="detail-val">Cast details unavailable</div></div>
+            <?php endif; ?>
           </div>
-
+          <?php $crewToRender = $crewProfiles !== [] ? $crewProfiles : $legacyCrew; ?>
+          <?php if ($crewToRender !== []): ?>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
+              <?php foreach (array_slice($crewToRender, 0, 8) as $idx => $person): ?>
+                <?php
+                $name = trim((string) ($person['name'] ?? ''));
+                $role = trim((string) ($person['job'] ?? 'Crew'));
+                $image = trim((string) ($person['profile_image'] ?? ''));
+                ?>
+                <?php if ($name !== ''): ?>
+                  <div class="cast-card">
+                    <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?php if ($image !== ''): ?><img src="<?= escape($image) ?>" alt="<?= escape($name) ?>"><?php else: ?><?= escape(strtoupper(substr($name, 0, 2))) ?><?php endif; ?></div>
+                    <div class="cast-name"><?= escape($name) ?></div>
+                    <div class="cast-role"><?= escape($role !== '' ? $role : 'Crew') ?></div>
+                  </div>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
           <!-- RATING WIDGET -->
           <div class="rating-widget">
             <div class="rating-score-big">
@@ -316,3 +358,5 @@ $imdbId = $item['imdb_id'] ?? '';
       <?= $this->includePartial('/frontend/watch/watch-movie/ad/movie-footer-ad') ?>
 
     </div><!-- /watch-main -->
+
+

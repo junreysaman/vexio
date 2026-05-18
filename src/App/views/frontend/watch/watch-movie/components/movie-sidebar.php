@@ -1,7 +1,6 @@
-<!-- ══ SIDEBAR ══ -->
+<!-- SIDEBAR -->
     <div class="watch-sidebar">
 
-      <!-- Sidebar Header -->
       <div class="sidebar-head">
         <div class="sidebar-title">UP NEXT</div>
         <div class="sidebar-sort" onclick="showToast('Sort changed')">
@@ -10,30 +9,24 @@
         </div>
       </div>
 
-      <!-- Dummy Ad -->
-      <div class="sidebar-ad-block">
-        <div style="padding:12px;background:var(--bg3);border:1px dashed var(--border);border-radius:8px;text-align:center;color:var(--muted);font-size:12px;">
-          💡 Advertisement Space
-        </div>
-      </div>
+      <?= $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-1') ?>
 
-      <!-- Up Next Items - Related Movies -->
       <div style="overflow-y:auto;flex:1;">
         <?php $relatedItems = $related ?? []; ?>
         <?php if (!empty($relatedItems)): ?>
           <?php foreach ($relatedItems as $idx => $rel): ?>
             <?php
-            $relPoster = $rel['poster_image'] ?? $rel['poster_url'] ?? '';
+            $relBackdrop = $rel['backdrop_image'] ?? '';
             $relTitle = $rel['title'] ?? 'Unknown';
             $relYear = $rel['release_year'] ?? 'N/A';
             $relRating = $rel['tmdb_rating'] ?? 'N/A';
-            $relGenres = $rel['genres'] ?? 'Unknown';
+            $relGenres = $rel['genres'] ?? '';
             $relWatchUrl = $rel['watchUrl'] ?? $rel['watch_url'] ?? '#';
             ?>
             <a href="<?= escape($relWatchUrl) ?>" class="up-next-card" onclick="return true;">
               <div class="unc-thumb c<?= ($idx % 8) + 1 ?>">
-                <?php if ($relPoster): ?>
-                  <img src="<?= escape($relPoster) ?>" alt="<?= escape($relTitle) ?>" style="width:100%;height:100%;object-fit:cover;">
+                <?php if ($relBackdrop): ?>
+                  <img src="<?= escape($relBackdrop) ?>" alt="<?= escape($relTitle) ?>" style="width:100%;height:100%;object-fit:cover;">
                 <?php else: ?>
                   <div class="unc-ph"><?= strtoupper(substr($relTitle, 0, 12)) ?></div>
                 <?php endif; ?>
@@ -44,7 +37,7 @@
               <div class="unc-info">
                 <div class="unc-label">Recommended</div>
                 <div class="unc-title"><?= escape($relTitle) ?></div>
-                <div class="unc-meta"><?= escape(substr($relGenres, 0, 20)) ?> · <?= (int) $relYear ?></div>
+                <div class="unc-meta"><?= escape(substr($relGenres !== '' ? $relGenres : 'Unknown', 0, 20)) ?> &middot; <?= (int) $relYear ?></div>
               </div>
               <div class="unc-score">
                 <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -58,11 +51,8 @@
           </div>
         <?php endif; ?>
 
-        <!-- Dummy Ad Section 2 -->
-        <div style="padding:12px;margin:16px;background:var(--bg3);border:1px dashed var(--border);border-radius:8px;text-align:center;color:var(--muted);font-size:12px;">
-          📢 Advertisement - Premium Content
-        </div>
-      </div><!-- /overflow-y -->
-    </div><!-- /sidebar -->
+        <?= $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-2') ?>
+      </div>
+    </div>
 
 </div>

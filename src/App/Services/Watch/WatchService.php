@@ -96,6 +96,7 @@ class WatchService
                     'season_number' => max(1, $seasonNumber),
                 ]
             )),
+            'related' => array_map(fn(array $item): array => $this->withWatchUrls($item), $this->related('tv_show', (int) $show['id'])),
         ];
     }
 
@@ -141,6 +142,7 @@ class WatchService
                 ],
                 'seasons' => [],
                 'episodes' => [],
+                'related' => array_map(fn(array $item): array => $this->withWatchUrls($item), $this->related('tv_show', (int) $show['id'])),
             ];
         }
 
@@ -196,21 +198,108 @@ class WatchService
     private function withWatchUrls(array $item): array
     {
         $watchUrl = MediaUrl::watchUrlForItem($item);
+        $genreNames = $this->genreNames((int) ($item['id'] ?? 0));
+        $meta = $this->itemMeta((int) ($item['id'] ?? 0), ['cast_profiles', 'crew_profiles']);
+
+        $embedServers = $this->movieEmbedServers($item);
+        $embedUrl = $embedServers[0]['url'] ?? null;
 
         return [
             ...$item,
+            ...$meta,
             'slug' => MediaUrl::itemSlug($item),
+            'genres' => implode(', ', $genreNames),
+            'genre_names' => $genreNames,
+            'embed_servers' => $embedServers,
+            'embedServers' => $embedServers,
+            'embed_url' => $embedUrl,
+            'embedUrl' => $embedUrl,
             'watch_url' => $watchUrl,
             'watchUrl' => $watchUrl,
         ];
+    }
+
+    private function itemMeta(int $itemId, array $keys): array
+    {
+        if ($itemId < 1 || $keys === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = ['owner_id' => $itemId];
+
+        foreach (array_values($keys) as $index => $key) {
+            $param = 'key_' . $index;
+            $placeholders[] = ':' . $param;
+            $params[$param] = $key;
+        }
+
+        $rows = $this->db->select(
+            'SELECT meta_key, meta_value
+             FROM content_meta
+             WHERE owner_type = :owner_type
+             AND owner_id = :owner_id
+             AND meta_key IN (' . implode(',', $placeholders) . ')',
+            ['owner_type' => 'item', ...$params]
+        );
+
+        $meta = [];
+        foreach ($rows as $row) {
+            $meta[(string) $row['meta_key']] = (string) $row['meta_value'];
+        }
+
+        return $meta;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function genreNames(int $itemId): array
+    {
+        if ($itemId < 1) {
+            return [];
+        }
+
+        $rows = $this->db->select(
+            "SELECT content_terms.name
+             FROM content_term_links
+             INNER JOIN content_terms ON content_terms.id = content_term_links.term_id
+             WHERE content_term_links.owner_type = :owner_type
+             AND content_term_links.owner_id = :owner_id
+             AND content_terms.taxonomy = :taxonomy
+             ORDER BY content_terms.name ASC",
+            [
+                'owner_type' => 'item',
+                'owner_id' => $itemId,
+                'taxonomy' => 'genres',
+            ]
+        );
+
+        $names = [];
+        foreach ($rows as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+
+            if ($name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
     }
 
     private function withEpisodeWatchUrl(array $show, array $episode): array
     {
         $watchUrl = MediaUrl::watchUrlForItem($show, $episode);
 
+        $embedServers = $this->episodeEmbedServers($show, $episode);
+        $embedUrl = $embedServers[0]['url'] ?? null;
+
         return [
             ...$episode,
+            'embed_servers' => $embedServers,
+            'embedServers' => $embedServers,
+            'embed_url' => $embedUrl,
+            'embedUrl' => $embedUrl,
             'watch_url' => $watchUrl,
             'watchUrl' => $watchUrl,
         ];
@@ -238,5 +327,109 @@ class WatchService
             'watch_url' => $watchUrl,
             'watchUrl' => $watchUrl,
         ];
+    }
+
+    /**
+     * @return array<int, array{key: string, name: string, url: string, default?: bool}>
+     */
+    private function movieEmbedServers(array $item): array
+    {
+        $tmdbId = (int) ($item['tmdb_id'] ?? 0);
+
+        if ($tmdbId < 1) {
+            return [];
+        }
+
+        $servers = [
+            [
+                'key' => 'vidfast',
+                'name' => 'VidFast',
+                'url' => 'https://vidfast.pro/movie/' . $tmdbId . '?' . http_build_query([
+                    'autoPlay' => 'false',
+                    'theme' => '#e8173f',
+                ]),
+                'default' => true,
+            ],
+            [
+                'key' => 'vidsrc',
+                'name' => 'VidSrc',
+                'url' => 'https://vidsrc.mov/embed/movie/' . $tmdbId,
+            ],
+            [
+                'key' => 'videasy',
+                'name' => 'VidEasy',
+                'url' => 'https://player.videasy.net/movie/' . $tmdbId,
+            ],
+            [
+                'key' => 'vidnest',
+                'name' => 'VidNest',
+                'url' => 'https://vidnest.fun/movie/' . $tmdbId,
+            ],
+        ];
+
+        $custom = trim((string) ($item['stream_link'] ?? ''));
+        if ($custom !== '') {
+            $servers[] = [
+                'key' => 'custom',
+                'name' => 'Custom',
+                'url' => $custom,
+            ];
+        }
+
+        return $servers;
+    }
+
+    /**
+     * @return array<int, array{key: string, name: string, url: string, default?: bool}>
+     */
+    private function episodeEmbedServers(array $show, array $episode): array
+    {
+        $tmdbId = (int) ($show['tmdb_id'] ?? 0);
+        $season = max(1, (int) ($episode['season_number'] ?? 1));
+        $episodeNumber = max(1, (int) ($episode['episode_number'] ?? 1));
+
+        if ($tmdbId < 1) {
+            return [];
+        }
+
+        $servers = [
+            [
+                'key' => 'vidfast',
+                'name' => 'VidFast',
+                'url' => 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber . '?' . http_build_query([
+                    'autoPlay' => 'false',
+                    'nextButton' => 'true',
+                    'autoNext' => 'false',
+                    'theme' => '#00c8f0',
+                ]),
+                'default' => true,
+            ],
+            [
+                'key' => 'vidsrc',
+                'name' => 'VidSrc',
+                'url' => 'https://vidsrc.mov/embed/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
+            ],
+            [
+                'key' => 'videasy',
+                'name' => 'VidEasy',
+                'url' => 'https://player.videasy.net/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
+            ],
+            [
+                'key' => 'vidnest',
+                'name' => 'VidNest',
+                'url' => 'https://vidnest.fun/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
+            ],
+        ];
+
+        $custom = trim((string) ($episode['stream_link'] ?? ''));
+        if ($custom !== '') {
+            $servers[] = [
+                'key' => 'custom',
+                'name' => 'Custom',
+                'url' => $custom,
+            ];
+        }
+
+        return $servers;
     }
 }

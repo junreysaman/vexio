@@ -1,6 +1,7 @@
 /* ─── PARTICLES ─────────────────────────────────── */
 function spawnParticles() {
     const container = document.getElementById('particles');
+    if (!container || container.children.length) return;
     const colors = ['#e8173f', '#00c8f0', '#8b5cf6', '#ffc340', '#ff5e7d'];
     for (let i = 0; i < 18; i++) {
         const p = document.createElement('div');
@@ -26,7 +27,42 @@ let progress = 34; // percent
 let isFullscreen = false;
 let userRating = 0;
 
+function mountEmbeddedPlayer() {
+    const wrap = document.getElementById('playerWrap');
+    const frame = document.getElementById('embeddedPlayerFrame');
+    const embedUrl = wrap?.dataset.playerEmbedUrl || '';
+
+    if (!wrap || !frame || !embedUrl) return false;
+
+    if (!frame.src) {
+        frame.src = embedUrl;
+    }
+
+    wrap.classList.add('has-embed');
+    return true;
+}
+
+function loadEmbedUrl(embedUrl) {
+    const wrap = document.getElementById('playerWrap');
+    const frame = document.getElementById('embeddedPlayerFrame');
+
+    if (!wrap || !frame || !embedUrl) return false;
+
+    wrap.dataset.playerEmbedUrl = embedUrl;
+    if (wrap.classList.contains('has-embed') && frame.src !== embedUrl) {
+        frame.src = embedUrl;
+    }
+    return true;
+}
+
 function initPlay() {
+    if (mountEmbeddedPlayer()) {
+        isPlaying = true;
+        updatePlayBtn();
+        showToast('Loading stream');
+        return;
+    }
+
     isPlaying = true;
     updatePlayBtn();
     showToast('▶ Playing Neon Requiem (2024) · 4K HDR');
@@ -34,6 +70,13 @@ function initPlay() {
 }
 
 function togglePlay() {
+    if (mountEmbeddedPlayer()) {
+        isPlaying = true;
+        updatePlayBtn();
+        showToast('Use the embedded player controls');
+        return;
+    }
+
     isPlaying = !isPlaying;
     updatePlayBtn();
     showToast(isPlaying ? '▶ Playing' : '⏸ Paused');
@@ -99,8 +142,10 @@ function toggleFullscreen() {
 
 /* ─── SERVER / LANG ──────────────────────────────── */
 function selectServer(el, name) {
+    name = name || el.dataset.serverName || 'Server';
     document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
+    loadEmbedUrl(el.dataset.embedUrl || '');
     showToast('Server: ' + name + ' selected');
 }
 function selectLang(el, type) {
@@ -155,11 +200,11 @@ document.addEventListener('keydown', e => {
 });
 
 /* ─── TOAST ──────────────────────────────────────── */
-let toastTimer;
 function showToast(msg) {
     const t = document.getElementById('toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    clearTimeout(window.watchMovieToastTimer);
+    window.watchMovieToastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
