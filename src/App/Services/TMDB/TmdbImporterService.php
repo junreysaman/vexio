@@ -345,14 +345,41 @@ class TmdbImporterService
     public function generateTvEpisodesForSeason(int $tmdbTvId, int $seasonNumber, string $status = 'draft'): array
     {
         $show = $this->tvShowDetails($tmdbTvId);
+        
+        if (empty($show['id'])) {
+            throw new RuntimeException('Unable to fetch TV show details from TMDB.');
+        }
+        
         $season = $this->tvSeasonDetails($tmdbTvId, $seasonNumber);
+        
+        if (empty($season)) {
+            throw new RuntimeException('Unable to fetch season details from TMDB.');
+        }
+        
+        $episodes = $season['episodes'] ?? [];
+        
+        if (empty($episodes)) {
+            throw new RuntimeException('This season has no episodes available on TMDB.');
+        }
+        
+        // Ensure parent series and season exist first
+        $parent = $this->ensureSeriesItem($tmdbTvId, $status);
+        if (empty($parent['id'])) {
+            throw new RuntimeException('Unable to create or find the TV series in the database.');
+        }
+        
+        $seasonItem = $this->ensureSeasonItem($tmdbTvId, $show, $seasonNumber, $status);
+        if (empty($seasonItem['id'])) {
+            throw new RuntimeException('Unable to create or find the season in the database.');
+        }
 
         $generated = [
             'episodes' => 0,
             'skipped' => 0,
+            'errors' => [],
         ];
 
-        foreach (($season['episodes'] ?? []) as $episode) {
+        foreach ($episodes as $episode) {
             $episodeNumber = (int) ($episode['episode_number'] ?? 0);
 
             if ($episodeNumber < 1) {
@@ -360,17 +387,19 @@ class TmdbImporterService
                 continue;
             }
 
-            $this->upsertTvEpisodeFromData($tmdbTvId, $show, $episode, $seasonNumber, $episodeNumber, 0, $status);
-            $generated['episodes']++;
+            try {
+                $this->upsertTvEpisodeFromData($tmdbTvId, $show, $episode, $seasonNumber, $episodeNumber, 0, $status);
+                $generated['episodes']++;
+            } catch (Exception $e) {
+                $generated['errors'][] = 'Episode ' . $episodeNumber . ': ' . $e->getMessage();
+            }
         }
 
-        $parent = $this->ensureSeriesItem($tmdbTvId, $status);
-        if (!empty($parent['id'])) {
-            $this->db->update('media_seasons', ['clgnrt' => 1], [
-                'media_item_id' => (int) $parent['id'],
-                'season_number' => $seasonNumber,
-            ]);
-        }
+        // Mark season as generated
+        $this->db->update('media_seasons', ['clgnrt' => 1], [
+            'media_item_id' => (int) $parent['id'],
+            'season_number' => $seasonNumber,
+        ]);
 
         return $generated;
     }

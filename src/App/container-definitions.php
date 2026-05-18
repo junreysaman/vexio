@@ -19,12 +19,13 @@ use App\Services\Auth\AuthService;
 use App\Services\Home\HomeService;
 use App\Services\Media\MediaCatalogService;
 use App\Services\TMDB\TmdbImporterService;
-use App\Services\Watch\WatchService;
 use App\Controllers\Archive\BrowseController;
 use App\Controllers\Archive\GenrePageController;
 use App\Controllers\Archive\TrendingPageController;
 use App\Services\Archive\BrowseService;
 use App\Services\Archive\GenrePageService;
+use App\Controllers\Watch\WatchMovieController;
+use App\Controllers\Watch\WatchTvController;
 use Framework\Database;
 use Framework\TemplateEngine;
 
@@ -56,10 +57,11 @@ return [
     DashboardService::class => fn($container) => $container->resolve(DashboardService::class),
     ContentService::class => fn($container) => $container->resolve(ContentService::class),
     UserService::class => fn($container) => $container->resolve(UserService::class),
-    WatchService::class => fn($container) => $container->resolve(WatchService::class),
     BrowseController::class => fn($container) => $container->resolve(BrowseController::class),
     GenrePageController::class => fn($container) => $container->resolve(GenrePageController::class),
     TrendingPageController::class => fn($container) => $container->resolve(TrendingPageController::class),
     BrowseService::class => fn($container) => new BrowseService(fn() => $container->get(Database::class)),
     GenrePageService::class => fn($container) => new GenrePageService(fn() => $container->get(Database::class)),
+    WatchMovieController::class => fn($container) => $container->resolve(WatchMovieController::class),
+    WatchTvController::class => fn($container) => $container->resolve(WatchTvController::class),
 ];

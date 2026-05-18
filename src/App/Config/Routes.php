@@ -11,7 +11,6 @@ use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImporterController;
 use App\Controllers\Admin\UserController;
 use App\Controllers\Admin\Content\ContentController;
-use App\Controllers\Watch\WatchController;
 use Framework\App;
 
 function registerRoutes(App $app): void
@@ -46,12 +45,11 @@ function registerRoutes(App $app): void
         ['GET', '/admin/importer', [ImporterController::class, 'index']],
         ['GET', '/admin/importer/results', [ImporterController::class, 'results']],
         ['POST', '/admin/importer/import', [ImporterController::class, 'import']],
-        ['GET', '/movie/{tmdbId}', [WatchController::class, 'movie']],
-        ['GET', '/tvshow/{tmdbId}', [WatchController::class, 'tvshowRoot']],
-        ['GET', '/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchController::class, 'tvshow']],
         ['GET', '/archive/browse', [AppController::class, 'archiveBrowse']],
         ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
         ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
+        ['GET', '/watch/movie/{tmdbId}', [AppController::class, 'watchWatchMovie']],
+        ['GET', '/watch/tvshow/{tmdbId}', [AppController::class, 'watchWatchTv']],
         ['GET', '/404', [AppController::class, 'notFound']],
     ];
 

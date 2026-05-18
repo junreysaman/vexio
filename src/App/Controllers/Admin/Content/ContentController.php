@@ -159,13 +159,23 @@ class ContentController
                 (string) ($request->post('status', $season['status'] ?? $item['status'] ?? 'draft'))
             );
 
+            $message = 'Imported ' . number_format((int) $result['episodes']) . ' episode(s)';
+            if (!empty($result['skipped'])) {
+                $message .= ', skipped ' . number_format((int) $result['skipped']);
+            }
+            $message .= ' for season ' . (int) $season['season_number'] . '.';
+            
+            if (!empty($result['errors'])) {
+                $message .= ' Errors: ' . implode('; ', $result['errors']);
+            }
+            
             setFlash(
                 'content',
-                'Imported ' . number_format((int) $result['episodes']) . ' episode(s) for season ' . (int) $season['season_number'] . '.',
-                'success'
+                $message,
+                !empty($result['errors']) ? 'warning' : 'success'
             );
         } catch (RuntimeException $exception) {
-            setFlash('content', $exception->getMessage(), 'danger');
+            setFlash('content', 'Episode import failed: ' . $exception->getMessage(), 'danger');
         }
 
         redirectTo('/admin/content/' . $contentId . '/edit#episodes');

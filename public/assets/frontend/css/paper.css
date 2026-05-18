@@ -70,6 +70,11 @@ ul{list-style:none;}
   flex-shrink:0; margin-right:48px;
   position:relative;
 }
+.vx-logo img {
+  display: block;
+  max-height: calc(var(--nav-h) - 20px);
+  width: auto;
+}
 .vx-logo sup{
   font-family:'Plus Jakarta Sans',sans-serif;
   font-size:9px; font-weight:700; letter-spacing:1px;
@@ -1607,3 +1612,10 @@ footer{
 }
 #toast.show{transform:translateY(0);opacity:1;}
 @media(min-width:769px){#toast{bottom:20px;}}
+
+.nav-link.disabled,
+.bot-nav-item.disabled {
+    pointer-events: none;
+    cursor: default;
+    user-select: none;
+}

@@ -315,7 +315,7 @@ class HomeService
         }
 
         if (($item['type'] ?? '') === 'movie') {
-            return '/movie/' . $tmdbId;
+            return '/watch/movie/' . $tmdbId;
         }
 
         if (($item['type'] ?? '') !== 'tv_show') {
@@ -333,10 +333,10 @@ class HomeService
         );
 
         if (!$episode) {
-            return '/tvshow/' . $tmdbId;
+            return '/watch/tvshow/' . $tmdbId;
         }
 
-        return '/tvshow/' . $tmdbId . '/' . (int) $episode['season_number'] . '/' . (int) $episode['episode_number'];
+        return '/watch/tvshow/' . $tmdbId . '/' . (int) $episode['season_number'] . '/' . (int) $episode['episode_number'];
     }
 
     /**

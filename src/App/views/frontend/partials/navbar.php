@@ -1,5 +1,18 @@
 <?php
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/');
+
+/*
+|--------------------------------------------------------------------------
+| Detect Watch Route
+|--------------------------------------------------------------------------
+*/
+$isWatchPage = str_starts_with($currentPath, 'watch/');
+
+/*
+|--------------------------------------------------------------------------
+| Navigation Items
+|--------------------------------------------------------------------------
+*/
 $navItems = [
     [
         'key' => 'home',
@@ -8,6 +21,9 @@ $navItems = [
         'active' => $currentPath === '',
         'icon' => '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
     ],
+
+    
+
     [
         'key' => 'browse',
         'label' => 'Browse',
@@ -15,13 +31,16 @@ $navItems = [
         'active' => $currentPath === 'archive/browse',
         'icon' => '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     ],
+
     [
         'key' => 'genre',
         'label' => 'Genre',
         'href' => '/archive/genres',
-        'active' => in_array($currentPath, ['archive/genres', 'genres'], true) || str_starts_with($currentPath, 'genre/'),
+        'active' => in_array($currentPath, ['archive/genres', 'genres'], true)
+            || str_starts_with($currentPath, 'genre/'),
         'icon' => '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
     ],
+
     [
         'key' => 'trending',
         'label' => 'Trending',
@@ -29,6 +48,7 @@ $navItems = [
         'active' => $currentPath === 'archive/trending',
         'icon' => '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
     ],
+
     [
         'key' => 'forum',
         'label' => 'Forum',
@@ -36,42 +56,142 @@ $navItems = [
         'active' => false,
         'icon' => '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hidden Watch Menu
+    | Only visible on /watch/*
+    |--------------------------------------------------------------------------
+    */
+    ...($isWatchPage ? [[
+        'key' => 'watching',
+        'label' => 'Watching',
+        'href' => 'javascript:void(0)',
+        'active' => true,
+        'disabled' => true,
+        'icon' => '<polygon points="5 3 19 12 5 21 5 3"/>',
+    ]] : []),
 ];
 ?>
+
+<!-- ===================================================== -->
+<!-- TOP NAV -->
+<!-- ===================================================== -->
+
 <nav id="topnav">
-  <a href="/" class="vx-logo">VEXIO<sup>HD</sup></a>
 
-  <div class="nav-links">
-    <?php foreach ($navItems as $item): ?>
-      <a href="<?= escape($item['href']) ?>" class="nav-link <?= $item['active'] ? 'active' : '' ?>" data-nav="<?= escape($item['key']) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?= $item['icon'] ?></svg>
-        <?= escape($item['label']) ?>
-      </a>
-    <?php endforeach; ?>
-  </div>
+    <a href="/" class="vx-logo">
+        <img src="/brand/vexio-transparent.png" alt="Vexio">
+    </a>
 
-  <div class="nav-right">
-    <div class="nav-search-bar" id="searchOpen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <span>Search TV shows, movies...</span>
-      <kbd>Ctrl K</kbd>
+    <div class="nav-links">
+
+        <?php foreach ($navItems as $item): ?>
+
+            <a
+                href="<?= escape($item['href']) ?>"
+                class="nav-link
+                    <?= $item['active'] ? 'active' : '' ?>
+                    <?= !empty($item['disabled']) ? 'disabled' : '' ?>"
+                data-nav="<?= escape($item['key']) ?>"
+                <?= !empty($item['disabled']) ? 'aria-disabled="true"' : '' ?>
+            >
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <?= $item['icon'] ?>
+                </svg>
+
+                <?= escape($item['label']) ?>
+
+            </a>
+
+        <?php endforeach; ?>
+
     </div>
-    <a href="/login" class="nav-sign-btn">Sign In</a>
 
-    <button class="mobile-search-btn" id="mobileSearchOpen" aria-label="Search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    </button>
-  </div>
+    <div class="nav-right">
+
+        <div class="nav-search-bar" id="searchOpen">
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+
+            <span>Search TV shows, movies...</span>
+
+            <kbd>Ctrl K</kbd>
+
+        </div>
+
+        <a href="/login" class="nav-sign-btn">
+            Sign In
+        </a>
+
+        <button
+            class="mobile-search-btn"
+            id="mobileSearchOpen"
+            aria-label="Search"
+        >
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+
+        </button>
+
+    </div>
+
 </nav>
+
+<!-- ===================================================== -->
+<!-- BOTTOM NAV -->
+<!-- ===================================================== -->
 
 <nav id="botnav">
-  <?php foreach ($navItems as $item): ?>
-    <a href="<?= escape($item['href']) ?>" class="bot-nav-item <?= $item['active'] ? 'active' : '' ?>" data-nav="<?= escape($item['key']) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?= $item['icon'] ?></svg>
-      <?= escape($item['label']) ?>
-      <?php if ($item['key'] === 'trending'): ?>
-        <span class="bot-nav-dot"></span>
-      <?php endif; ?>
-    </a>
-  <?php endforeach; ?>
+
+    <?php foreach ($navItems as $item): ?>
+
+        <a
+            href="<?= escape($item['href']) ?>"
+            class="bot-nav-item
+                <?= $item['active'] ? 'active' : '' ?>
+                <?= !empty($item['disabled']) ? 'disabled' : '' ?>"
+            data-nav="<?= escape($item['key']) ?>"
+            <?= !empty($item['disabled']) ? 'aria-disabled="true"' : '' ?>
+        >
+
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <?= $item['icon'] ?>
+            </svg>
+
+            <?= escape($item['label']) ?>
+
+            <?php if ($item['key'] === 'trending'): ?>
+                <span class="bot-nav-dot"></span>
+            <?php endif; ?>
+
+        </a>
+
+    <?php endforeach; ?>
+
 </nav>
+
+<!-- ===================================================== -->
+<!-- OPTIONAL CSS -->
+<!-- ===================================================== -->

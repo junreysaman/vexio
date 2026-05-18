@@ -8,6 +8,8 @@ use App\Controllers\Home\HomeController;
 use App\Controllers\Archive\BrowseController;
 use App\Controllers\Archive\GenrePageController;
 use App\Controllers\Archive\TrendingPageController;
+use App\Controllers\Watch\WatchMovieController;
+use App\Controllers\Watch\WatchTvController;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use Framework\TemplateEngine;
@@ -19,7 +21,9 @@ class AppController
         private HomeController $home,
         private BrowseController $archiveBrowse,
         private GenrePageController $archiveGenrePage,
-        private TrendingPageController $archiveTrendingPage
+        private TrendingPageController $archiveTrendingPage,
+        private WatchMovieController $watchWatchMovie,
+        private WatchTvController $watchWatchTv
     ) {
     }
 
@@ -56,5 +60,15 @@ class AppController
     public function archiveTrendingPage(Request $request, Response $response): Response
     {
         return $this->archiveTrendingPage->index($request, $response);
+    }
+
+    public function watchWatchMovie(Request $request, Response $response): Response
+    {
+        return $this->watchWatchMovie->index($request, $response);
+    }
+
+    public function watchWatchTv(Request $request, Response $response): Response
+    {
+        return $this->watchWatchTv->index($request, $response);
     }
 }

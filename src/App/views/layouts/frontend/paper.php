@@ -20,11 +20,13 @@
     <title><?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?></title>
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/frontend/css/paper.css">
+    <link rel="stylesheet" href="/assets/frontend/css/page-loader.css">
     <?= $this->section('styles') ?>
 </head>
 
 <body class="<?= escape($body_class ?? 'paper-frontend') ?>">
 
+      <!-- $this->includePartial('frontend/partials/page-loader')  -->
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
     
@@ -33,6 +35,7 @@
         <?= $this->includePartial('frontend/partials/footer') ?>
     <script src="/assets/frontend/js/app.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/app.js') ?>"></script>
     <script src="/assets/frontend/js/search.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/search.js') ?>"></script>
+    <script src="/assets/frontend/js/page-loader.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/page-loader.js') ?>"></script>
     <?= $this->section('scripts') ?>
 </body>
 

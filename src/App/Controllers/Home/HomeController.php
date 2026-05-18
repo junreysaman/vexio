@@ -19,6 +19,7 @@ class HomeController
 
     public function index(Request $request, Response $response): Response
     {
+        // inspectAndDie($this->home->pageData());
         return $response->html($this->view->render(
             'frontend/home/index',
             'layouts/frontend/paper',

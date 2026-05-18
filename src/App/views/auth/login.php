@@ -14,7 +14,7 @@
             <span>Admin and user accounts</span>
         </div>
 
-        <form class="auth-form" action="/authentication/v3/login" method="POST">
+        <form class="auth-form" action="/login" method="POST">
             <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
 
             <label>

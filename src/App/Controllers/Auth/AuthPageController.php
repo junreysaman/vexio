@@ -29,4 +29,12 @@ class AuthPageController
             'body_class' => 'auth-page',
         ]));
     }
+
+    public function logout(Request $request, Response $response): Response
+    {
+        session_destroy();
+        unset($_SESSION['user']);
+
+        return $response->redirect('/auth/login');
+    }
 }

@@ -14,7 +14,7 @@
             <span>Viewer profile</span>
         </div>
 
-        <form class="auth-form" action="/authentication/register" method="POST">
+        <form class="auth-form" action="/register" method="POST">
             <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
 
             <div class="auth-grid">

@@ -19,251 +19,499 @@ $countryOptions = $countryOptions ?? [];
 $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Live'];
 ?>
 
-<div id="dbmovies-dbmvs-application" class="dbmovies-app vexio-dbmvs">
-    <header class="dbmvsapp">
-        <nav class="left" id="dbmovies-types">
-            <ul>
-                <li><h3 id="dbmvs-logo-status" class="ready"><a href="/admin/importer">DBMVS</a> <small>3.5.3</small></h3></li>
-                <li><a id="dbmvstabapp-movie" href="/admin/importer?tab=movies" class="dbmvs-tab-content button <?= $activeTab === 'movies' ? 'button-primary' : '' ?>" data-type="movies">Movies</a></li>
-                <li><a id="dbmvstabapp-tv" href="/admin/importer?tab=tv" class="dbmvs-tab-content button <?= $activeTab === 'tv' ? 'button-primary' : '' ?>" data-type="tv">Shows</a></li>
-                <li><span class="dbmvs-counter">Credits: <b><?= escape((string) $stats['credits']) ?></b></span></li>
-                <li><span class="dbmvs-counter">Used: <b><?= number_format((int) $stats['used']) ?></b></span></li>
-                <li><span class="dbmvs-counter">Requests: <b><?= escape((string) $stats['requests']) ?></b></span></li>
-            </ul>
-        </nav>
-        <nav class="right" id="dbmovies-settings">
-            <ul>
-                <li class="title">Meta Updater</li>
-                <li><a href="/admin/content" class="button button-primary button-small">Start</a></li>
-            </ul>
-        </nav>
-    </header>
+<div class="importer-container">
+    <div class="importer-tabs">
+        <button type="button" id="dbmvstabapp-movie" class="importer-tab <?= $activeTab === 'movies' ? 'active' : '' ?>" data-type="movies">
+            <i class="icon-movie"></i> Movies
+        </button>
+        <button type="button" id="dbmvstabapp-tv" class="importer-tab <?= $activeTab === 'tv' ? 'active' : '' ?>" data-type="tv">
+            <i class="icon-live_tv"></i> TV Shows
+        </button>
+        <div class="importer-stats">
+            <span><strong><?= escape((string) $stats['credits']) ?></strong> Credits</span>
+            <span><strong><?= number_format((int) $stats['used']) ?></strong> Used</span>
+            <span><strong><?= escape((string) $stats['requests']) ?></strong> Requests</span>
+        </div>
+    </div>
 
-    <div class="forms" id="dbmvs-forms-response">
+    <div class="importer-toolbar">
         <form action="/admin/importer" method="GET" id="dbmovies-form-filter" class="importer-filter">
-            <fieldset>
-                <a class="button button-large dbmovies-log-collapse" href="#" title="Imported data"></a>
-            </fieldset>
-            <fieldset>
-                <input type="hidden" name="tab" value="<?= escape($activeTab) ?>">
-                <input type="hidden" name="q" value="<?= escape($query ?? '') ?>">
-                <input type="number" id="dbmvs-year" name="year" min="1900" max="<?= date('Y') + 1 ?>" value="<?= escape((string) ($year ?? '')) ?>" placeholder="Year">
-            </fieldset>
-            <fieldset>
-                <input type="number" id="dbmvs-page" min="1" value="1" placeholder="Page" disabled>
-            </fieldset>
-            <fieldset>
-                <select id="dbmvs-popularity" name="sort">
-                    <?php foreach ($sortOptions as $value => $label): ?>
-                        <option value="<?= escape($value) ?>" <?= ($sort ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </fieldset>
-            <fieldset>
-                <select id="dbmvs-genre" name="genre">
-                    <option value="">All genres</option>
-                    <?php foreach ($genreOptions as $genreOption): ?>
-                        <option value="<?= (int) $genreOption['id'] ?>" <?= (int) ($genre ?? 0) === (int) $genreOption['id'] ? 'selected' : '' ?>>
-                            <?= escape((string) $genreOption['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </fieldset>
-            <fieldset>
-                <select id="dbmvs-language" name="language">
-                    <option value="">All languages</option>
-                    <?php foreach ($languageOptions as $value => $label): ?>
-                        <option value="<?= escape($value) ?>" <?= ($language ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </fieldset>
-            <fieldset>
-                <select id="dbmvs-country" name="country">
-                    <option value="">All countries</option>
-                    <?php foreach ($countryOptions as $value => $label): ?>
-                        <option value="<?= escape($value) ?>" <?= ($country ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </fieldset>
-            <fieldset>
-                <input type="submit" id="dbmvs-btn-filter" class="button button-large" value="Discover">
-            </fieldset>
+            <input type="hidden" name="tab" value="<?= escape($activeTab) ?>">
+            <input type="hidden" name="q" value="<?= escape($query ?? '') ?>">
+            
+            <input type="number" id="dbmvs-year" name="year" min="1900" max="<?= date('Y') + 1 ?>" value="<?= escape((string) ($year ?? '')) ?>" placeholder="Year">
+            
+            <select id="dbmvs-popularity" name="sort">
+                <?php foreach ($sortOptions as $value => $label): ?>
+                    <option value="<?= escape($value) ?>" <?= ($sort ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            
+            <select id="dbmvs-genre" name="genre">
+                <option value="">All genres</option>
+                <?php foreach ($genreOptions as $genreOption): ?>
+                    <option value="<?= (int) $genreOption['id'] ?>" <?= (int) ($genre ?? 0) === (int) $genreOption['id'] ? 'selected' : '' ?>>
+                        <?= escape((string) $genreOption['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            
+            <select id="dbmvs-language" name="language">
+                <option value="">All languages</option>
+                <?php foreach ($languageOptions as $value => $label): ?>
+                    <option value="<?= escape($value) ?>" <?= ($language ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            
+            <select id="dbmvs-country" name="country">
+                <option value="">All countries</option>
+                <?php foreach ($countryOptions as $value => $label): ?>
+                    <option value="<?= escape($value) ?>" <?= ($country ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            
+            <button type="submit" id="dbmvs-btn-filter" class="paper-btn primary">
+                <i class="icon-search"></i> Discover
+            </button>
         </form>
 
-        <form action="/admin/importer" method="GET" id="dbmovies-form-search" class="right importer-search">
-            <fieldset>
-                <input type="hidden" name="tab" value="<?= escape($activeTab) ?>">
-                <input type="text" id="dbmvs-search-term" name="q" value="<?= escape($query ?? '') ?>" placeholder="Search..">
-            </fieldset>
-            <fieldset>
-                <input type="submit" id="dbmvs-btn-search" class="button button-large" value="Search">
-            </fieldset>
+        <form action="/admin/importer" method="GET" id="dbmovies-form-search" class="importer-search">
+            <input type="hidden" name="tab" value="<?= escape($activeTab) ?>">
+            <input type="text" id="dbmvs-search-term" name="q" value="<?= escape($query ?? '') ?>" placeholder="Search for content..">
+            <button type="submit" id="dbmvs-btn-search" class="paper-btn primary">
+                <i class="icon-search"></i>
+            </button>
         </form>
     </div>
 
-    <div class="dbmvs-progress-bar"><div class="progressing"></div></div>
-
-    <div class="dbmovies-logs">
-        <div id="dbmovies-logs-box" class="box">
-            <ul>
-                <li><span class="type green">DBMVS</span> Welcome, the service has started successfully</li>
-            </ul>
+    <div class="importer-logs">
+        <div id="dbmovies-logs-box">
+            <span class="log-entry log-success"><i class="icon-check"></i> Welcome, the service has started successfully</span>
         </div>
-        <div class="hidder"><a id="dbmovies-cleanlog" href="#">CLEAN</a></div>
     </div>
 
-    <div class="wrapp">
-        <div class="content">
-            <div id="importerMeta" class="data_results importer-meta">
-                <section><span id="dbmvs-total-results">Loading TMDB results...</span></section>
-                <section class="right"><span id="dbmvs-current-page">Page 1</span></section>
-            </div>
-            <div id="importerGrid" class="items importer-grid">
-                <div class="importer-empty">
-                    <i class="icon-cloud_download"></i>
-                    <strong>Loading importer</strong>
-                    <span>Fetching fresh TMDB metadata without reloading the page.</span>
-                </div>
-            </div>
-            <div class="paginator importer-pagination">
-                <div id="dbmovies-loadmore-spinner"></div>
-                <button class="button" id="importPrev" type="button">Previous</button>
-                <button class="button button-primary" id="importNext" type="button">Load More</button>
-            </div>
+    <div id="importerMeta" class="importer-meta">
+        <span id="dbmvs-total-results">Loading TMDB results...</span>
+        <span id="dbmvs-current-page">Page 1</span>
+    </div>
+
+    <div id="importerGrid" class="importer-grid">
+        <div class="importer-empty">
+            <i class="icon-cloud_download"></i>
+            <strong>Loading importer</strong>
+            <span>Fetching fresh TMDB metadata without reloading the page.</span>
         </div>
+    </div>
+
+    <div class="importer-pagination">
+        <button type="button" id="importPrev" class="paper-btn">
+            <i class="icon-chevron_left"></i> Previous
+        </button>
+        <span class="pagination-info">
+            <span id="dbmvs-page-display">Page 1</span>
+        </span>
+        <button type="button" id="importNext" class="paper-btn primary">
+            Load More <i class="icon-chevron_right"></i>
+        </button>
     </div>
 </div>
 
 <?= $this->end() ?>
 
 <?= $this->start('styles') ?>
-<link rel="stylesheet" href="/dooplay/inc/core/dbmvs/assets/dbmovies.min.css">
 <style>
-body.importer-page .paper-main {
-    padding: 0;
+.importer-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
 }
 
-.vexio-dbmvs {
-    min-height: calc(100vh - 64px);
-    background: #f1f2f4;
+.importer-tabs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: var(--paper-surface);
 }
 
-.vexio-dbmvs .dbmvsapp {
-    min-height: 58px;
-    border-top: 2px solid #1d1f24;
-    background: #fff;
-}
-
-.vexio-dbmvs #dbmvs-logo-status {
+.importer-tab {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-size: 14px;
-    font-weight: 800;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--paper-muted);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.vexio-dbmvs #dbmvs-logo-status::before {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #28c840;
-    content: "";
+.importer-tab:hover {
+    background: rgba(50, 119, 200, .05);
+    color: var(--paper-blue);
 }
 
-.vexio-dbmvs #dbmvs-logo-status small {
-    color: #a6adb7;
-    font-size: 11px;
+.importer-tab.active {
+    background: rgba(50, 119, 200, .10);
+    color: var(--paper-blue);
+    border-color: var(--paper-blue);
 }
 
-.vexio-dbmvs .dbmvs-counter {
-    display: inline-flex;
+.importer-stats {
+    display: flex;
     align-items: center;
-    min-height: 28px;
-    padding: 0 12px;
-    border: 1px solid #dde2e8;
-    border-radius: 3px;
-    color: #2262b7;
-    font-size: 11px;
+    gap: 18px;
+    margin-left: auto;
+    padding-left: 12px;
+    border-left: 1px solid var(--paper-line);
+}
+
+.importer-stats span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+    color: var(--paper-muted);
     font-weight: 700;
 }
 
-.vexio-dbmvs .dbmvs-counter b {
-    margin-left: 4px;
+.importer-stats strong {
+    color: var(--paper-blue);
+    font-size: 14px;
+    margin-bottom: 2px;
 }
 
-.vexio-dbmvs #dbmvs-forms-response {
+.importer-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    min-height: 56px;
-    padding: 10px 16px;
-    border-top: 1px solid #edf0f3;
-    border-bottom: 1px solid #dfe4ea;
-    background: #fbfbfc;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: var(--paper-surface);
+    flex-wrap: wrap;
 }
 
-.vexio-dbmvs #dbmovies-form-filter,
-.vexio-dbmvs #dbmovies-form-search {
+.importer-filter {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 0;
+    flex: 1;
+    min-width: 300px;
 }
 
-.vexio-dbmvs #dbmvs-year {
-    width: 90px;
+.importer-filter input,
+.importer-filter select {
+    padding: 8px 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 6px;
+    background: var(--paper-surface);
+    color: var(--paper-ink);
+    font-size: 13px;
+    font-weight: 500;
 }
 
-.vexio-dbmvs #dbmvs-page {
-    width: 90px;
+.importer-filter input::placeholder {
+    color: var(--paper-muted);
 }
 
-.vexio-dbmvs #dbmvs-popularity {
-    width: 128px;
+.importer-filter input:focus,
+.importer-filter select:focus {
+    outline: none;
+    border-color: var(--paper-blue);
+    box-shadow: 0 0 0 2px rgba(50, 119, 200, .1);
 }
 
-.vexio-dbmvs #dbmvs-genre {
-    width: 158px;
+.importer-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.vexio-dbmvs #dbmvs-language,
-.vexio-dbmvs #dbmvs-country {
-    width: 138px;
+.importer-search input {
+    padding: 8px 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 6px;
+    background: var(--paper-surface);
+    color: var(--paper-ink);
+    font-size: 13px;
+    min-width: 180px;
 }
 
-.vexio-dbmvs #dbmvs-search-term {
-    width: 112px;
-}
-
-.vexio-dbmvs .dbmovies-logs {
-    border-bottom: 1px solid #dfe4ea;
-    background: #fff;
-    box-shadow: 0 4px 10px rgba(31, 38, 46, .12);
-}
-
-.vexio-dbmvs #dbmovies-logs-box {
-    height: 58px;
+.importer-logs {
+    padding: 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: var(--paper-surface);
+    max-height: 80px;
     overflow-y: auto;
 }
 
-.vexio-dbmvs #dbmovies-cleanlog {
-    color: #0d5cc9;
-    font-size: 10px;
-    font-weight: 800;
+#dbmovies-logs-box {
+    display: grid;
+    gap: 6px;
 }
 
-.vexio-dbmvs .wrapp {
-    padding-top: 0;
+.log-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--paper-muted);
+}
+
+.log-success {
+    color: var(--paper-green);
+}
+
+.importer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: rgba(50, 119, 200, .02);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--paper-blue);
+}
+
+.importer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.importer-grid.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.import-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: var(--paper-surface);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.import-card:hover {
+    border-color: var(--paper-blue);
+    box-shadow: var(--paper-shadow);
+}
+
+.import-poster {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f0f2f5, #e4e8ed);
+    display: grid;
+    place-items: center;
+}
+
+.import-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.import-poster i {
+    font-size: 40px;
+    color: var(--paper-blue);
+    opacity: 0.5;
+}
+
+.rating {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffc107;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.import-card-body {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.import-card-body strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--paper-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+}
+
+.import-card-body span {
+    font-size: 11px;
+    color: var(--paper-muted);
+    font-weight: 600;
+}
+
+.import-action {
+    padding: 8px;
+    border-top: 1px solid var(--paper-line);
+    display: grid;
+    gap: 6px;
+}
+
+.custom-select {
+    padding: 6px 8px;
+    border: 1px solid var(--paper-line);
+    border-radius: 4px;
+    background: var(--paper-surface);
+    color: var(--paper-ink);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.import-featured-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--paper-muted);
+    cursor: pointer;
+}
+
+.import-featured-toggle input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.importer-empty {
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    padding: 60px 20px;
+    text-align: center;
+    border: 1px dashed var(--paper-line);
+    border-radius: 8px;
+    background: rgba(50, 119, 200, .02);
+    grid-column: 1 / -1;
+}
+
+.importer-empty i {
+    font-size: 48px;
+    color: var(--paper-blue);
+    opacity: 0.5;
+}
+
+.importer-empty strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--paper-ink);
+}
+
+.importer-empty span {
+    max-width: 340px;
+    font-size: 13px;
+    color: var(--paper-muted);
+    line-height: 1.5;
+}
+
+.importer-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px;
+}
+
+.pagination-info {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--paper-muted);
+}
+
+.paper-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: 1px solid var(--paper-line);
+    border-radius: 6px;
+    background: var(--paper-surface);
+    color: var(--paper-ink);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.paper-btn:hover:not(:disabled) {
+    border-color: var(--paper-blue);
+    background: rgba(50, 119, 200, .05);
+    color: var(--paper-blue);
+}
+
+.paper-btn.primary {
+    border-color: var(--paper-blue);
+    background: var(--paper-blue);
+    color: white;
+}
+
+.paper-btn.primary:hover:not(:disabled) {
+    background: #2a5fb8;
+    border-color: #2a5fb8;
+}
+
+.paper-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 @media (max-width: 900px) {
-    .vexio-dbmvs #dbmvs-forms-response,
-    .vexio-dbmvs #dbmovies-form-filter,
-    .vexio-dbmvs #dbmovies-form-search {
-        align-items: stretch;
+    .importer-filter {
+        flex: 1 1 100%;
+    }
+
+    .importer-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .importer-stats {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        width: 100%;
+        padding-top: 12px;
+        border-top: 1px solid var(--paper-line);
+    }
+}
+
+@media (max-width: 600px) {
+    .importer-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .importer-pagination {
         flex-wrap: wrap;
+    }
+
+    .paper-btn {
+        font-size: 12px;
+        padding: 8px 12px;
     }
 }
 </style>
@@ -330,7 +578,7 @@ body.importer-page .paper-main {
         state.totalPages = Number(data.meta?.total_pages ?? 1);
         state.page = Number(data.meta?.page ?? state.page);
         meta.innerHTML = `<span>${visible} visible from ${total} TMDB results</span><span>Page ${state.page.toLocaleString()} of ${state.totalPages.toLocaleString()}</span>`;
-        document.getElementById('dbmvs-page').value = state.page;
+        document.getElementById('dbmvs-page-display').textContent = `Page ${state.page}`;
         prev.disabled = state.page <= 1;
         next.disabled = state.page >= state.totalPages;
     };
@@ -349,6 +597,29 @@ body.importer-page .paper-main {
         }
     };
 
+    const isReleasedByToday = (item) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Get the release date - the API returns it as 'date' field
+        const releaseDate = item.date;
+        
+        // If no date available, return false
+        if (!releaseDate) {
+            return false;
+        }
+        
+        const itemDate = new Date(releaseDate);
+        itemDate.setHours(0, 0, 0, 0);
+        
+        // Check if date is valid and not in the future
+        if (isNaN(itemDate.getTime())) {
+            return false;
+        }
+        
+        return itemDate <= today;
+    };
+
     const card = (item) => {
         return `
             <article class="import-card" data-tmdb-id="${item.id}">
@@ -364,7 +635,7 @@ body.importer-page .paper-main {
                     <input type="hidden" name="token" value="${esc(state.token)}">
                     <input type="hidden" name="tab" value="${esc(state.tab)}">
                     <input type="hidden" name="tmdb_id" value="${item.id}">
-                    <select class="custom-select form-control r-0 light s-12" name="status" aria-label="Import status">
+                    <select class="custom-select" name="status" aria-label="Import status">
                         <option value="draft">Draft</option>
                         <option value="published">Publish</option>
                     </select>
@@ -372,7 +643,7 @@ body.importer-page .paper-main {
                         <input type="checkbox" name="featured" value="1">
                         <span>Featured</span>
                     </label>
-                    <button class="btn btn-primary btn-sm" type="submit"><i class="icon-cloud_download mr-1"></i>Import</button>
+                    <button class="paper-btn primary" type="submit" style="width: 100%; justify-content: center;"><i class="icon-cloud_download"></i>Import</button>
                 </form>
             </article>
         `;
@@ -385,7 +656,7 @@ body.importer-page .paper-main {
                 const button = importForm.querySelector('button');
                 const original = button.innerHTML;
                 button.disabled = true;
-                button.innerHTML = 'Importing...';
+                button.innerHTML = '<i class="icon-hourglass_top"></i>Importing...';
 
                 try {
                     const response = await fetch('/admin/importer/import', {
@@ -435,9 +706,18 @@ body.importer-page .paper-main {
             }
 
             renderMeta(data);
-            grid.innerHTML = data.results.length
-                ? data.results.map(card).join('')
-                : '<div class="importer-empty"><i class="icon-search"></i><strong>No unimported results found</strong><span>Try a broader title, year, tab, or next page.</span></div>';
+            const releasedItems = data.results.filter(isReleasedByToday);
+            
+            // Sort by release date descending (newest first, going backwards)
+            releasedItems.sort((a, b) => {
+                const dateA = a.date;
+                const dateB = b.date;
+                return new Date(dateB) - new Date(dateA);
+            });
+            
+            grid.innerHTML = releasedItems.length
+                ? releasedItems.map(card).join('')
+                : '<div class="importer-empty"><i class="icon-search"></i><strong>No released content found</strong><span>Items displayed are only those released today or earlier. Try a different page or adjust your filters.</span></div>';
             bindImports();
         } catch (error) {
             meta.innerHTML = '<span>TMDB connection issue</span><span>Page ' + state.page + '</span>';
@@ -474,25 +754,26 @@ body.importer-page .paper-main {
         load();
     });
 
-    document.querySelectorAll('#dbmovies-types a[data-type]').forEach((tab) => {
+    document.querySelectorAll('.importer-tab').forEach((tab) => {
         tab.addEventListener('click', (event) => {
-            event.preventDefault();
-            const url = new URL(tab.href);
-            state.tab = url.searchParams.get('tab') || 'movies';
-            state.page = 1;
-            state.genre = '';
-            state.language = '';
-            state.country = '';
-            form.tab.value = state.tab;
-            searchForm.tab.value = state.tab;
-            form.language.value = '';
-            form.country.value = '';
-            renderGenres();
-            document.querySelectorAll('#dbmovies-types a[data-type]').forEach((link) => {
-                link.classList.toggle('button-primary', link === tab);
-            });
-            history.replaceState(null, '', '/admin/importer?tab=' + encodeURIComponent(state.tab));
-            load();
+            const newTab = tab.getAttribute('data-type');
+            if (newTab && newTab !== state.tab) {
+                state.tab = newTab;
+                state.page = 1;
+                state.genre = '';
+                state.language = '';
+                state.country = '';
+                form.tab.value = state.tab;
+                searchForm.tab.value = state.tab;
+                form.language.value = '';
+                form.country.value = '';
+                renderGenres();
+                document.querySelectorAll('.importer-tab').forEach((link) => {
+                    link.classList.toggle('active', link === tab);
+                });
+                history.replaceState(null, '', '/admin/importer?tab=' + encodeURIComponent(state.tab));
+                load();
+            }
         });
     });
 
