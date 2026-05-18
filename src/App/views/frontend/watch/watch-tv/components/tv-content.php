@@ -125,12 +125,10 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
       <button class="ctab" onclick="switchTab('comments',this)">Comments</button>
     </div>
 
-    <div class="tab-panel active" id="tab-episodes">
+    <div class="tab-panel active" id="tab-episodes" data-episode-list data-page-size="10">
       <div class="ep-list-controls">
-        <button class="ep-sort-btn active" onclick="showToast('Sorted: Oldest First')">Asc</button>
-        <button class="ep-sort-btn" onclick="showToast('Sorted: Newest First')">Desc</button>
-        <input type="text" class="ep-search" placeholder="Search episode...">
-        <span class="ep-count-badge"><?= number_format(count($episodes ?? [])) ?> episodes &middot; Season <?= $currentSeason ?></span>
+        <input type="search" class="ep-search" placeholder="Search episodes..." data-episode-search autocomplete="off">
+        <span class="ep-count-badge"><span data-episode-visible-count><?= number_format(min(10, count($episodes ?? []))) ?> of <?= number_format(count($episodes ?? [])) ?> episodes</span> &middot; Season <?= $currentSeason ?></span>
       </div>
       <div class="ep-list">
         <?php foreach (($episodes ?? []) as $idx => $row): ?>
@@ -141,11 +139,22 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
           $rowTitle = (string) (($row['episode_name'] ?? '') ?: ($row['title'] ?? 'Episode ' . $rowEpisode));
           $rowPoster = (string) (($row['backdrop_image'] ?? '') ?: (($row['poster_image'] ?? '') ?: ($row['poster_url'] ?? '')));
           $rowUrl = (string) ($row['watchUrl'] ?? $row['watch_url'] ?? '#');
+          $rowSynopsis = (string) (($row['synopsis'] ?? '') ?: ($show['synopsis'] ?? ''));
+          $rowSearch = strtolower($rowTitle . ' ' . $rowSynopsis);
+          $rowNumberSearch = implode(' ', [
+            (string) $rowEpisode,
+            str_pad((string) $rowEpisode, 2, '0', STR_PAD_LEFT),
+            'e' . $rowEpisode,
+            'ep' . $rowEpisode,
+            'episode ' . $rowEpisode,
+            's' . $rowSeason . 'e' . $rowEpisode,
+            's' . $rowSeason . ' e' . $rowEpisode,
+          ]);
           $classes = ['ep-row'];
           if ($rowEpisode < $currentEpisode) $classes[] = 'watched';
           if ($isCurrent) $classes[] = 'current';
           ?>
-          <a class="<?= escape(implode(' ', $classes)) ?>" href="<?= escape($rowUrl) ?>">
+          <a class="<?= escape(implode(' ', $classes)) ?>" href="<?= escape($rowUrl) ?>" data-search="<?= escape($rowSearch) ?>" data-number-search="<?= escape($rowNumberSearch) ?>"<?= $idx >= 10 ? ' hidden' : '' ?>>
             <div class="ep-thumb c<?= ($idx % 8) + 1 ?>">
               <?php if ($rowPoster !== ''): ?><img src="<?= escape($rowPoster) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php else: ?><div class="ep-thumb-ph">S<?= $rowSeason ?> E<?= $rowEpisode ?></div><?php endif; ?>
               <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
@@ -164,6 +173,10 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
             </div>
           </a>
         <?php endforeach; ?>
+      </div>
+      <div class="ep-empty" hidden>No episodes match your search.</div>
+      <div class="ep-load-more-wrap">
+        <button class="btn-secondary ep-load-more" type="button" data-episode-load-more>Load More Episodes</button>
       </div>
     </div>
 
@@ -228,13 +241,13 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
     </div>
 
     <div class="tab-panel" id="tab-comments">
-      <div class="comment-input-row">
-        <div class="ci-avatar">V</div>
-        <textarea class="ci-box" placeholder="Share your thoughts on this episode..." rows="1"></textarea>
-      </div>
-      <div class="comment-list">
-        <div class="comment"><div class="c-avatar ca1">VX</div><div class="c-body"><div class="c-header"><span class="c-name">VexioFan</span><span class="c-time">Just now</span></div><div class="c-text">Comments are ready for this episode.</div></div></div>
-      </div>
+      <?= $this->includePartial('/frontend/watch/components/comments', [
+        'commentOwnerType' => 'episode',
+        'commentOwnerId' => (int) ($episode['id'] ?? 0),
+        'comments' => $comments ?? [],
+        'commentCount' => $commentCount ?? 0,
+        'commentPlaceholder' => 'Share your thoughts on this episode...',
+      ]) ?>
     </div>
 
     <div class="rating-widget" style="margin-top:28px;">

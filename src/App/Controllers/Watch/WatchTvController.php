@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Watch;
 
 use App\Services\Watch\WatchService;
+use App\Services\Watch\CommentService;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use Framework\TemplateEngine;
@@ -13,7 +14,8 @@ class WatchTvController
 {
     public function __construct(
         private TemplateEngine $view,
-        private WatchService $watch
+        private WatchService $watch,
+        private CommentService $comments
     ) {
     }
 
@@ -75,6 +77,8 @@ class WatchTvController
                 'seasons' => $data['seasons'] ?? [],
                 'episodes' => $data['episodes'] ?? [],
                 'related' => $data['related'] ?? [],
+                'comments' => $this->comments->forEpisode((int) ($episode['id'] ?? 0)),
+                'commentCount' => $this->comments->count('episode', (int) ($episode['id'] ?? 0)),
                 'watchUrl' => $episode['watchUrl'] ?? ($episode['watch_url'] ?? null),
             ]
         ));

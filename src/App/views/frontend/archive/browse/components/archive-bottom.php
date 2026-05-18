@@ -1,4 +1,4 @@
-<div class="ad-leaderboard">
+<div class="ad-leaderboard" style="margin-top: 2cap;">
   <div class="ad-box ad-728">
     <div class="ad-label">Advertisement</div>
     <div class="ad-copy">728 × 90 — Leaderboard</div>

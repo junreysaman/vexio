@@ -10,10 +10,13 @@ use App\Controllers\Auth\AuthPageController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImporterController;
 use App\Controllers\Admin\UserController;
+use App\Controllers\Admin\CommentController as AdminCommentController;
 use App\Controllers\Admin\Content\ContentController;
+use App\Middleware\AdminRequiredMiddleware;
 use App\Controllers\Search\SearchController;
 use App\Controllers\Watch\WatchMovieController;
 use App\Controllers\Watch\WatchTvController;
+use App\Controllers\Watch\CommentController;
 use Framework\App;
 
 function registerRoutes(App $app): void
@@ -34,6 +37,10 @@ function registerRoutes(App $app): void
         ['GET', '/admin/users/{id}/edit', [UserController::class, 'edit']],
         ['POST', '/admin/users/{id}/edit', [UserController::class, 'update']],
         ['POST', '/admin/users/{id}/delete', [UserController::class, 'destroy']],
+        ['GET', '/admin/comments', [AdminCommentController::class, 'index'], [AdminRequiredMiddleware::class]],
+        ['POST', '/admin/comments/{id}/publish', [AdminCommentController::class, 'publish'], [AdminRequiredMiddleware::class]],
+        ['POST', '/admin/comments/{id}/hide', [AdminCommentController::class, 'hide'], [AdminRequiredMiddleware::class]],
+        ['POST', '/admin/comments/{id}/delete', [AdminCommentController::class, 'destroy'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/content', [ContentController::class, 'index']],
         ['GET', '/admin/content/{id}/edit', [ContentController::class, 'edit']],
         ['POST', '/admin/content/{id}/edit', [ContentController::class, 'update']],
@@ -53,6 +60,7 @@ function registerRoutes(App $app): void
         ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
         ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
         ['GET', '/api/search', [SearchController::class, 'index']],
+        ['POST', '/api/comments', [CommentController::class, 'store']],
         ['GET', '/movie/{tmdbId}', [WatchMovieController::class, 'index']],
         ['GET', '/tvshow/{tmdbId}', [WatchTvController::class, 'root']],
         ['GET', '/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],

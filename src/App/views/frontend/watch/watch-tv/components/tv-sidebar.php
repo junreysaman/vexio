@@ -10,7 +10,6 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
     <div><div class="sidebar-title">EPISODES</div></div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="sidebar-season-badge">S<?= $currentSeason ?></span>
-      <button class="sidebar-sort" onclick="showToast('Episodes list reversed')">Sort</button>
     </div>
   </div>
 

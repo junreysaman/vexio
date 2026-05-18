@@ -20,6 +20,8 @@
 <?= $this->end() ?>
 
 <?= $this->start('scripts') ?>
+<script src="/assets/frontend/js/watch-tv.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-tv.js') ?>"></script>
+<script src="/assets/frontend/js/watch-comments.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-comments.js') ?>"></script>
 <script>
 const EPISODE_TOTAL_SECONDS = 45 * 60;
 let tvIsPlaying = false;

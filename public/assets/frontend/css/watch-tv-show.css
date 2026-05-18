@@ -495,6 +495,10 @@ ul{list-style:none;}
 .ep-count-badge{font-size:12px;color:var(--muted);margin-left:auto;}
 
 .ep-list{display:flex;flex-direction:column;gap:2px;}
+.ep-row[hidden]{display:none;}
+.ep-load-more-wrap{display:flex;justify-content:center;padding:18px 0 4px;}
+.ep-load-more[hidden]{display:none;}
+.ep-empty{padding:18px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:13px;text-align:center;}
 .ep-row{
   display:flex;align-items:center;gap:14px;
   padding:12px 14px;border-radius:10px;
@@ -604,6 +608,17 @@ ul{list-style:none;}
    COMMENTS
 ═══════════════════════════════════════════════════════ */
 .comment-input-row{display:flex;gap:12px;margin-bottom:24px;align-items:flex-start;}
+.comment-compose{flex:1;display:flex;flex-direction:column;gap:10px;}
+.comment-compose-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.comment-count-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;}
+.comment-submit:disabled{opacity:.55;cursor:not-allowed;}
+.comment-empty{padding:18px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:13px;text-align:center;}
+.comment-login-prompt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);}
+.comment.is-reply{margin-top:14px;}
+.comment-replies{margin-top:14px;padding-left:16px;border-left:1px solid var(--border);}
+.comment-reply-form{margin-top:12px;}
+.comment-reply-form .comment-input-row{margin-bottom:0;}
+.comment-reply-trigger{padding:0;}
 .ci-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--accent),#9b14cf);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;}
 .ci-box{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:none;transition:border-color .2s;min-height:44px;caret-color:var(--cyan);}
 .ci-box:focus{border-color:var(--cyan);}

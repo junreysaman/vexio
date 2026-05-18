@@ -12,7 +12,7 @@ $heroGenres = array_slice($genres ?? [], 0, 12);
   </div>
 </div>
 
-<div id="archive-hero" style="margin-bottom: 1cap;">
+<div id="archive-hero" style="margin-bottom: 2cap; margin-top: 3cap;">
   <div class="container">
     <div class="arch-breadcrumb">
       <a href="/">Home</a>

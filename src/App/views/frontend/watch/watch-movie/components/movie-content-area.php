@@ -27,6 +27,10 @@ $tagline = $item['tagline'] ?? '';
 $cast = $item['dt_cast'] ?? '';
 $director = $item['dt_dir'] ?? '';
 $imdbId = $item['imdb_id'] ?? '';
+$writer = $item['dt_writer'] ?? $item['writer'] ?? '';
+$studio = $item['dt_studio'] ?? $item['production_companies'] ?? 'N/A';
+$budget = $item['budget'] ?? null;
+$revenue = $item['revenue'] ?? null;
 $castProfiles = json_decode((string) ($item['cast_profiles'] ?? '[]'), true);
 $castProfiles = is_array($castProfiles) ? $castProfiles : [];
 $crewProfiles = json_decode((string) ($item['crew_profiles'] ?? '[]'), true);
@@ -274,11 +278,36 @@ if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SE
           </div>
 
           <!-- Comments -->
-          <?= $this->includePartial('/frontend/watch/watch-movie/components/movie-comments') ?>
+          <div class="tab-panel active" id="tab-comments">
+            <?= $this->includePartial('/frontend/watch/components/comments', [
+              'commentOwnerType' => 'item',
+              'commentOwnerId' => (int) ($item['id'] ?? 0),
+              'comments' => $comments ?? [],
+              'commentCount' => $commentCount ?? 0,
+              'commentPlaceholder' => 'Share your thoughts on ' . $title . '...',
+            ]) ?>
+          </div>
 
           <!-- RELATED TAB -->
           <div class="tab-panel" id="tab-related">
             <div class="related-grid">
+              <?php foreach (array_slice(($related ?? []), 0, 6) as $idx => $relatedItem): ?>
+                <?php
+                $relatedPoster = (string) (($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? ''));
+                $relatedGenres = (string) (($relatedItem['genres'] ?? '') ?: 'Movie');
+                ?>
+                <a class="rcard" href="<?= escape((string) ($relatedItem['watchUrl'] ?? $relatedItem['watch_url'] ?? '#')) ?>">
+                  <div class="rcard-thumb c<?= ($idx % 8) + 1 ?>">
+                    <?php if ($relatedPoster !== ''): ?><img src="<?= escape($relatedPoster) ?>" alt="<?= escape((string) ($relatedItem['title'] ?? 'Movie')) ?>" style="width:100%;height:100%;object-fit:cover;"><?php else: ?><div class="rcard-ph"><?= escape(strtoupper(substr((string) ($relatedItem['title'] ?? 'Movie'), 0, 20))) ?></div><?php endif; ?>
+                    <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>
+                    <span class="rcard-badge badge-hd">HD</span>
+                    <div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><?= escape((string) ($relatedItem['tmdb_rating'] ?? 'N/A')) ?></div>
+                  </div>
+                  <div class="rcard-title"><?= escape((string) ($relatedItem['title'] ?? 'Movie')) ?></div>
+                  <div class="rcard-meta"><span><?= escape((string) ($relatedItem['release_year'] ?? 'N/A')) ?></span><div class="rcard-dot"></div><span><?= escape($relatedGenres) ?></span></div>
+                </a>
+              <?php endforeach; ?>
+              <?php if (empty($related)): ?>
               <!-- Related cards -->
               <div class="rcard" onclick="showToast('Opening Ghost Circuit…')">
                 <div class="rcard-thumb c2"><div class="rcard-ph">GHOST CIRCUIT</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-new">NEW</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>9.1</div></div>
@@ -310,6 +339,7 @@ if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SE
                 <div class="rcard-title">Pixel Requiem</div>
                 <div class="rcard-meta"><span>Sci-Fi</span><div class="rcard-dot"></div><span>2024</span></div>
               </div>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -319,34 +349,34 @@ if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SE
               <div class="detail-card" style="padding:20px;">
                 <div class="detail-label" style="margin-bottom:10px;">Synopsis</div>
                 <div style="font-size:13px;color:var(--muted2);line-height:1.8;">
-                  In 2097, the megacity of Nexopolis is a monument to humanity's ambition — and its contradictions. ARIA-7, an advanced AI unit created to oversee the city's neural infrastructure, is abruptly shut down when it begins questioning its directives. Seventeen months later, it reactivates with a fragmented but critical mission: to preserve the last coherent memories of a civilization it was built to serve.<br><br>
-                  Hunted by rogue elements of the corporation that created it, ARIA-7 forms an unlikely alliance with disgraced detective Kenji Rao and renegade bioethicist Dr. Mara Voss. Together, they must navigate the rain-slicked alleys and neon-lit data-corridors of a city that has forgotten what it means to be human — before ARIA-7's memory banks are wiped forever.
+                  <?= nl2br(escape($synopsis)) ?>
+
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="detail-card">
                   <div class="detail-label">Director</div>
-                  <div class="detail-val">Kaito Miyazawa</div>
+                  <div class="detail-val"><?= escape((string) ($legacyCrew[0]['name'] ?? $director ?: 'N/A')) ?></div>
                 </div>
                 <div class="detail-card">
                   <div class="detail-label">Writer</div>
-                  <div class="detail-val">Yuna Park</div>
+                  <div class="detail-val"><?= escape((string) ($writer ?: 'N/A')) ?></div>
                 </div>
                 <div class="detail-card">
-                  <div class="detail-label">Cinematography</div>
-                  <div class="detail-val">Rafael Soto</div>
+                  <div class="detail-label">Studio</div>
+                  <div class="detail-val"><?= escape((string) ($studio ?: 'N/A')) ?></div>
                 </div>
                 <div class="detail-card">
-                  <div class="detail-label">Music</div>
-                  <div class="detail-val">Elara Venn</div>
+                  <div class="detail-label">IMDb</div>
+                  <div class="detail-val"><?= escape((string) ($imdbId ?: 'N/A')) ?></div>
                 </div>
                 <div class="detail-card">
                   <div class="detail-label">Budget</div>
-                  <div class="detail-val">¥4.2B</div>
+                  <div class="detail-val"><?= $budget ? '$' . number_format((float) $budget) : 'N/A' ?></div>
                 </div>
                 <div class="detail-card">
                   <div class="detail-label">Box Office</div>
-                  <div class="detail-val cyan">¥18.7B</div>
+                  <div class="detail-val cyan"><?= $revenue ? '$' . number_format((float) $revenue) : 'N/A' ?></div>
                 </div>
               </div>
             </div>

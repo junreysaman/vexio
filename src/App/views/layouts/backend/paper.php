@@ -22,6 +22,7 @@
             <nav class="paper-back-nav">
                 <a class="<?= isActive('/admin/dashboard') ?>" href="/admin/dashboard"><i class="icon-dashboard"></i><span>Dashboard</span></a>
                 <a class="<?= str_starts_with(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/admin/content') ? 'active' : '' ?>" href="/admin/content"><i class="icon-video_library"></i><span>Content</span></a>
+                <a class="<?= str_starts_with(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/admin/comments') ? 'active' : '' ?>" href="/admin/comments"><i class="icon-comment"></i><span>Comments</span></a>
                 <a class="<?= str_starts_with(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/admin/importer') ? 'active' : '' ?>" href="/admin/importer"><i class="icon-cloud_download"></i><span>Importer</span></a>
                 <a class="<?= str_starts_with(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/admin/users') ? 'active' : '' ?>" href="/admin/users"><i class="icon-account_box"></i><span>Users</span></a>
             </nav>

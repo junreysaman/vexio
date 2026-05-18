@@ -10,6 +10,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS content_term_links;
 DROP TABLE IF EXISTS content_terms;
 DROP TABLE IF EXISTS content_meta;
+DROP TABLE IF EXISTS media_comments;
 DROP TABLE IF EXISTS media_episodes;
 DROP TABLE IF EXISTS media_seasons;
 DROP TABLE IF EXISTS media_items;
@@ -196,6 +197,26 @@ CREATE TABLE content_term_links (
     CONSTRAINT fk_content_term_links_term
         FOREIGN KEY (term_id) REFERENCES content_terms(id)
         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE media_comments (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    owner_type ENUM('item', 'episode') NOT NULL,
+    owner_id BIGINT UNSIGNED NOT NULL,
+    parent_id BIGINT UNSIGNED DEFAULT NULL,
+    user_id BIGINT UNSIGNED DEFAULT NULL,
+    display_name VARCHAR(140) NOT NULL,
+    body TEXT NOT NULL,
+    likes INT UNSIGNED NOT NULL DEFAULT 0,
+    status ENUM('published', 'hidden') NOT NULL DEFAULT 'published',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_media_comments_owner (owner_type, owner_id, status, created_at),
+    INDEX idx_media_comments_parent (parent_id),
+    INDEX idx_media_comments_user (user_id),
+    CONSTRAINT fk_media_comments_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO roles (id, name, description) VALUES

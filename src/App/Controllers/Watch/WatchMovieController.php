@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Watch;
 
 use App\Services\Watch\WatchService;
+use App\Services\Watch\CommentService;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use Framework\TemplateEngine;
@@ -13,7 +14,8 @@ class WatchMovieController
 {
     public function __construct(
         private TemplateEngine $view,
-        private WatchService $watch
+        private WatchService $watch,
+        private CommentService $comments
     ) {
     }
 
@@ -33,6 +35,8 @@ class WatchMovieController
                 'body_class' => 'paper-watch-watch-movie',
                 'item' => $data['item'],
                 'related' => $data['related'] ?? [],
+                'comments' => $this->comments->forItem((int) ($data['item']['id'] ?? 0)),
+                'commentCount' => $this->comments->count('item', (int) ($data['item']['id'] ?? 0)),
                 'watchUrl' => $data['item']['watchUrl'] ?? ($data['item']['watch_url'] ?? null),
             ]
         ));
