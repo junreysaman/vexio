@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Watch;
 
+use App\Database\TmdbMetadataSchema;
+use App\Support\MediaUrl;
 use Framework\Database;
 
 class WatchService
 {
     public function __construct(private Database $db)
     {
+        TmdbMetadataSchema::ensure($db);
     }
 
     public function movie(int $tmdbId): ?array
@@ -31,8 +34,8 @@ class WatchService
         $this->db->increment('media_items', 'views', 1, ['id' => (int) $movie['id']]);
 
         return [
-            'item' => $movie,
-            'related' => $this->related('movie', (int) $movie['id']),
+            'item' => $this->withWatchUrls($movie),
+            'related' => array_map(fn(array $item): array => $this->withWatchUrls($item), $this->related('movie', (int) $movie['id'])),
         ];
     }
 
@@ -73,16 +76,16 @@ class WatchService
         $this->db->increment('media_episodes', 'views', 1, ['id' => (int) $episode['id']]);
 
         return [
-            'show' => $show,
-            'episode' => $episode,
-            'seasons' => $this->db->select(
+            'show' => $this->withWatchUrls($show),
+            'episode' => $this->withEpisodeWatchUrl($show, $episode),
+            'seasons' => array_map(fn(array $season): array => $this->withSeasonWatchUrl($show, $season), $this->db->select(
                 "SELECT * FROM media_seasons
                  WHERE media_item_id = :media_item_id
                  AND status = 'published'
                  ORDER BY season_number ASC",
                 ['media_item_id' => (int) $show['id']]
-            ),
-            'episodes' => $this->db->select(
+            )),
+            'episodes' => array_map(fn(array $row): array => $this->withEpisodeWatchUrl($show, $row), $this->db->select(
                 "SELECT * FROM media_episodes
                  WHERE media_item_id = :media_item_id
                  AND season_number = :season_number
@@ -92,7 +95,7 @@ class WatchService
                     'media_item_id' => (int) $show['id'],
                     'season_number' => max(1, $seasonNumber),
                 ]
-            ),
+            )),
         ];
     }
 
@@ -124,7 +127,7 @@ class WatchService
 
         if (!$episode) {
             return [
-                'show' => $show,
+                'show' => $this->withWatchUrls($show),
                 'episode' => [
                     'title' => 'Series Overview',
                     'synopsis' => $show['synopsis'] ?? '',
@@ -133,6 +136,8 @@ class WatchService
                     'backdrop_image' => $show['backdrop_image'] ?? null,
                     'poster_image' => $show['poster_image'] ?? null,
                     'poster_url' => $show['poster_url'] ?? null,
+                    'watch_url' => MediaUrl::watchUrlForItem($show),
+                    'watchUrl' => MediaUrl::watchUrlForItem($show),
                 ],
                 'seasons' => [],
                 'episodes' => [],
@@ -153,5 +158,85 @@ class WatchService
              LIMIT 6",
             ['type' => $type, 'id' => $excludeId]
         );
+    }
+
+    public function episodeById(int $tmdbId, int $episodeId): ?array
+    {
+        $show = $this->db->selectOne(
+            "SELECT * FROM media_items
+             WHERE tmdb_id = :tmdb_id
+             AND tmdb_type = 'tv_show'
+             AND type = 'tv_show'
+             AND status = 'published'
+             LIMIT 1",
+            ['tmdb_id' => $tmdbId]
+        );
+
+        if (!$show) {
+            return null;
+        }
+
+        $episode = $this->db->selectOne(
+            "SELECT season_number, episode_number
+             FROM media_episodes
+             WHERE id = :id
+             AND media_item_id = :media_item_id
+             AND status = 'published'
+             LIMIT 1",
+            ['id' => $episodeId, 'media_item_id' => (int) $show['id']]
+        );
+
+        if (!$episode) {
+            return null;
+        }
+
+        return $this->episode($tmdbId, (int) $episode['season_number'], (int) $episode['episode_number']);
+    }
+
+    private function withWatchUrls(array $item): array
+    {
+        $watchUrl = MediaUrl::watchUrlForItem($item);
+
+        return [
+            ...$item,
+            'slug' => MediaUrl::itemSlug($item),
+            'watch_url' => $watchUrl,
+            'watchUrl' => $watchUrl,
+        ];
+    }
+
+    private function withEpisodeWatchUrl(array $show, array $episode): array
+    {
+        $watchUrl = MediaUrl::watchUrlForItem($show, $episode);
+
+        return [
+            ...$episode,
+            'watch_url' => $watchUrl,
+            'watchUrl' => $watchUrl,
+        ];
+    }
+
+    private function withSeasonWatchUrl(array $show, array $season): array
+    {
+        $episode = $this->db->selectOne(
+            "SELECT season_number, episode_number
+             FROM media_episodes
+             WHERE media_item_id = :media_item_id
+             AND season_number = :season_number
+             AND status = 'published'
+             ORDER BY episode_number ASC
+             LIMIT 1",
+            [
+                'media_item_id' => (int) $show['id'],
+                'season_number' => (int) ($season['season_number'] ?? 1),
+            ]
+        );
+        $watchUrl = MediaUrl::watchUrlForItem($show, $episode ?: null);
+
+        return [
+            ...$season,
+            'watch_url' => $watchUrl,
+            'watchUrl' => $watchUrl,
+        ];
     }
 }

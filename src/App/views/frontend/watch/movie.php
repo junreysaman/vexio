@@ -51,8 +51,11 @@ $rating = $item['tmdb_rating'] ?? null;
       <h2 class="watch-kicker">Related Movies</h2>
       <div class="related-list">
         <?php foreach (($related ?? []) as $relatedItem): ?>
-          <?php $relatedPoster = ($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? ''); ?>
-          <a class="related-card" href="/movie/<?= (int) $relatedItem['tmdb_id'] ?>">
+          <?php
+          $relatedPoster = ($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? '');
+          $relatedWatchUrl = (string) ($relatedItem['watchUrl'] ?? '#');
+          ?>
+          <a class="related-card" href="<?= escape($relatedWatchUrl !== '' ? $relatedWatchUrl : '#') ?>">
             <span class="related-poster"><?php if ($relatedPoster): ?><img src="<?= escape($relatedPoster) ?>" alt=""><?php endif; ?></span>
             <span><strong><?= escape($relatedItem['title']) ?></strong><span><?= escape((string) ($relatedItem['release_year'] ?: 'Movie')) ?> · ★ <?= escape((string) ($relatedItem['tmdb_rating'] ?? 'N/A')) ?></span></span>
           </a>

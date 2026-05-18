@@ -23,8 +23,10 @@
             $genre = htmlspecialchars((string) ($item['genre'] ?? 'Unknown Genre'), ENT_QUOTES);
             $duration = htmlspecialchars((string) ($item['type'] ?? 'movie') === 'movie' ? 'Movie' : 'Series', ENT_QUOTES);
             $score = htmlspecialchars((string) ($item['score'] ?? 'N/A'), ENT_QUOTES);
+            $watchUrlRaw = (string) ($item['watchUrl'] ?? '#');
+            $watchUrl = htmlspecialchars($watchUrlRaw !== '' ? $watchUrlRaw : '#', ENT_QUOTES);
           ?>
-          <div class="lb-item" onclick="showToast('Opening <?= addslashes($title) ?>...')">
+          <a class="lb-item" href="<?= $watchUrl ?>"<?= $watchUrlRaw === '' || $watchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
             <span class="lb-rank <?= $rankClass ?>"><?= $rank ?></span>
             <div class="lb-thumb"><img src="<?= $poster ?>" alt="<?= $title ?> poster" loading="lazy"></div>
             <div class="lb-info">
@@ -32,7 +34,7 @@
               <div class="lb-sub"><span><?= $genre ?></span><span><?= $duration ?></span></div>
             </div>
             <div class="lb-score"><?= $score ?></div>
-          </div>
+          </a>
         <?php endforeach; ?>
       <?php else: ?>
         <div class="lb-item">

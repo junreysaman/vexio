@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
     <title><?= escape($title ?? 'Dashboard') ?> | <?= escape($project ?? 'Paper-PHPFramework') ?></title>
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/backend/css/paper.css">
@@ -16,7 +16,7 @@
     <div class="paper-back-layout">
         <aside class="paper-back-sidebar" aria-label="Backend navigation">
             <a class="paper-back-brand" href="/">
-                <span class="paper-brand-mark"><img src="/brand.png" alt=""></span>
+                <span class="paper-brand-mark"><img src="/favicon.png" alt=""></span>
                 <span><?= escape($project ?? 'Paper-PHPFramework') ?></span>
             </a>
             <nav class="paper-back-nav">

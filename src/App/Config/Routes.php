@@ -11,6 +11,9 @@ use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImporterController;
 use App\Controllers\Admin\UserController;
 use App\Controllers\Admin\Content\ContentController;
+use App\Controllers\Search\SearchController;
+use App\Controllers\Watch\WatchMovieController;
+use App\Controllers\Watch\WatchTvController;
 use Framework\App;
 
 function registerRoutes(App $app): void
@@ -37,9 +40,10 @@ function registerRoutes(App $app): void
         ['POST', '/admin/content/{id}/delete', [ContentController::class, 'destroy']],
         ['POST', '/admin/content/bulk-delete', [ContentController::class, 'bulkDestroy']],
         ['POST', '/admin/content/{id}/generate-seasons', [ContentController::class, 'generateSeasons']],
-        ['POST', '/admin/content/{id}/generate-episodes', [ContentController::class, 'generateEpisodes']],
+        ['POST', '/admin/content/{id}/seasons/{seasonId}/generate-episodes', [ContentController::class, 'generateEpisodes']],
         ['POST', '/admin/content/{id}/seasons/{seasonId}/edit', [ContentController::class, 'updateSeason']],
         ['POST', '/admin/content/{id}/seasons/{seasonId}/delete', [ContentController::class, 'deleteSeason']],
+        ['POST', '/admin/content/{id}/episodes', [ContentController::class, 'storeEpisode']],
         ['POST', '/admin/content/{id}/episodes/{episodeId}/edit', [ContentController::class, 'updateEpisode']],
         ['POST', '/admin/content/{id}/episodes/{episodeId}/delete', [ContentController::class, 'deleteEpisode']],
         ['GET', '/admin/importer', [ImporterController::class, 'index']],
@@ -48,8 +52,17 @@ function registerRoutes(App $app): void
         ['GET', '/archive/browse', [AppController::class, 'archiveBrowse']],
         ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
         ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
-        ['GET', '/watch/movie/{tmdbId}', [AppController::class, 'watchWatchMovie']],
-        ['GET', '/watch/tvshow/{tmdbId}', [AppController::class, 'watchWatchTv']],
+        ['GET', '/api/search', [SearchController::class, 'index']],
+        ['GET', '/movie/{tmdbId}', [WatchMovieController::class, 'index']],
+        ['GET', '/tvshow/{tmdbId}', [WatchTvController::class, 'root']],
+        ['GET', '/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],
+        ['GET', '/watch/movie/{tmdbId}', [WatchMovieController::class, 'index']],
+        ['GET', '/watch/movie/{tmdbId}/{slug}', [WatchMovieController::class, 'index']],
+        ['GET', '/watch/tvshow/{tmdbId}', [WatchTvController::class, 'root']],
+        ['GET', '/watch/tvshow/{tmdbId}/{slug}', [WatchTvController::class, 'root']],
+        ['GET', '/watch/tvshow/{tmdbId}/episode/{episodeId}', [WatchTvController::class, 'episodeById']],
+        ['GET', '/watch/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],
+        ['GET', '/watch/tvshow/{tmdbId}/{slug}/season/{seasonNo}/episode/{episodeNo}', [WatchTvController::class, 'episode']],
         ['GET', '/404', [AppController::class, 'notFound']],
     ];
 

@@ -241,8 +241,40 @@ class ContentController
             redirectTo('/admin/content/' . $contentId . '/edit');
         }
 
+        if ($this->content->episodeNumberExists($contentId, (int) $data['season_number'], (int) $data['episode_number'], $episodeId)) {
+            setFlash('content', 'An episode already exists for that season and episode number.', 'danger');
+            redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+        }
+
         $this->content->updateEpisode($contentId, $episodeId, $data);
         setFlash('content', 'Episode updated successfully.', 'success');
+        redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+    }
+
+    public function storeEpisode(Request $request, Response $response, string $id): void
+    {
+        $contentId = (int) $id;
+        $item = $this->findOrRedirect($contentId);
+
+        if ((string) ($item['type'] ?? '') !== 'tv_show') {
+            setFlash('content', 'Manual episodes can only be added to TV shows.', 'danger');
+            redirectTo('/admin/content/' . $contentId . '/edit');
+        }
+
+        $data = $this->episodeData($request);
+
+        if ($data['title'] === '' || !$this->content->validStatus((string) $data['status'])) {
+            setFlash('content', 'Episode title and status are required.', 'danger');
+            redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+        }
+
+        if ($this->content->episodeNumberExists($contentId, (int) $data['season_number'], (int) $data['episode_number'])) {
+            setFlash('content', 'An episode already exists for that season and episode number.', 'danger');
+            redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+        }
+
+        $this->content->createEpisode($contentId, $data);
+        setFlash('content', 'Episode added successfully.', 'success');
         redirectTo('/admin/content/' . $contentId . '/edit#episodes');
     }
 
@@ -267,6 +299,7 @@ class ContentController
     {
         return [
             'title' => trim((string) $request->post('title', '')),
+            'slug' => trim((string) $request->post('slug', '')),
             'type' => (string) $request->post('type', ''),
             'synopsis' => trim((string) $request->post('synopsis', '')),
             'poster_url' => trim((string) $request->post('poster_url', '')),
@@ -306,6 +339,7 @@ class ContentController
             'poster_image' => trim((string) $request->post('poster_image', '')),
             'backdrop_image' => trim((string) $request->post('backdrop_image', '')),
             'stream_link' => trim((string) $request->post('stream_link', '')),
+            'episode_name' => trim((string) $request->post('episode_name', '')),
             'season_number' => (int) $request->post('season_number', 1),
             'episode_number' => (int) $request->post('episode_number', 1),
             'release_year' => trim((string) $request->post('release_year', '')),

@@ -49,7 +49,7 @@ $currentEpisode = (int) ($episode['episode_number'] ?? 1);
       <div class="season-row">
         <?php foreach (($seasons ?? []) as $season): ?>
           <?php $seasonNo = (int) $season['season_number']; ?>
-          <a class="season-chip <?= $seasonNo === $currentSeason ? 'active' : '' ?>" href="/tvshow/<?= (int) $show['tmdb_id'] ?>/<?= $seasonNo ?>/1">S<?= $seasonNo ?></a>
+          <a class="season-chip <?= $seasonNo === $currentSeason ? 'active' : '' ?>" href="<?= escape((string) ($season['watchUrl'] ?? '#')) ?>">S<?= $seasonNo ?></a>
         <?php endforeach; ?>
       </div>
       <div class="episode-list">
@@ -59,7 +59,7 @@ $currentEpisode = (int) ($episode['episode_number'] ?? 1);
           $rowEpisode = (int) $row['episode_number'];
           $rowPoster = ($row['backdrop_image'] ?? '') ?: (($row['poster_image'] ?? '') ?: $poster);
           ?>
-          <a class="episode-card <?= $rowEpisode === $currentEpisode ? 'current' : '' ?>" href="/tvshow/<?= (int) $show['tmdb_id'] ?>/<?= $rowSeason ?>/<?= $rowEpisode ?>">
+          <a class="episode-card <?= $rowEpisode === $currentEpisode ? 'current' : '' ?>" href="<?= escape((string) ($row['watchUrl'] ?? '#')) ?>">
             <span class="episode-thumb"><?php if ($rowPoster): ?><img src="<?= escape($rowPoster) ?>" alt=""><?php endif; ?></span>
             <span><strong>Episode <?= $rowEpisode ?></strong><span><?= escape($row['title']) ?></span></span>
           </a>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Home;
 
+use App\Database\TmdbMetadataSchema;
+use App\Support\MediaUrl;
 use Framework\Database;
 
 class HomeService
@@ -15,6 +17,7 @@ class HomeService
      */
     public function __construct(private Database $db)
     {
+        TmdbMetadataSchema::ensure($db);
     }
 
     /**
@@ -227,9 +230,11 @@ class HomeService
         $words = preg_split('/\s+/', $title) ?: [];
         $highlight = count($words) > 1 ? array_pop($words) : '';
         $genres = $this->genreLinks((int) $item['id'], null, $this->typeLabel((string) ($item['type'] ?? '')));
+        $watchUrl = $this->watchUrlForItem($item);
 
         return [
             'id' => (int) $item['id'],
+            'slug' => MediaUrl::itemSlug($item),
             'title' => trim(implode(' ', $words)) ?: $title,
             'titleHl' => $highlight,
             'badge' => $this->typeLabel((string) ($item['type'] ?? '')),
@@ -242,7 +247,8 @@ class HomeService
             'poster' => $item['poster_image'] ?: $item['poster_url'],
             'backdrop' => $item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'],
             'streamLink' => $item['stream_link'] ?? null,
-            'watchUrl' => $this->watchUrlForItem($item),
+            'watchUrl' => $watchUrl,
+            'watch_url' => $watchUrl,
             'color' => 'c1',
             'accent' => 'rgba(0,60,140,.55)',
         ];
@@ -257,9 +263,11 @@ class HomeService
     private function recentlyAddedPayload(array $item): array
     {
         $genres = $this->genreLinks((int) $item['id'], 1, $this->typeLabel((string) ($item['type'] ?? '')));
+        $watchUrl = $this->watchUrlForItem($item);
 
         return [
             'id' => (int) $item['id'],
+            'slug' => MediaUrl::itemSlug($item),
             'title' => (string) ($item['title'] ?? 'Untitled'),
             'type' => (string) ($item['type'] ?? 'unknown'),
             'genre' => $this->genreLabel($genres),
@@ -268,7 +276,8 @@ class HomeService
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
             'poster' => $item['poster_image'] ?: $item['poster_url'],
             'backdrop' => $item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'],
-            'watchUrl' => $this->watchUrlForItem($item),
+            'watchUrl' => $watchUrl,
+            'watch_url' => $watchUrl,
             'synopsis' => (string) ($item['synopsis'] ?: ''),
             'is_featured' => !empty($item['is_featured']),
         ];
@@ -283,9 +292,11 @@ class HomeService
     private function trendingPayload(array $item): array
     {
         $genres = $this->genreLinks((int) $item['id'], 2, $this->typeLabel((string) ($item['type'] ?? '')));
+        $watchUrl = $this->watchUrlForItem($item);
 
         return [
             'id' => (int) $item['id'],
+            'slug' => MediaUrl::itemSlug($item),
             'title' => (string) ($item['title'] ?? 'Untitled'),
             'type' => (string) ($item['type'] ?? 'unknown'),
             'genre' => $this->genreLabel($genres),
@@ -294,7 +305,8 @@ class HomeService
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
             'poster' => $item['poster_image'] ?: $item['poster_url'],
             'backdrop' => $item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'],
-            'watchUrl' => $this->watchUrlForItem($item),
+            'watchUrl' => $watchUrl,
+            'watch_url' => $watchUrl,
             'views' => (int) ($item['views'] ?? 0),
             'is_featured' => !empty($item['is_featured']),
         ];
@@ -308,35 +320,7 @@ class HomeService
      */
     private function watchUrlForItem(array $item): ?string
     {
-        $tmdbId = (int) ($item['tmdb_id'] ?? 0);
-
-        if ($tmdbId < 1) {
-            return null;
-        }
-
-        if (($item['type'] ?? '') === 'movie') {
-            return '/watch/movie/' . $tmdbId;
-        }
-
-        if (($item['type'] ?? '') !== 'tv_show') {
-            return null;
-        }
-
-        $episode = $this->db->selectOne(
-            'SELECT season_number, episode_number
-             FROM media_episodes
-             WHERE media_item_id = :id
-             AND status = :status
-             ORDER BY season_number ASC, episode_number ASC
-             LIMIT 1',
-            ['id' => (int) ($item['id'] ?? 0), 'status' => 'published']
-        );
-
-        if (!$episode) {
-            return '/watch/tvshow/' . $tmdbId;
-        }
-
-        return '/watch/tvshow/' . $tmdbId . '/' . (int) $episode['season_number'] . '/' . (int) $episode['episode_number'];
+        return MediaUrl::watchUrlForItem($item);
     }
 
     /**
@@ -418,10 +402,7 @@ class HomeService
      */
     private function slugify(string $value): string
     {
-        $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $value) ?? ''));
-        $slug = trim($slug, '-');
-
-        return $slug !== '' ? $slug : 'unknown';
+        return MediaUrl::slugify($value);
     }
 
     /**

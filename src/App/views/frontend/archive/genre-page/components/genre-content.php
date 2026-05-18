@@ -16,14 +16,14 @@ $items = !empty($items) && is_array($items) ? $items : [];
         <?php
           $title = (string) ($item['title'] ?? 'Untitled');
           $poster = (string) ($item['poster'] ?? '');
-          $watchUrl = (string) ($item['watch_url'] ?? '#');
+          $watchUrl = (string) ($item['watchUrl'] ?? '#');
           $typeLabel = (string) ($item['type_label'] ?? 'Title');
           $year = (string) ($item['release_year'] ?? 'N/A');
           $score = $item['tmdb_rating'] ?? null;
           $initials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $title) ?: 'VX', 0, 3));
         ?>
         <article class="acard">
-          <a class="archive-card-link" href="<?= escape($watchUrl !== '' ? $watchUrl : '#') ?>">
+          <a class="archive-card-link" href="<?= escape($watchUrl !== '' ? $watchUrl : '#') ?>"<?= $watchUrl === '' || $watchUrl === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
             <div class="acard-thumb">
               <?php if ($poster !== ''): ?>
                 <img src="<?= escape($poster) ?>" alt="<?= escape($title) ?> poster" loading="lazy">

@@ -65,6 +65,11 @@
                     <strong><?= number_format((int) $item['views']) ?></strong>
                     <span>views</span>
                 </div>
+                <?php if (!empty($item['watchUrl'])): ?>
+                    <a class="icon-action" href="<?= escape((string) $item['watchUrl']) ?>" title="Open watch page" aria-label="Open watch page">
+                        <i class="icon-play_arrow"></i>
+                    </a>
+                <?php endif; ?>
             </article>
         <?php endforeach; ?>
     </div>

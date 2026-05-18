@@ -37,6 +37,11 @@ $episodes = $hierarchy['episodes'] ?? [];
                     </div>
 
                     <div class="form-group">
+                        <label class="col-form-label s-12" for="slug">SLUG</label>
+                        <input class="form-control r-0 light s-12" id="slug" name="slug" type="text" value="<?= escape($formData['slug'] ?? '') ?>" placeholder="title-url-slug">
+                    </div>
+
+                    <div class="form-group">
                         <label class="col-form-label s-12" for="synopsis">SYNOPSIS</label>
                         <textarea class="form-control r-0 light s-12" id="synopsis" name="synopsis" rows="7"><?= escape($formData['synopsis'] ?? '') ?></textarea>
                     </div>
@@ -101,6 +106,11 @@ $episodes = $hierarchy['episodes'] ?? [];
                         <div>
                             <strong><?= escape($formData['title'] ?? 'Untitled') ?></strong>
                             <small><?= escape((string) ($formData['tmdb_id'] ? 'TMDB #' . $formData['tmdb_id'] : 'Manual content')) ?></small>
+                            <?php if (!empty($formData['watchUrl'])): ?>
+                                <a class="btn btn-light btn-sm mt-2" href="<?= escape((string) $formData['watchUrl']) ?>">
+                                    <i class="icon-play_arrow mr-1"></i>Watch Page
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -276,6 +286,40 @@ $episodes = $hierarchy['episodes'] ?? [];
                 </div>
                 <span class="paper-pill"><?= number_format(count($episodes)) ?> episodes</span>
             </div>
+
+            <form class="hierarchy-edit-card is-episode is-builder" action="/admin/content/<?= $contentId ?>/episodes" method="POST">
+                <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
+                <div class="hierarchy-media">
+                    <span class="content-thumb">
+                        <i class="icon-add"></i>
+                    </span>
+                    <div>
+                        <strong>Add Episode</strong>
+                        <small>Manual entry</small>
+                    </div>
+                </div>
+                <div class="hierarchy-fields">
+                    <input class="form-control r-0 light s-12" name="title" placeholder="Episode title" required>
+                    <input class="form-control r-0 light s-12" name="season_number" type="number" min="1" value="<?= escape((string) (($seasons[0]['season_number'] ?? 1))) ?>" aria-label="Season number">
+                    <input class="form-control r-0 light s-12" name="episode_number" type="number" min="1" value="1" aria-label="Episode number">
+                    <input class="form-control r-0 light s-12" name="release_year" type="number" min="1900" max="2100" value="<?= escape((string) ($formData['release_year'] ?? '')) ?>" placeholder="Year">
+                    <input class="form-control r-0 light s-12" name="views" type="number" min="0" value="0" placeholder="Views">
+                    <select class="custom-select form-control r-0 light s-12" name="status" aria-label="Episode status">
+                        <?php foreach (($statuses ?? []) as $value => $label): ?>
+                            <option value="<?= escape($value) ?>" <?= $status === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input class="form-control r-0 light s-12" name="episode_name" placeholder="Display episode name">
+                    <input class="form-control r-0 light s-12" name="stream_link" placeholder="Stream link">
+                    <input class="form-control r-0 light s-12" name="poster_url" placeholder="Remote poster URL">
+                    <input class="form-control r-0 light s-12" name="poster_image" placeholder="Local poster path">
+                    <input class="form-control r-0 light s-12" name="backdrop_image" placeholder="Local backdrop path">
+                    <textarea class="form-control r-0 light s-12" name="synopsis" rows="2" placeholder="Synopsis"></textarea>
+                </div>
+                <div class="hierarchy-actions">
+                    <button class="btn btn-primary btn-sm" type="submit"><i class="icon-add mr-1"></i>Add</button>
+                </div>
+            </form>
 
             <?php if (empty($episodes)): ?>
                 <div class="empty-state">

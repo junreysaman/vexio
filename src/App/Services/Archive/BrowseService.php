@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Archive;
 
+use App\Database\TmdbMetadataSchema;
+use App\Support\MediaUrl;
 use Closure;
-use Framework\Database;
 
 class BrowseService
 {
@@ -21,10 +22,12 @@ class BrowseService
     public function getAllItems(): array
     {
         $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
 
         $items = $db->select(
             'SELECT media_items.id,
                     media_items.title,
+                    media_items.slug,
                     media_items.type,
                     media_items.synopsis,
                     media_items.poster_image,
@@ -48,6 +51,7 @@ class BrowseService
              AND media_items.type IN (\'movie\', \'tv_show\')
              GROUP BY media_items.id,
                       media_items.title,
+                      media_items.slug,
                       media_items.type,
                       media_items.synopsis,
                       media_items.poster_image,
@@ -107,6 +111,7 @@ class BrowseService
     public function getAllGenres(): array
     {
         $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
 
         $genres = $db->select(
             'SELECT id, name, slug
@@ -146,6 +151,7 @@ class BrowseService
         return [
             'id' => $itemId,
             'title' => (string) ($item['title'] ?? 'Untitled'),
+            'slug' => (string) ($item['slug'] ?? ''),
             'type' => $type,
             'type_label' => $this->typeLabel($type),
             'synopsis' => (string) ($item['synopsis'] ?? ''),
@@ -158,28 +164,9 @@ class BrowseService
             'genres' => $genres,
             'genre_label' => $this->genreLabel($genres),
             'poster' => (string) ($item['poster_image'] ?: $item['poster_url'] ?: ''),
-            'watch_url' => $this->watchUrlForItem($type, $tmdbId),
+            'watch_url' => MediaUrl::watchUrlForItem($item),
+            'watchUrl' => MediaUrl::watchUrlForItem($item),
         ];
-    }
-
-    /**
-     * Build a compact watch url for the item.
-     */
-    private function watchUrlForItem(string $type, ?int $tmdbId): ?string
-    {
-        if ($tmdbId === null || $tmdbId < 1) {
-            return null;
-        }
-
-        if ($type === 'movie') {
-            return '/movie/' . $tmdbId;
-        }
-
-        if ($type === 'tv_show') {
-            return '/tvshow/' . $tmdbId;
-        }
-
-        return null;
     }
 
     private function genreLinksFromRow(array $item, string $fallback): array
@@ -231,10 +218,7 @@ class BrowseService
 
     private function slugify(string $value): string
     {
-        $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $value) ?? ''));
-        $slug = trim($slug, '-');
-
-        return $slug !== '' ? $slug : 'unknown';
+        return MediaUrl::slugify($value);
     }
 
     private function typeLabel(string $type): string

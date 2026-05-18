@@ -44,6 +44,7 @@ CREATE TABLE users (
 CREATE TABLE media_items (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     title VARCHAR(190) NOT NULL,
+    slug VARCHAR(220) DEFAULT NULL,
     original_title VARCHAR(190) DEFAULT NULL,
     original_language VARCHAR(10) DEFAULT NULL,
     type ENUM('movie', 'tv_show') NOT NULL,
@@ -89,6 +90,7 @@ CREATE TABLE media_items (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_media_items_tmdb (tmdb_type, tmdb_id),
+    INDEX idx_media_items_slug (slug),
     INDEX idx_media_items_featured (status, is_featured),
     INDEX idx_media_items_status_views (status, views),
     INDEX idx_media_items_type (type),

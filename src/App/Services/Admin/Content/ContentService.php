@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Admin\Content;
 
+use App\Database\TmdbMetadataSchema;
+use App\Support\MediaUrl;
 use Framework\Database;
 
 class ContentService
@@ -22,6 +24,7 @@ class ContentService
 
     public function __construct(private Database $db)
     {
+        TmdbMetadataSchema::ensure($db);
     }
 
     /**
@@ -54,7 +57,7 @@ class ContentService
         );
 
         return [
-            'data' => $items,
+            'data' => array_map([$this, 'withWatchUrls'], $items),
             'meta' => [
                 'current_page' => $page,
                 'per_page' => $perPage,
@@ -89,7 +92,7 @@ class ContentService
      */
     public function find(int $id): ?array
     {
-        return $this->db->selectOne(
+        $item = $this->db->selectOne(
             'SELECT media_items.*,
                     COUNT(DISTINCT media_seasons.id) AS seasons_count,
                     COUNT(DISTINCT media_episodes.id) AS episodes_count
@@ -101,6 +104,8 @@ class ContentService
              LIMIT 1',
             ['id' => $id]
         );
+
+        return $item ? $this->withWatchUrls($item) : null;
     }
 
     /**
@@ -110,6 +115,7 @@ class ContentService
     {
         $this->db->updateById('media_items', $id, [
             'title' => trim((string) $data['title']),
+            'slug' => $this->normalizeSlug((string) ($data['slug'] ?? ''), (string) $data['title']),
             'type' => (string) $data['type'],
             'synopsis' => trim((string) $data['synopsis']),
             'poster_url' => trim((string) ($data['poster_url'] ?? '')) ?: null,
@@ -253,6 +259,55 @@ class ContentService
         ]);
     }
 
+    public function createEpisode(int $mediaItemId, array $data): int
+    {
+        $item = $this->find($mediaItemId);
+        $seasonNumber = max(1, (int) ($data['season_number'] ?? 1));
+        $episodeNumber = max(1, (int) ($data['episode_number'] ?? 1));
+        $season = $this->db->selectOne(
+            'SELECT id FROM media_seasons WHERE media_item_id = :media_item_id AND season_number = :season_number LIMIT 1',
+            ['media_item_id' => $mediaItemId, 'season_number' => $seasonNumber]
+        );
+
+        return (int) $this->db->insert('media_episodes', [
+            'media_item_id' => $mediaItemId,
+            'media_season_id' => $season ? (int) $season['id'] : null,
+            'title' => trim((string) $data['title']),
+            'serie' => trim((string) ($item['title'] ?? '')) ?: null,
+            'episode_name' => trim((string) $data['episode_name']) ?: trim((string) $data['title']),
+            'synopsis' => trim((string) ($data['synopsis'] ?? '')),
+            'poster_url' => trim((string) ($data['poster_url'] ?? '')) ?: null,
+            'poster_image' => trim((string) ($data['poster_image'] ?? '')) ?: null,
+            'backdrop_image' => trim((string) ($data['backdrop_image'] ?? '')) ?: null,
+            'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
+            'season_number' => $seasonNumber,
+            'episode_number' => $episodeNumber,
+            'release_year' => $this->nullableInt($data['release_year'] ?? null),
+            'views' => max(0, (int) ($data['views'] ?? 0)),
+            'status' => (string) $data['status'],
+        ]);
+    }
+
+    public function episodeNumberExists(int $mediaItemId, int $seasonNumber, int $episodeNumber, ?int $exceptEpisodeId = null): bool
+    {
+        $params = [
+            'media_item_id' => $mediaItemId,
+            'season_number' => max(1, $seasonNumber),
+            'episode_number' => max(1, $episodeNumber),
+        ];
+        $sql = 'SELECT 1 FROM media_episodes
+                WHERE media_item_id = :media_item_id
+                AND season_number = :season_number
+                AND episode_number = :episode_number';
+
+        if ($exceptEpisodeId !== null) {
+            $sql .= ' AND id <> :episode_id';
+            $params['episode_id'] = $exceptEpisodeId;
+        }
+
+        return $this->db->exists($sql . ' LIMIT 1', $params);
+    }
+
     public function deleteSeason(int $mediaItemId, int $seasonId): void
     {
         $this->db->update('media_episodes', ['media_season_id' => null], [
@@ -302,7 +357,7 @@ class ContentService
         }
 
         if ($search !== '') {
-            $where[] = '(media_items.title LIKE :search OR media_items.synopsis LIKE :search OR media_items.tmdb_id = :tmdb_id)';
+            $where[] = '(media_items.title LIKE :search OR media_items.slug LIKE :search OR media_items.synopsis LIKE :search OR media_items.tmdb_id = :tmdb_id)';
             $params['search'] = '%' . $search . '%';
             $params['tmdb_id'] = ctype_digit($search) ? (int) $search : 0;
         }
@@ -328,5 +383,22 @@ class ContentService
         $value = trim((string) $value);
 
         return $value === '' ? null : (float) $value;
+    }
+
+    private function normalizeSlug(string $slug, string $fallback): string
+    {
+        return MediaUrl::slugify($slug !== '' ? $slug : $fallback);
+    }
+
+    private function withWatchUrls(array $item): array
+    {
+        $watchUrl = MediaUrl::watchUrlForItem($item);
+
+        return [
+            ...$item,
+            'slug' => MediaUrl::itemSlug($item),
+            'watch_url' => $watchUrl,
+            'watchUrl' => $watchUrl,
+        ];
     }
 }

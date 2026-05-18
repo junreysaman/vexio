@@ -34,7 +34,7 @@ $totalItems = (int) ($total_items ?? count($items));
       <?php
         $title = (string) ($item['title'] ?? 'Untitled');
         $poster = (string) ($item['poster'] ?? '');
-        $watchUrl = (string) ($item['watch_url'] ?? '#');
+        $watchUrl = (string) ($item['watchUrl'] ?? '#');
         $type = (string) ($item['type'] ?? 'unknown');
         $typeLabel = (string) ($item['type_label'] ?? ucfirst(str_replace('_', ' ', $type)));
         $year = (string) ($item['release_year'] ?? 'N/A');
@@ -59,7 +59,7 @@ $totalItems = (int) ($total_items ?? count($items));
         data-views="<?= escape((string) $views) ?>"
         data-created="<?= escape($created) ?>"
       >
-        <a class="archive-card-link" href="<?= escape($watchUrl !== '' ? $watchUrl : '#') ?>">
+        <a class="archive-card-link" href="<?= escape($watchUrl !== '' ? $watchUrl : '#') ?>"<?= $watchUrl === '' || $watchUrl === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
           <div class="acard-thumb">
             <?php if ($poster !== ''): ?>
               <img src="<?= escape($poster) ?>" alt="<?= escape($title) ?> poster" loading="lazy">

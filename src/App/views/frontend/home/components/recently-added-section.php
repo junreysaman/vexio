@@ -22,7 +22,8 @@
               : [['name' => (string) ($item['genre'] ?? 'Unknown'), 'url' => '/genre/' . rawurlencode(strtolower(str_replace(' ', '-', (string) ($item['genre'] ?? 'unknown'))))]];
             $year = htmlspecialchars((string) ($item['year'] ?? 'N/A'), ENT_QUOTES);
             $score = (string) ($item['score'] ?? 'N/A');
-            $watchUrl = htmlspecialchars((string) ($item['watchUrl'] ?? '#'), ENT_QUOTES);
+            $watchUrlRaw = (string) ($item['watchUrl'] ?? '#');
+            $watchUrl = htmlspecialchars($watchUrlRaw !== '' ? $watchUrlRaw : '#', ENT_QUOTES);
             $badgeText = !empty($item['is_featured']) ? 'Hot' : 'New';
             $badgeClass = !empty($item['is_featured']) ? 'badge-hot' : 'badge-new';
             $primaryGenre = $genres[0] ?? ['name' => 'Unknown', 'url' => '#'];
@@ -30,7 +31,7 @@
             $genreUrl = (string) ($primaryGenre['url'] ?? '#');
           ?>
           <div class="acard">
-            <a class="archive-card-link" href="<?= $watchUrl ?>"<?= $watchUrl === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
+            <a class="archive-card-link" href="<?= $watchUrl ?>"<?= $watchUrlRaw === '' || $watchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
               <div class="acard-thumb">
                 <img src="<?= $poster ?>" alt="<?= $title ?> poster" loading="lazy">
                 <div class="acard-badge <?= $badgeClass ?>"><?= $badgeText ?></div>

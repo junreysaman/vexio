@@ -28,7 +28,11 @@
       };
     ?>
     <div class="trending-layout">
-      <div class="trend-feature" id="trendFeature"<?= $featured ? ' onclick="showToast(\'Opening ' . addslashes($featured['title']) . '...\')"' : '' ?>>
+      <?php
+        $featuredWatchUrlRaw = (string) ($featured['watchUrl'] ?? '#');
+        $featuredWatchUrl = htmlspecialchars($featuredWatchUrlRaw !== '' ? $featuredWatchUrlRaw : '#', ENT_QUOTES);
+      ?>
+      <a class="trend-feature" id="trendFeature" href="<?= $featuredWatchUrl ?>"<?= $featuredWatchUrlRaw === '' || $featuredWatchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
         <div class="trend-feature-bg" style="position:absolute;inset:0;background-image:url('<?= htmlspecialchars($featured['backdrop'] ?? 'https://picsum.photos/seed/vexio-trending-feature/1200/700', ENT_QUOTES) ?>');background-size:cover;background-position:center;"></div>
         <div class="trend-feature-gradient"></div>
         <span class="tf-rank">01</span>
@@ -54,11 +58,11 @@
             <?php endif; ?>
           </div>
           <div class="tf-actions">
-            <a href="<?= htmlspecialchars((string) ($featured['watchUrl'] ?? '#'), ENT_QUOTES) ?>" class="tf-play" onclick="event.stopPropagation();<?= empty($featured['watchUrl']) || $featured['watchUrl'] === '#' ? 'event.preventDefault();showToast(\'Watch unavailable\')' : '' ?>"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>Watch Now</a>
-            <a href="#" class="tf-add" onclick="event.stopPropagation();event.preventDefault();showToast('Added to watchlist!')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Add to List</a>
+            <span class="tf-play"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>Watch Now</span>
+            <button type="button" class="tf-add" onclick="event.stopPropagation();event.preventDefault();showToast('Added to watchlist!')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Add to List</button>
           </div>
         </div>
-      </div>
+      </a>
       <div>
         <div class="trend-tabs">
           <button class="trend-tab active" data-filter="all">All</button>
@@ -72,11 +76,12 @@
               <?php
                 $title = (string) ($item['title'] ?? 'Untitled');
                 $poster = htmlspecialchars((string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-trending/180/240'), ENT_QUOTES);
-                $watchUrl = htmlspecialchars((string) ($item['watchUrl'] ?? '#'), ENT_QUOTES);
+                $watchUrlRaw = (string) ($item['watchUrl'] ?? '#');
+                $watchUrl = htmlspecialchars($watchUrlRaw !== '' ? $watchUrlRaw : '#', ENT_QUOTES);
                 $itemType = (string) ($item['type'] ?? 'unknown');
                 $metaText = htmlspecialchars($item['genre'] . ' / ' . $itemFormat($itemType), ENT_QUOTES);
               ?>
-              <div class="tl-item" data-type="<?= htmlspecialchars($itemType, ENT_QUOTES) ?>" onclick="showToast('Opening <?= addslashes($title) ?>...')">
+              <a class="tl-item" href="<?= $watchUrl ?>" data-type="<?= htmlspecialchars($itemType, ENT_QUOTES) ?>"<?= $watchUrlRaw === '' || $watchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
                 <span class="tl-rank <?= $index < 3 ? 'r' . ($index + 2) : 'rn' ?>"><?= $index + 2 ?></span>
                 <div class="tl-thumb"><img src="<?= $poster ?>" alt="<?= htmlspecialchars($title, ENT_QUOTES) ?> poster" loading="lazy"></div>
                 <div class="tl-info">
@@ -84,7 +89,7 @@
                   <div class="tl-sub"><span><?= $metaText ?></span></div>
                 </div>
                 <div class="tl-score"><?= htmlspecialchars((string) ($item['score'] ?? 'N/A'), ENT_QUOTES) ?></div>
-              </div>
+              </a>
             <?php endforeach; ?>
           <?php else: ?>
             <div class="tl-item">

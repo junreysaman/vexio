@@ -33,7 +33,6 @@ $featuredGenres = !empty($featured_genres) && is_array($featured_genres) ? $feat
           <div class="gcl-tags">
             <span class="gcl-tag">Movies</span>
             <span class="gcl-tag">TV Shows</span>
-            <span class="gcl-tag">Backdrop Matched</span>
           </div>
         </div>
         <span class="gcl-btn" aria-hidden="true">

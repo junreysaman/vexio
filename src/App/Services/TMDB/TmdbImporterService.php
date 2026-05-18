@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services\TMDB;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaUrl;
 use Framework\Database;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use RuntimeException;
+use Throwable;
 
 class TmdbImporterService
 {
@@ -216,6 +218,7 @@ class TmdbImporterService
         $directors = $this->directorMeta($movie['credits']['crew'] ?? []);
         $payload = [
             'title' => (string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie'),
+            'slug' => MediaUrl::slugify((string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie')),
             'original_title' => (string) ($movie['original_title'] ?? $movie['title'] ?? ''),
             'original_language' => $this->nullableString($movie['original_language'] ?? null, 10),
             'type' => 'movie',
@@ -269,6 +272,7 @@ class TmdbImporterService
         $creators = $this->creatorMeta($show['created_by'] ?? []);
         $payload = [
             'title' => (string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'),
+            'slug' => MediaUrl::slugify((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series')),
             'original_title' => (string) ($show['original_name'] ?? $show['name'] ?? ''),
             'original_language' => $this->nullableString($show['original_language'] ?? null, 10),
             'type' => 'tv_show',
@@ -390,7 +394,7 @@ class TmdbImporterService
             try {
                 $this->upsertTvEpisodeFromData($tmdbTvId, $show, $episode, $seasonNumber, $episodeNumber, 0, $status);
                 $generated['episodes']++;
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 $generated['errors'][] = 'Episode ' . $episodeNumber . ': ' . $e->getMessage();
             }
         }
@@ -664,8 +668,21 @@ class TmdbImporterService
     private function upsertMediaEpisode(int $mediaItemId, int $mediaSeasonId, string $tmdbType, int $tmdbId, int $tmdbParentId, array $payload): int
     {
         $existing = $this->db->selectOne(
-            'SELECT id FROM media_episodes WHERE tmdb_type = :tmdb_type AND tmdb_id = :tmdb_id LIMIT 1',
-            ['tmdb_type' => $tmdbType, 'tmdb_id' => $tmdbId]
+            'SELECT id FROM media_episodes
+             WHERE (tmdb_type = :tmdb_type AND tmdb_id = :tmdb_id)
+             OR (
+                media_item_id = :media_item_id
+                AND season_number = :season_number
+                AND episode_number = :episode_number
+             )
+             LIMIT 1',
+            [
+                'tmdb_type' => $tmdbType,
+                'tmdb_id' => $tmdbId,
+                'media_item_id' => $mediaItemId,
+                'season_number' => (int) ($payload['season_number'] ?? 0),
+                'episode_number' => (int) ($payload['episode_number'] ?? 0),
+            ]
         );
 
         $payload = [

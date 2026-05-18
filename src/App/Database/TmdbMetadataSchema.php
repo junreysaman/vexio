@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace App\Database;
 
+use App\Support\MediaUrl;
 use Framework\Database;
 
 class TmdbMetadataSchema
 {
+    private static bool $ensured = false;
+
     public static function ensure(Database $db): void
     {
+        if (self::$ensured) {
+            return;
+        }
+
         foreach (self::mediaItemColumns() as $column => $definition) {
             self::addColumnIfMissing($db, 'media_items', $column, $definition);
         }
@@ -22,9 +29,13 @@ class TmdbMetadataSchema
             self::addColumnIfMissing($db, 'media_episodes', $column, $definition);
         }
 
+        self::backfillMediaItemSlugs($db);
+
         foreach (self::tables() as $sql) {
             $db->query($sql);
         }
+
+        self::$ensured = true;
     }
 
     private static function addColumnIfMissing(Database $db, string $table, string $column, string $definition): void
@@ -46,7 +57,8 @@ class TmdbMetadataSchema
     private static function mediaItemColumns(): array
     {
         return [
-            'original_title' => 'VARCHAR(190) DEFAULT NULL AFTER `title`',
+            'slug' => 'VARCHAR(220) DEFAULT NULL AFTER `title`',
+            'original_title' => 'VARCHAR(190) DEFAULT NULL AFTER `slug`',
             'original_language' => 'VARCHAR(10) DEFAULT NULL AFTER `original_title`',
             'release_date' => 'DATE DEFAULT NULL AFTER `release_year`',
             'runtime_minutes' => 'SMALLINT UNSIGNED DEFAULT NULL AFTER `release_date`',
@@ -82,6 +94,23 @@ class TmdbMetadataSchema
             'air_date' => 'DATE DEFAULT NULL AFTER `release_year`',
             'clgnrt' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER `status`',
         ];
+    }
+
+    private static function backfillMediaItemSlugs(Database $db): void
+    {
+        if (!$db->tableExists('media_items')) {
+            return;
+        }
+
+        $items = $db->select(
+            "SELECT id, title FROM media_items WHERE slug IS NULL OR slug = ''"
+        );
+
+        foreach ($items as $item) {
+            $db->updateById('media_items', (int) $item['id'], [
+                'slug' => MediaUrl::slugify((string) ($item['title'] ?? 'Untitled')),
+            ]);
+        }
     }
 
     private static function mediaEpisodeColumns(): array

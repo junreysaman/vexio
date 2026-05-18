@@ -148,6 +148,11 @@ $queryBase = '/admin/content?type=' . urlencode((string) $activeType)
                                 <a class="icon-action" href="/admin/content/<?= (int) $item['id'] ?>/edit" title="Edit content" aria-label="Edit content">
                                     <i class="icon-pencil"></i>
                                 </a>
+                                <?php if (!empty($item['watchUrl'])): ?>
+                                    <a class="icon-action" href="<?= escape((string) $item['watchUrl']) ?>" title="Open watch page" aria-label="Open watch page">
+                                        <i class="icon-play_arrow"></i>
+                                    </a>
+                                <?php endif; ?>
                                 <button class="icon-action danger" type="submit" form="delete-content-<?= (int) $item['id'] ?>" title="Delete content" aria-label="Delete content">
                                     <i class="icon-trash"></i>
                                 </button>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Archive;
 
+use App\Database\TmdbMetadataSchema;
+use App\Support\MediaUrl;
 use Closure;
 
 class GenrePageService
@@ -44,6 +46,7 @@ class GenrePageService
     public function genres(): array
     {
         $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
 
         $rows = $db->select(
             'SELECT content_terms.id,
@@ -116,6 +119,7 @@ class GenrePageService
     public function genreBySlug(string $slug): ?array
     {
         $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
 
         $row = $db->selectOne(
             'SELECT id, name, slug
@@ -148,11 +152,13 @@ class GenrePageService
         }
 
         $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
         $limit = max(1, min(60, $limit));
 
         $items = $db->select(
             'SELECT media_items.id,
                     media_items.title,
+                    media_items.slug,
                     media_items.type,
                     media_items.synopsis,
                     media_items.poster_image,
@@ -184,38 +190,23 @@ class GenrePageService
     private function itemPayload(array $item): array
     {
         $type = (string) ($item['type'] ?? 'unknown');
-        $tmdbId = is_numeric($item['tmdb_id'] ?? null) ? (int) $item['tmdb_id'] : null;
 
         return [
             'id' => (int) ($item['id'] ?? 0),
             'title' => (string) ($item['title'] ?? 'Untitled'),
+            'slug' => (string) ($item['slug'] ?? ''),
             'type' => $type,
             'type_label' => $this->typeLabel($type),
             'synopsis' => (string) ($item['synopsis'] ?? ''),
+            'tmdb_id' => is_numeric($item['tmdb_id'] ?? null) ? (int) $item['tmdb_id'] : null,
             'poster' => (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '')),
             'release_year' => is_numeric($item['release_year'] ?? null) ? (int) $item['release_year'] : null,
             'tmdb_rating' => is_numeric($item['tmdb_rating'] ?? null) ? (float) $item['tmdb_rating'] : null,
             'views' => (int) ($item['views'] ?? 0),
             'created_at' => (string) ($item['created_at'] ?? ''),
-            'watch_url' => $this->watchUrlForItem($type, $tmdbId),
+            'watch_url' => MediaUrl::watchUrlForItem($item),
+            'watchUrl' => MediaUrl::watchUrlForItem($item),
         ];
-    }
-
-    private function watchUrlForItem(string $type, ?int $tmdbId): ?string
-    {
-        if ($tmdbId === null || $tmdbId < 1) {
-            return null;
-        }
-
-        if ($type === 'movie') {
-            return '/movie/' . $tmdbId;
-        }
-
-        if ($type === 'tv_show') {
-            return '/tvshow/' . $tmdbId;
-        }
-
-        return null;
     }
 
     private function typeLabel(string $type): string
