@@ -5,7 +5,6 @@
         <a class="auth-brand" href="/">VEXIO<span>HD</span></a>
         <div class="paper-kicker"><i class="icon-lock"></i> Admin Access</div>
         <h1>Vexio Control Room</h1>
-        <p>Sign in to manage licensed movies, TV episodes, publishing status, and view trends.</p>
     </section>
 
     <section class="auth-panel" aria-label="Login form">

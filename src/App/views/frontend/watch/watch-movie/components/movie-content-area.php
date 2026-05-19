@@ -376,7 +376,7 @@ if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SE
                 </div>
                 <div class="detail-card">
                   <div class="detail-label">Box Office</div>
-                  <div class="detail-val cyan"><?= $revenue ? '$' . number_format((float) $revenue) : 'N/A' ?></div>
+                  <div class="detail-val"><?= $revenue ? '$' . number_format((float) $revenue) : 'N/A' ?></div>
                 </div>
               </div>
             </div>

@@ -274,4 +274,5 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
       </div>
     </div>
   </div>
+  <?= $this->includePartial('/frontend/watch/watch-movie/ad/movie-footer-ad') ?>
 </div>
