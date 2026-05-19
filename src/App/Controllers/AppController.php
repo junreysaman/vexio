@@ -23,7 +23,6 @@ class AppController
     ) {
     }
 
-
     public function notFound(Request $request, Response $response, ?string $message = null): Response
     {
         return $response->html($this->view->render('frontend/errors/not-found', 'layouts/frontend/paper', [
@@ -57,5 +56,4 @@ class AppController
     {
         return $this->archiveTrendingPage->index($request, $response);
     }
-
 }

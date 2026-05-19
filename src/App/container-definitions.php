@@ -33,6 +33,8 @@ use App\Controllers\Archive\TrendingPageController;
 use App\Services\Archive\BrowseService;
 use App\Services\Archive\GenrePageService;
 use App\Services\Archive\TrendingPageService;
+use App\Controllers\Forum\ForumController;
+use App\Services\Forum\ForumService;
 use Framework\Database;
 use Framework\TemplateEngine;
 
@@ -78,4 +80,6 @@ return [
     BrowseService::class => fn($container) => new BrowseService(fn() => $container->get(Database::class)),
     GenrePageService::class => fn($container) => new GenrePageService(fn() => $container->get(Database::class)),
     TrendingPageService::class => fn($container) => new TrendingPageService(fn() => $container->get(Database::class)),
+    ForumController::class => fn($container) => $container->resolve(ForumController::class),
+    ForumService::class    => fn($container) => $container->resolve(ForumService::class),
 ];
