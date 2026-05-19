@@ -93,3 +93,4 @@ function isActive(string $path): string
 
     return $current === $target ? 'active' : '';
 }
+ 

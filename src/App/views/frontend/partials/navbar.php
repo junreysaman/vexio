@@ -130,7 +130,7 @@ $navItems = [
             <kbd>Ctrl K</kbd>
 
         </div>
-
+        <!-- if user logged in do not show -->
         <a href="/login" class="nav-sign-btn">
             Sign In
         </a>

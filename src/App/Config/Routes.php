@@ -18,6 +18,7 @@ use App\Controllers\Search\SearchController;
 use App\Controllers\Watch\WatchMovieController;
 use App\Controllers\Watch\WatchTvController;
 use App\Controllers\Watch\CommentController;
+use App\Middleware\AuthRequiredMiddleware;
 use Framework\App;
 
 function registerRoutes(App $app): void
@@ -26,11 +27,11 @@ function registerRoutes(App $app): void
         ['GET', '/', [AppController::class, 'home']],
         ['GET', '/genres', [AppController::class, 'genreGenrePage']],
         ['GET', '/genre/{slug}', [AppController::class, 'archiveGenrePage']],
-        ['GET', '/login', [AuthPageController::class, 'login']],
-        ['GET', '/register', [AuthPageController::class, 'register']],
-        ['POST', '/login', [AuthController::class, 'authenticate']],
-        ['POST', '/register', [AuthController::class, 'store']],
-        ['POST', '/logout', [AuthController::class, 'logout']],
+        ['GET', '/login', [AuthPageController::class, 'login'], [AuthRequiredMiddleware::class]],
+        ['GET', '/register', [AuthPageController::class, 'register'], [AuthRequiredMiddleware::class]],
+        ['POST', '/login', [AuthController::class, 'authenticate'], [AuthRequiredMiddleware::class]],
+        ['POST', '/register', [AuthController::class, 'store'], [AuthRequiredMiddleware::class]],
+        ['POST', '/logout', [AuthController::class, 'logout'], [AuthRequiredMiddleware::class]],
         ['GET', '/admin/dashboard', [DashboardController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/users', [UserController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/users/create', [UserController::class, 'create'], [AdminRequiredMiddleware::class]],
