@@ -17,9 +17,10 @@ class ContentService
     ];
 
     public const STATUSES = [
-        'draft' => 'Draft',
+        'draft'     => 'Draft',
         'published' => 'Published',
-        'archived' => 'Archived',
+        'scheduled' => 'Scheduled',
+        'archived'  => 'Archived',
     ];
 
     public function __construct(private Database $db)
@@ -133,17 +134,48 @@ class ContentService
     }
 
     /**
-     * Deletes a media item. Related seasons and episodes are removed by database cascade rules.
+     * Deletes a media item and all related data:
+     * episodes, seasons, comments, content_meta, and taxonomy term links.
      */
     public function delete(int $id): void
     {
+        // Collect episode IDs before deleting so we can clean their meta/comments too
+        $episodeIds = array_column(
+            $this->db->select('SELECT id FROM media_episodes WHERE media_item_id = :id', ['id' => $id]),
+            'id'
+        );
+
+        // Comments on episodes
+        if ($episodeIds !== []) {
+            $this->deleteByIds('media_comments', 'owner_id', $episodeIds, 'owner_type', 'episode');
+            $this->deleteByIds('content_meta', 'owner_id', $episodeIds, 'owner_type', 'episode');
+            $this->deleteByIds('content_term_links', 'owner_id', $episodeIds, 'owner_type', 'episode');
+        }
+
+        // Season meta/term links
+        $seasonIds = array_column(
+            $this->db->select('SELECT id FROM media_seasons WHERE media_item_id = :id', ['id' => $id]),
+            'id'
+        );
+
+        if ($seasonIds !== []) {
+            $this->deleteByIds('content_meta', 'owner_id', $seasonIds, 'owner_type', 'season');
+            $this->deleteByIds('content_term_links', 'owner_id', $seasonIds, 'owner_type', 'season');
+        }
+
+        // Comments, meta, and term links on the item itself
+        $this->db->delete('media_comments', ['owner_type' => 'item', 'owner_id' => $id]);
+        $this->db->delete('content_meta', ['owner_type' => 'item', 'owner_id' => $id]);
+        $this->db->delete('content_term_links', ['owner_type' => 'item', 'owner_id' => $id]);
+
+        // Episodes and seasons (cascade would handle these but we already have the IDs)
         $this->db->delete('media_episodes', ['media_item_id' => $id]);
         $this->db->delete('media_seasons', ['media_item_id' => $id]);
         $this->db->deleteById('media_items', $id);
     }
 
     /**
-     * Deletes multiple media items by id and returns the rows that were removed for asset cleanup.
+     * Deletes multiple media items and all their related data.
      */
     public function bulkDelete(array $ids): array
     {
@@ -153,33 +185,58 @@ class ContentService
             return [];
         }
 
-        $placeholders = [];
-        $params = [];
+        $items = $this->db->select(
+            'SELECT * FROM media_items WHERE id IN (' . $this->placeholders($ids) . ')',
+            $this->indexedParams($ids)
+        );
 
-        foreach ($ids as $index => $id) {
-            $key = 'id_' . $index;
-            $placeholders[] = ':' . $key;
-            $params[$key] = $id;
+        // Collect all episode IDs across all items being deleted
+        $episodeIds = array_column(
+            $this->db->select(
+                'SELECT id FROM media_episodes WHERE media_item_id IN (' . $this->placeholders($ids) . ')',
+                $this->indexedParams($ids)
+            ),
+            'id'
+        );
+
+        if ($episodeIds !== []) {
+            $this->deleteByIds('media_comments', 'owner_id', $episodeIds, 'owner_type', 'episode');
+            $this->deleteByIds('content_meta', 'owner_id', $episodeIds, 'owner_type', 'episode');
+            $this->deleteByIds('content_term_links', 'owner_id', $episodeIds, 'owner_type', 'episode');
         }
 
-        $items = $this->db->select(
-            'SELECT * FROM media_items WHERE id IN (' . implode(',', $placeholders) . ')',
-            $params
+        // Collect all season IDs
+        $seasonIds = array_column(
+            $this->db->select(
+                'SELECT id FROM media_seasons WHERE media_item_id IN (' . $this->placeholders($ids) . ')',
+                $this->indexedParams($ids)
+            ),
+            'id'
+        );
+
+        if ($seasonIds !== []) {
+            $this->deleteByIds('content_meta', 'owner_id', $seasonIds, 'owner_type', 'season');
+            $this->deleteByIds('content_term_links', 'owner_id', $seasonIds, 'owner_type', 'season');
+        }
+
+        // Comments, meta, and term links on the items themselves
+        $this->deleteByIds('media_comments', 'owner_id', $ids, 'owner_type', 'item');
+        $this->deleteByIds('content_meta', 'owner_id', $ids, 'owner_type', 'item');
+        $this->deleteByIds('content_term_links', 'owner_id', $ids, 'owner_type', 'item');
+
+        $this->db->query(
+            'DELETE FROM media_episodes WHERE media_item_id IN (' . $this->placeholders($ids) . ')',
+            $this->indexedParams($ids)
         );
 
         $this->db->query(
-            'DELETE FROM media_episodes WHERE media_item_id IN (' . implode(',', $placeholders) . ')',
-            $params
+            'DELETE FROM media_seasons WHERE media_item_id IN (' . $this->placeholders($ids) . ')',
+            $this->indexedParams($ids)
         );
 
         $this->db->query(
-            'DELETE FROM media_seasons WHERE media_item_id IN (' . implode(',', $placeholders) . ')',
-            $params
-        );
-
-        $this->db->query(
-            'DELETE FROM media_items WHERE id IN (' . implode(',', $placeholders) . ')',
-            $params
+            'DELETE FROM media_items WHERE id IN (' . $this->placeholders($ids) . ')',
+            $this->indexedParams($ids)
         );
 
         return $items;
@@ -388,6 +445,48 @@ class ContentService
     private function normalizeSlug(string $slug, string $fallback): string
     {
         return MediaUrl::slugify($slug !== '' ? $slug : $fallback);
+    }
+
+    /**
+     * Builds a list of :id_0, :id_1, ... placeholders for an IN clause.
+     */
+    private function placeholders(array $ids): string
+    {
+        return implode(',', array_map(fn(int $i): string => ':id_' . $i, array_keys($ids)));
+    }
+
+    /**
+     * Builds the matching ['id_0' => val, 'id_1' => val, ...] params array.
+     */
+    private function indexedParams(array $ids): array
+    {
+        $params = [];
+        foreach (array_values($ids) as $i => $id) {
+            $params['id_' . $i] = $id;
+        }
+        return $params;
+    }
+
+    /**
+     * Deletes rows from $table where $column IN ($ids) AND $extraCol = $extraVal.
+     * Used to clean up content_meta, content_term_links, and media_comments by owner.
+     */
+    private function deleteByIds(string $table, string $column, array $ids, string $extraCol, string $extraVal): void
+    {
+        if ($ids === []) {
+            return;
+        }
+
+        $placeholders = implode(',', array_map(fn(int $i): string => ':id_' . $i, array_keys($ids)));
+        $params = [':extra' => $extraVal];
+        foreach (array_values($ids) as $i => $id) {
+            $params['id_' . $i] = $id;
+        }
+
+        $this->db->query(
+            "DELETE FROM `{$table}` WHERE `{$extraCol}` = :extra AND `{$column}` IN ({$placeholders})",
+            $params
+        );
     }
 
     private function withWatchUrls(array $item): array

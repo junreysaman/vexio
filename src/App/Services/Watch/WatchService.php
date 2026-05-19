@@ -199,14 +199,12 @@ class WatchService
     {
         $watchUrl = MediaUrl::watchUrlForItem($item);
         $genreNames = $this->genreNames((int) ($item['id'] ?? 0));
-        $meta = $this->itemMeta((int) ($item['id'] ?? 0), ['cast_profiles', 'crew_profiles']);
 
         $embedServers = $this->movieEmbedServers($item);
         $embedUrl = $embedServers[0]['url'] ?? null;
 
         return [
             ...$item,
-            ...$meta,
             'slug' => MediaUrl::itemSlug($item),
             'genres' => implode(', ', $genreNames),
             'genre_names' => $genreNames,
@@ -217,38 +215,6 @@ class WatchService
             'watch_url' => $watchUrl,
             'watchUrl' => $watchUrl,
         ];
-    }
-
-    private function itemMeta(int $itemId, array $keys): array
-    {
-        if ($itemId < 1 || $keys === []) {
-            return [];
-        }
-
-        $placeholders = [];
-        $params = ['owner_id' => $itemId];
-
-        foreach (array_values($keys) as $index => $key) {
-            $param = 'key_' . $index;
-            $placeholders[] = ':' . $param;
-            $params[$param] = $key;
-        }
-
-        $rows = $this->db->select(
-            'SELECT meta_key, meta_value
-             FROM content_meta
-             WHERE owner_type = :owner_type
-             AND owner_id = :owner_id
-             AND meta_key IN (' . implode(',', $placeholders) . ')',
-            ['owner_type' => 'item', ...$params]
-        );
-
-        $meta = [];
-        foreach ($rows as $row) {
-            $meta[(string) $row['meta_key']] = (string) $row['meta_value'];
-        }
-
-        return $meta;
     }
 
     /**

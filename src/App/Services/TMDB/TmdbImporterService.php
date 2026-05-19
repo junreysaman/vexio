@@ -159,37 +159,33 @@ class TmdbImporterService
 
     public function movieDetails(int $tmdbMovieId): array
     {
+        // Only fetch what we actually store and display:
+        // credits (cast/crew), genres, release_dates (certification), external_ids (imdb_id)
         return $this->get('movie/' . $tmdbMovieId, [
-            'append_to_response' => 'credits,videos,images,release_dates,external_ids,keywords,watch/providers,recommendations,similar',
-            'include_image_language' => ($_ENV['TMDB_IMAGE_LANGUAGES'] ?? 'en,null'),
+            'append_to_response' => 'credits,genres,release_dates,external_ids',
         ]);
     }
 
     public function tvShowDetails(int $tmdbTvId): array
     {
+        // Only fetch what we actually store and display:
+        // credits (cast/crew), genres, content_ratings (not used but cheap), created_by
         return $this->get('tv/' . $tmdbTvId, [
-            'append_to_response' => 'credits,aggregate_credits,videos,images,content_ratings,external_ids,keywords,watch/providers,recommendations,similar',
-            'include_image_language' => ($_ENV['TMDB_IMAGE_LANGUAGES'] ?? 'en,null'),
+            'append_to_response' => 'credits,genres,created_by',
         ]);
     }
 
     /**
-     * Fetches one season with its episode list and artwork metadata from TMDB.
+     * Fetches one season with its episode list from TMDB.
      */
     public function tvSeasonDetails(int $tmdbTvId, int $seasonNumber): array
     {
-        return $this->get("tv/{$tmdbTvId}/season/{$seasonNumber}", [
-            'append_to_response' => 'credits,videos,images',
-            'include_image_language' => ($_ENV['TMDB_IMAGE_LANGUAGES'] ?? 'en,null'),
-        ]);
+        return $this->get("tv/{$tmdbTvId}/season/{$seasonNumber}");
     }
 
     public function tvEpisodeDetails(int $tmdbTvId, int $seasonNumber, int $episodeNumber): array
     {
-        return $this->get("tv/{$tmdbTvId}/season/{$seasonNumber}/episode/{$episodeNumber}", [
-            'append_to_response' => 'credits,videos,images',
-            'include_image_language' => ($_ENV['TMDB_IMAGE_LANGUAGES'] ?? 'en,null'),
-        ]);
+        return $this->get("tv/{$tmdbTvId}/season/{$seasonNumber}/episode/{$episodeNumber}");
     }
 
     public function importedRootIds(string $tab): array
@@ -211,53 +207,44 @@ class TmdbImporterService
         $movie = $this->movieDetails($tmdbMovieId);
         $posterUrl = $this->imageUrl($movie['poster_path'] ?? null);
         $backdropUrl = $this->backdropUrl($movie['backdrop_path'] ?? null);
-        $imdbId = $this->nullableString($movie['external_ids']['imdb_id'] ?? null, 40);
-        $youtube = $this->firstYoutubeKey($movie['videos']['results'] ?? []);
-        $images = $this->imageLines($movie['images']['backdrops'] ?? []);
-        $cast = $this->castMeta($movie['credits']['cast'] ?? []);
-        $directors = $this->directorMeta($movie['credits']['crew'] ?? []);
-        $castProfiles = $this->castProfileMeta($movie['credits']['cast'] ?? [], 'movie-' . $tmdbMovieId . '/cast');
-        $crewProfiles = $this->crewProfileMeta($movie['credits']['crew'] ?? [], 'movie-' . $tmdbMovieId . '/crew');
-        $payload = [
-            'title' => (string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie'),
-            'slug' => MediaUrl::slugify((string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie')),
-            'original_title' => (string) ($movie['original_title'] ?? $movie['title'] ?? ''),
-            'original_language' => $this->nullableString($movie['original_language'] ?? null, 10),
-            'type' => 'movie',
-            'synopsis' => (string) ($movie['overview'] ?? ''),
-            'poster_url' => $posterUrl,
-            'poster_image' => $this->downloadImageAsWebp($posterUrl, 'movies', 'poster-' . $tmdbMovieId),
-            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, 'movies', 'backdrop-' . $tmdbMovieId),
-            'stream_link' => null,
-            'youtube_id' => $youtube !== null ? '[' . $youtube . ']' : null,
-            'rated' => $this->movieCertification($movie),
-            'country' => $this->csv($movie['origin_country'] ?? []),
-            'imagenes' => $images,
-            'dt_cast' => $cast,
-            'dt_dir' => $directors,
-            'imdb_id' => $imdbId,
-            'release_year' => $this->yearFromDate($movie['release_date'] ?? null),
-            'release_date' => $this->dateOrNull($movie['release_date'] ?? null),
-            'runtime_minutes' => $movie['runtime'] ?? null,
-            'tmdb_status' => $this->nullableString($movie['status'] ?? null, 60),
-            'tagline' => $this->nullableString($movie['tagline'] ?? null, 255),
-            'homepage_url' => $this->nullableString($movie['homepage'] ?? null, 500),
-            'adult' => !empty($movie['adult']) ? 1 : 0,
-            'budget' => isset($movie['budget']) ? (int) $movie['budget'] : null,
-            'revenue' => isset($movie['revenue']) ? (int) $movie['revenue'] : null,
-            'origin_country' => $this->csv($movie['origin_country'] ?? []),
-            'spoken_languages' => $this->languageCsv($movie['spoken_languages'] ?? []),
-            'tmdb_rating' => $this->rating($movie),
-            'tmdb_popularity' => $this->popularity($movie),
-            'tmdb_vote_count' => (int) ($movie['vote_count'] ?? 0),
-            'views' => max(0, $views),
-            'status' => $this->normalizeStatus($status),
-            'is_featured' => $featured ? 1 : 0,
-            'dt_featured_post' => $featured ? 1 : 0,
-        ];
+        $castProfiles = $this->castProfileMeta($movie['credits']['cast'] ?? []);
+        $crewProfiles = $this->crewProfileMeta($movie['credits']['crew'] ?? []);
 
-        $id = $this->upsertMediaItem('movie', $tmdbMovieId, $payload);
-        $this->syncMovieDooPlayData($id, $movie, $imdbId, $images, $youtube, $cast, $directors, $castProfiles, $crewProfiles);
+        $id = $this->upsertMediaItem('movie', $tmdbMovieId, [
+            'title'            => (string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie'),
+            'slug'             => MediaUrl::slugify((string) ($movie['title'] ?? $movie['original_title'] ?? 'Untitled Movie')),
+            'original_title'   => (string) ($movie['original_title'] ?? $movie['title'] ?? ''),
+            'original_language'=> $this->nullableString($movie['original_language'] ?? null, 10),
+            'type'             => 'movie',
+            'synopsis'         => (string) ($movie['overview'] ?? ''),
+            'poster_url'       => $posterUrl,
+            'poster_image'     => $this->downloadImageAsWebp($posterUrl, 'movies', 'poster-' . $tmdbMovieId),
+            'backdrop_image'   => $this->downloadImageAsWebp($backdropUrl, 'movies', 'backdrop-' . $tmdbMovieId),
+            'stream_link'      => null,
+            'rated'            => $this->movieCertification($movie),
+            'country'          => $this->csv($movie['origin_country'] ?? []),
+            'dt_cast'          => $this->castMeta($movie['credits']['cast'] ?? []),
+            'dt_dir'           => $this->directorMeta($movie['credits']['crew'] ?? []),
+            'imdb_id'          => $this->nullableString($movie['external_ids']['imdb_id'] ?? null, 40),
+            'release_year'     => $this->yearFromDate($movie['release_date'] ?? null),
+            'release_date'     => $this->dateOrNull($movie['release_date'] ?? null),
+            'runtime_minutes'  => $movie['runtime'] ?? null,
+            'tmdb_status'      => $this->nullableString($movie['status'] ?? null, 60),
+            'tagline'          => $this->nullableString($movie['tagline'] ?? null, 255),
+            'budget'           => isset($movie['budget']) ? (int) $movie['budget'] : null,
+            'revenue'          => isset($movie['revenue']) ? (int) $movie['revenue'] : null,
+            'origin_country'   => $this->csv($movie['origin_country'] ?? []),
+            'tmdb_rating'      => $this->rating($movie),
+            'tmdb_popularity'  => $this->popularity($movie),
+            'tmdb_vote_count'  => (int) ($movie['vote_count'] ?? 0),
+            'views'            => max(0, $views),
+            'status'           => $this->normalizeStatus($status),
+            'is_featured'      => $featured ? 1 : 0,
+        ]);
+
+        // Store cast/crew profiles and sync genres taxonomy
+        $this->syncItemMeta($id, $castProfiles, $crewProfiles);
+        $this->syncGenres($id, 'item', $this->names($movie['genres'] ?? []));
 
         return $this->db->findById('media_items', $id);
     }
@@ -265,54 +252,46 @@ class TmdbImporterService
     public function importTvShow(int $tmdbTvId, int $views = 0, string $status = 'draft', bool $featured = false): ?array
     {
         $show = $this->tvShowDetails($tmdbTvId);
-        $folder = 'tv';
         $posterUrl = $this->imageUrl($show['poster_path'] ?? null);
         $backdropUrl = $this->backdropUrl($show['backdrop_path'] ?? null);
-        $youtube = $this->firstYoutubeKey($show['videos']['results'] ?? []);
-        $images = $this->imageLines($show['images']['backdrops'] ?? []);
-        $cast = $this->castMeta($show['credits']['cast'] ?? []);
-        $creators = $this->creatorMeta($show['created_by'] ?? []);
-        $castProfiles = $this->castProfileMeta($show['credits']['cast'] ?? [], 'tv-' . $tmdbTvId . '/cast');
-        $crewSource = array_merge($show['created_by'] ?? [], $show['aggregate_credits']['crew'] ?? [], $show['credits']['crew'] ?? []);
-        $crewProfiles = $this->crewProfileMeta($crewSource, 'tv-' . $tmdbTvId . '/crew');
-        $payload = [
-            'title' => (string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'),
-            'slug' => MediaUrl::slugify((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series')),
-            'original_title' => (string) ($show['original_name'] ?? $show['name'] ?? ''),
-            'original_language' => $this->nullableString($show['original_language'] ?? null, 10),
-            'type' => 'tv_show',
-            'synopsis' => (string) ($show['overview'] ?? ''),
-            'poster_url' => $posterUrl,
-            'poster_image' => $this->downloadImageAsWebp($posterUrl, $folder, 'poster-' . $tmdbTvId),
-            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, $folder, 'backdrop-' . $tmdbTvId),
-            'stream_link' => null,
-            'youtube_id' => $youtube !== null ? '[' . $youtube . ']' : null,
-            'imagenes' => $images,
-            'dt_cast' => $cast,
-            'dt_creator' => $creators,
-            'release_year' => $this->yearFromDate($show['first_air_date'] ?? null),
-            'release_date' => $this->dateOrNull($show['first_air_date'] ?? null),
-            'runtime_minutes' => (int) (($show['episode_run_time'][0] ?? null) ?: 0) ?: null,
-            'tmdb_status' => $this->nullableString($show['status'] ?? null, 60),
-            'tagline' => $this->nullableString($show['tagline'] ?? null, 255),
-            'homepage_url' => $this->nullableString($show['homepage'] ?? null, 500),
-            'number_of_seasons' => isset($show['number_of_seasons']) ? (int) $show['number_of_seasons'] : null,
-            'number_of_episodes' => isset($show['number_of_episodes']) ? (int) $show['number_of_episodes'] : null,
-            'last_air_date' => $this->dateOrNull($show['last_air_date'] ?? null),
-            'in_production' => array_key_exists('in_production', $show) ? (!empty($show['in_production']) ? 1 : 0) : null,
-            'origin_country' => $this->csv($show['origin_country'] ?? []),
-            'spoken_languages' => $this->languageCsv($show['spoken_languages'] ?? []),
-            'tmdb_rating' => $this->rating($show),
-            'tmdb_popularity' => $this->popularity($show),
-            'tmdb_vote_count' => (int) ($show['vote_count'] ?? 0),
-            'views' => max(0, $views),
-            'status' => $this->normalizeStatus($status),
-            'is_featured' => $featured ? 1 : 0,
-            'dt_featured_post' => $featured ? 1 : 0,
-        ];
+        $castProfiles = $this->castProfileMeta($show['credits']['cast'] ?? []);
+        $crewSource = array_merge($show['created_by'] ?? [], $show['credits']['crew'] ?? []);
+        $crewProfiles = $this->crewProfileMeta($crewSource);
 
-        $id = $this->upsertMediaItem('tv_show', $tmdbTvId, $payload);
-        $this->syncTvShowDooPlayData($id, $show, $images, $youtube, $cast, $creators, $castProfiles, $crewProfiles);
+        $id = $this->upsertMediaItem('tv_show', $tmdbTvId, [
+            'title'              => (string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'),
+            'slug'               => MediaUrl::slugify((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series')),
+            'original_title'     => (string) ($show['original_name'] ?? $show['name'] ?? ''),
+            'original_language'  => $this->nullableString($show['original_language'] ?? null, 10),
+            'type'               => 'tv_show',
+            'synopsis'           => (string) ($show['overview'] ?? ''),
+            'poster_url'         => $posterUrl,
+            'poster_image'       => $this->downloadImageAsWebp($posterUrl, 'tv', 'poster-' . $tmdbTvId),
+            'backdrop_image'     => $this->downloadImageAsWebp($backdropUrl, 'tv', 'backdrop-' . $tmdbTvId),
+            'stream_link'        => null,
+            'dt_cast'            => $this->castMeta($show['credits']['cast'] ?? []),
+            'dt_creator'         => $this->creatorMeta($show['created_by'] ?? []),
+            'release_year'       => $this->yearFromDate($show['first_air_date'] ?? null),
+            'release_date'       => $this->dateOrNull($show['first_air_date'] ?? null),
+            'runtime_minutes'    => (int) (($show['episode_run_time'][0] ?? null) ?: 0) ?: null,
+            'tmdb_status'        => $this->nullableString($show['status'] ?? null, 60),
+            'tagline'            => $this->nullableString($show['tagline'] ?? null, 255),
+            'number_of_seasons'  => isset($show['number_of_seasons']) ? (int) $show['number_of_seasons'] : null,
+            'number_of_episodes' => isset($show['number_of_episodes']) ? (int) $show['number_of_episodes'] : null,
+            'last_air_date'      => $this->dateOrNull($show['last_air_date'] ?? null),
+            'in_production'      => array_key_exists('in_production', $show) ? (!empty($show['in_production']) ? 1 : 0) : null,
+            'origin_country'     => $this->csv($show['origin_country'] ?? []),
+            'tmdb_rating'        => $this->rating($show),
+            'tmdb_popularity'    => $this->popularity($show),
+            'tmdb_vote_count'    => (int) ($show['vote_count'] ?? 0),
+            'views'              => max(0, $views),
+            'status'             => $this->normalizeStatus($status),
+            'is_featured'        => $featured ? 1 : 0,
+        ]);
+
+        // Store cast/crew profiles and sync genres taxonomy
+        $this->syncItemMeta($id, $castProfiles, $crewProfiles);
+        $this->syncGenres($id, 'item', $this->names($show['genres'] ?? []));
 
         return $this->db->findById('media_items', $id);
     }
@@ -325,10 +304,7 @@ class TmdbImporterService
             fn(array $season): bool => (int) ($season['season_number'] ?? 0) > 0
         ));
 
-        $generated = [
-            'seasons' => 0,
-            'skipped' => 0,
-        ];
+        $generated = ['seasons' => 0, 'skipped' => 0];
 
         foreach ($seasonSummaries as $seasonSummary) {
             $seasonNumber = (int) ($seasonSummary['season_number'] ?? 0);
@@ -354,39 +330,34 @@ class TmdbImporterService
     public function generateTvEpisodesForSeason(int $tmdbTvId, int $seasonNumber, string $status = 'draft'): array
     {
         $show = $this->tvShowDetails($tmdbTvId);
-        
+
         if (empty($show['id'])) {
             throw new RuntimeException('Unable to fetch TV show details from TMDB.');
         }
-        
+
         $season = $this->tvSeasonDetails($tmdbTvId, $seasonNumber);
-        
+
         if (empty($season)) {
             throw new RuntimeException('Unable to fetch season details from TMDB.');
         }
-        
+
         $episodes = $season['episodes'] ?? [];
-        
+
         if (empty($episodes)) {
             throw new RuntimeException('This season has no episodes available on TMDB.');
         }
-        
-        // Ensure parent series and season exist first
+
         $parent = $this->ensureSeriesItem($tmdbTvId, $status);
         if (empty($parent['id'])) {
             throw new RuntimeException('Unable to create or find the TV series in the database.');
         }
-        
+
         $seasonItem = $this->ensureSeasonItem($tmdbTvId, $show, $seasonNumber, $status);
         if (empty($seasonItem['id'])) {
             throw new RuntimeException('Unable to create or find the season in the database.');
         }
 
-        $generated = [
-            'episodes' => 0,
-            'skipped' => 0,
-            'errors' => [],
-        ];
+        $generated = ['episodes' => 0, 'skipped' => 0, 'errors' => []];
 
         foreach ($episodes as $episode) {
             $episodeNumber = (int) ($episode['episode_number'] ?? 0);
@@ -404,13 +375,69 @@ class TmdbImporterService
             }
         }
 
-        // Mark season as generated
         $this->db->update('media_seasons', ['clgnrt' => 1], [
             'media_item_id' => (int) $parent['id'],
             'season_number' => $seasonNumber,
         ]);
 
         return $generated;
+    }
+
+    /**
+     * Finds all episodes with status='scheduled' whose air_date has arrived,
+     * reimports them from TMDB to get the latest metadata (backdrop, synopsis, etc.),
+     * then sets their status to 'published'.
+     *
+     * Episodes with no air_date that are stuck as 'scheduled' are also published
+     * (status-only update, since there's no TMDB episode ID to reimport from).
+     *
+     * Returns a summary array with counts and any per-episode errors.
+     */
+    public function publishScheduled(): array
+    {
+        $today = new \DateTimeImmutable('today', new \DateTimeZone('UTC'));
+
+        // Fetch all scheduled episodes that have a TMDB parent ID (needed for reimport)
+        $due = $this->db->select(
+            "SELECT id, tmdb_parent_id, season_number, episode_number, air_date
+             FROM media_episodes
+             WHERE status = 'scheduled'
+             AND tmdb_parent_id IS NOT NULL
+             AND tmdb_parent_id > 0
+             AND (
+                 air_date IS NULL
+                 OR air_date <= :today
+             )
+             ORDER BY tmdb_parent_id ASC, season_number ASC, episode_number ASC",
+            ['today' => $today->format('Y-m-d')]
+        );
+
+        $result = ['published' => 0, 'errors' => []];
+
+        foreach ($due as $row) {
+            $tmdbTvId      = (int) $row['tmdb_parent_id'];
+            $seasonNumber  = (int) $row['season_number'];
+            $episodeNumber = (int) $row['episode_number'];
+
+            try {
+                // Full reimport — fetches fresh metadata from TMDB and upserts the row.
+                // episodeStatus() will resolve to 'published' since air_date <= today.
+                $this->importTvEpisode($tmdbTvId, $seasonNumber, $episodeNumber, 0, 'published');
+                $result['published']++;
+            } catch (\Throwable $e) {
+                // Fall back to a status-only update so the episode isn't stuck forever.
+                try {
+                    $this->db->updateById('media_episodes', (int) $row['id'], ['status' => 'published']);
+                    $result['published']++;
+                } catch (\Throwable) {
+                    // ignore secondary failure
+                }
+
+                $result['errors'][] = "S{$seasonNumber}E{$episodeNumber} (TMDB show {$tmdbTvId}): " . $e->getMessage();
+            }
+        }
+
+        return $result;
     }
 
     public function importTvEpisode(int $tmdbTvId, int $seasonNumber, int $episodeNumber, int $views = 0, string $status = 'draft'): ?array
@@ -421,24 +448,14 @@ class TmdbImporterService
         return $this->upsertTvEpisodeFromData($tmdbTvId, $show, $episode, $seasonNumber, $episodeNumber, $views, $status);
     }
 
-    /**
-     * Imports one season into media_seasons for a TV show title.
-     */
-    public function importTvSeason(
-        int $tmdbTvId,
-        int $seasonNumber,
-        int $views = 0,
-        string $status = 'draft'
-    ): ?array {
+    public function importTvSeason(int $tmdbTvId, int $seasonNumber, int $views = 0, string $status = 'draft'): ?array
+    {
         $show = $this->tvShowDetails($tmdbTvId);
         $season = $this->tvSeasonDetails($tmdbTvId, $seasonNumber);
 
         return $this->upsertTvSeasonFromData($tmdbTvId, $show, $season, $seasonNumber, $views, $status);
     }
 
-    /**
-     * Creates or updates one episode using episode data already returned by TMDB season details.
-     */
     private function upsertTvEpisodeFromData(
         int $tmdbTvId,
         array $show,
@@ -452,40 +469,35 @@ class TmdbImporterService
         $season = $this->ensureSeasonItem($tmdbTvId, $show, $seasonNumber, $status);
         $episodeTitle = trim((string) ($episode['name'] ?? 'Episode ' . $episodeNumber));
         $showTitle = trim((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'));
-        $tmdbType = 'tv_episode';
-        $folder = 'tv-episodes';
         $posterUrl = $this->imageUrl($show['poster_path'] ?? null);
         $backdropUrl = $this->backdropUrl($episode['still_path'] ?? null) ?? $this->backdropUrl($show['backdrop_path'] ?? null);
 
+        $airDate = $this->dateOrNull($episode['air_date'] ?? null);
+
         $payload = [
-            'title' => $showTitle . ' - ' . $episodeTitle,
-            'serie' => $showTitle,
-            'episode_name' => $episodeTitle,
-            'synopsis' => (string) ($episode['overview'] ?? $show['overview'] ?? ''),
-            'poster_url' => $posterUrl,
-            'poster_image' => $this->downloadImageAsWebp($posterUrl, $folder, 'poster-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber),
-            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, $folder, 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber),
-            'stream_link' => null,
-            'release_year' => $this->yearFromDate($episode['air_date'] ?? $show['first_air_date'] ?? null),
-            'air_date' => $this->dateOrNull($episode['air_date'] ?? null),
-            'imagenes' => $this->imageLines($episode['images']['stills'] ?? []),
-            'season_number' => $seasonNumber,
+            'title'          => $showTitle . ' - ' . $episodeTitle,
+            'serie'          => $showTitle,
+            'episode_name'   => $episodeTitle,
+            'synopsis'       => (string) ($episode['overview'] ?? $show['overview'] ?? ''),
+            'poster_url'     => $posterUrl,
+            'poster_image'   => $this->downloadImageAsWebp($posterUrl, 'tv-episodes', 'poster-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber),
+            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, 'tv-episodes', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber),
+            'stream_link'    => null,
+            'release_year'   => $this->yearFromDate($episode['air_date'] ?? $show['first_air_date'] ?? null),
+            'air_date'       => $airDate,
+            'season_number'  => $seasonNumber,
             'episode_number' => $episodeNumber,
-            'views' => max(0, $views),
-            'status' => $this->normalizeStatus($status),
+            'views'          => max(0, $views),
+            'status'         => $this->episodeStatus($status, $airDate),
         ];
 
         $externalId = (int) ($episode['id'] ?? 0);
         $tmdbId = $externalId > 0 ? $externalId : (int) ($tmdbTvId . $seasonNumber . $episodeNumber);
-        $id = $this->upsertMediaEpisode((int) $parent['id'], (int) $season['id'], $tmdbType, $tmdbId, $tmdbTvId, $payload);
-        $this->syncEpisodeDooPlayData($id, $tmdbTvId, $showTitle, $episode, $seasonNumber, $episodeNumber, $payload['imagenes']);
+        $id = $this->upsertMediaEpisode((int) $parent['id'], (int) $season['id'], 'tv_episode', $tmdbId, $tmdbTvId, $payload);
 
         return $this->db->findById('media_episodes', $id);
     }
 
-    /**
-     * Creates or updates one season using season data already returned by TMDB.
-     */
     private function upsertTvSeasonFromData(
         int $tmdbTvId,
         array $show,
@@ -497,28 +509,25 @@ class TmdbImporterService
         $parent = $this->ensureSeriesItem($tmdbTvId, $status);
         $showTitle = trim((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'));
         $seasonTitle = trim((string) ($season['name'] ?? 'Season ' . $seasonNumber));
-        $tmdbType = 'tv_season';
-        $folder = 'tv-seasons';
         $posterUrl = $this->imageUrl($season['poster_path'] ?? null) ?? $this->imageUrl($show['poster_path'] ?? null);
         $backdropUrl = $this->backdropUrl($show['backdrop_path'] ?? null);
 
         $payload = [
-            'title' => $showTitle . ' - ' . $seasonTitle,
-            'serie' => $showTitle,
-            'synopsis' => (string) ($season['overview'] ?? $show['overview'] ?? ''),
-            'poster_url' => $posterUrl,
-            'poster_image' => $this->downloadImageAsWebp($posterUrl, $folder, 'poster-' . $tmdbTvId . '-s' . $seasonNumber),
-            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, $folder, 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber),
-            'release_year' => $this->yearFromDate($season['air_date'] ?? $show['first_air_date'] ?? null),
-            'air_date' => $this->dateOrNull($season['air_date'] ?? null),
-            'season_number' => $seasonNumber,
-            'status' => $this->normalizeStatus($status),
+            'title'          => $showTitle . ' - ' . $seasonTitle,
+            'serie'          => $showTitle,
+            'synopsis'       => (string) ($season['overview'] ?? $show['overview'] ?? ''),
+            'poster_url'     => $posterUrl,
+            'poster_image'   => $this->downloadImageAsWebp($posterUrl, 'tv-seasons', 'poster-' . $tmdbTvId . '-s' . $seasonNumber),
+            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, 'tv-seasons', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber),
+            'release_year'   => $this->yearFromDate($season['air_date'] ?? $show['first_air_date'] ?? null),
+            'air_date'       => $this->dateOrNull($season['air_date'] ?? null),
+            'season_number'  => $seasonNumber,
+            'status'         => $this->normalizeStatus($status),
         ];
 
         $externalId = (int) ($season['id'] ?? 0);
         $tmdbId = $externalId > 0 ? $externalId : (int) ($tmdbTvId . $seasonNumber);
-        $id = $this->upsertMediaSeason((int) $parent['id'], $tmdbType, $tmdbId, $tmdbTvId, $payload);
-        $this->syncSeasonDooPlayData($id, $tmdbTvId, $showTitle, $season, $seasonNumber);
+        $id = $this->upsertMediaSeason((int) $parent['id'], 'tv_season', $tmdbId, $tmdbTvId, $payload);
 
         return $this->db->findById('media_seasons', $id);
     }
@@ -558,9 +567,7 @@ class TmdbImporterService
 
     private function headers(): array
     {
-        $headers = [
-            'Accept' => 'application/json',
-        ];
+        $headers = ['Accept' => 'application/json'];
 
         if ($this->accessToken !== '') {
             $headers['Authorization'] = 'Bearer ' . $this->accessToken;
@@ -576,27 +583,16 @@ class TmdbImporterService
         }
     }
 
-    /**
-     * Ensures the parent TV title exists before season or episode rows are imported.
-     */
     private function ensureSeriesItem(int $tmdbTvId, string $status): array
     {
-        $tmdbType = 'tv_show';
         $existing = $this->db->selectOne(
-            'SELECT * FROM media_items WHERE tmdb_type = :tmdb_type AND tmdb_id = :tmdb_id LIMIT 1',
-            ['tmdb_type' => $tmdbType, 'tmdb_id' => $tmdbTvId]
+            "SELECT * FROM media_items WHERE tmdb_type = 'tv_show' AND tmdb_id = :tmdb_id LIMIT 1",
+            ['tmdb_id' => $tmdbTvId]
         );
 
-        if ($existing) {
-            return $existing;
-        }
-
-        return $this->importTvShow($tmdbTvId, 0, $status) ?? [];
+        return $existing ?: ($this->importTvShow($tmdbTvId, 0, $status) ?? []);
     }
 
-    /**
-     * Ensures a season row exists for an episode import when TMDB episode data is generated directly.
-     */
     private function ensureSeasonItem(int $tmdbTvId, array $show, int $seasonNumber, string $status): array
     {
         $parent = $this->ensureSeriesItem($tmdbTvId, $status);
@@ -614,24 +610,14 @@ class TmdbImporterService
         return $this->upsertTvSeasonFromData($tmdbTvId, $show, $season, $seasonNumber, 0, $status) ?? [];
     }
 
-    /**
-     * Creates or updates a top-level media item by TMDB identity.
-     */
     private function upsertMediaItem(string $tmdbType, int $tmdbId, array $payload): int
     {
         $existing = $this->db->selectOne(
             'SELECT id FROM media_items WHERE tmdb_type = :tmdb_type AND tmdb_id = :tmdb_id LIMIT 1',
-            [
-                'tmdb_type' => $tmdbType,
-                'tmdb_id' => $tmdbId,
-            ]
+            ['tmdb_type' => $tmdbType, 'tmdb_id' => $tmdbId]
         );
 
-        $payload = [
-            ...$payload,
-            'tmdb_type' => $tmdbType,
-            'tmdb_id' => $tmdbId,
-        ];
+        $payload = [...$payload, 'tmdb_type' => $tmdbType, 'tmdb_id' => $tmdbId];
 
         if ($existing) {
             $this->db->updateById('media_items', (int) $existing['id'], $payload);
@@ -641,9 +627,6 @@ class TmdbImporterService
         return (int) $this->db->insert('media_items', $payload);
     }
 
-    /**
-     * Creates or updates a season row under its parent media item.
-     */
     private function upsertMediaSeason(int $mediaItemId, string $tmdbType, int $tmdbId, int $tmdbParentId, array $payload): int
     {
         $existing = $this->db->selectOne(
@@ -667,9 +650,6 @@ class TmdbImporterService
         return (int) $this->db->insert('media_seasons', $payload);
     }
 
-    /**
-     * Creates or updates an episode row under its parent media item and season.
-     */
     private function upsertMediaEpisode(int $mediaItemId, int $mediaSeasonId, string $tmdbType, int $tmdbId, int $tmdbParentId, array $payload): int
     {
         $existing = $this->db->selectOne(
@@ -707,143 +687,37 @@ class TmdbImporterService
         return (int) $this->db->insert('media_episodes', $payload);
     }
 
-    private function syncMovieDooPlayData(
-        int $itemId,
-        array $movie,
-        ?string $imdbId,
-        ?string $images,
-        ?string $youtube,
-        ?string $cast,
-        ?string $directors,
-        ?string $castProfiles,
-        ?string $crewProfiles
-    ): void {
-        $releaseYear = (string) $this->yearFromDate($movie['release_date'] ?? null);
-        $this->syncMeta('item', $itemId, [
-            'ids' => $imdbId,
-            'idtmdb' => (string) ($movie['id'] ?? ''),
-            'dt_poster' => $movie['poster_path'] ?? null,
-            'dt_backdrop' => $movie['backdrop_path'] ?? null,
-            'imagenes' => $images,
-            'youtube_id' => $youtube !== null ? '[' . $youtube . ']' : null,
-            'imdbRating' => $this->rating($movie),
-            'imdbVotes' => $movie['vote_count'] ?? null,
-            'Rated' => $this->movieCertification($movie),
-            'Country' => $this->csv($movie['origin_country'] ?? []),
-            'original_title' => $movie['original_title'] ?? null,
-            'release_date' => $movie['release_date'] ?? null,
-            'vote_average' => $movie['vote_average'] ?? null,
-            'vote_count' => $movie['vote_count'] ?? null,
-            'tagline' => $movie['tagline'] ?? null,
-            'runtime' => $movie['runtime'] ?? null,
-            'dt_cast' => $cast,
-            'dt_dir' => $directors,
-            'cast_profiles' => $castProfiles,
-            'crew_profiles' => $crewProfiles,
-        ]);
-
-        $this->syncTerms('item', $itemId, 'genres', $this->names($movie['genres'] ?? []));
-        $this->syncTerms('item', $itemId, 'dtyear', $releaseYear !== '' ? [$releaseYear] : []);
-        $this->syncTerms('item', $itemId, 'dtcast', $this->names(array_slice($movie['credits']['cast'] ?? [], 0, 10)));
-        $this->syncTerms('item', $itemId, 'dtdirector', $this->crewNamesByDepartment($movie['credits']['crew'] ?? [], 'Directing'));
-    }
-
-    private function syncTvShowDooPlayData(
-        int $itemId,
-        array $show,
-        ?string $images,
-        ?string $youtube,
-        ?string $cast,
-        ?string $creators,
-        ?string $castProfiles,
-        ?string $crewProfiles
-    ): void {
-        $releaseYear = (string) $this->yearFromDate($show['first_air_date'] ?? null);
-        $runtime = $show['episode_run_time'][0] ?? null;
-        $this->syncMeta('item', $itemId, [
-            'ids' => $show['id'] ?? null,
-            'imagenes' => $images,
-            'youtube_id' => $youtube !== null ? '[' . $youtube . ']' : null,
-            'episode_run_time' => $runtime,
-            'dt_poster' => $show['poster_path'] ?? null,
-            'dt_backdrop' => $show['backdrop_path'] ?? null,
-            'first_air_date' => $show['first_air_date'] ?? null,
-            'last_air_date' => $show['last_air_date'] ?? null,
-            'number_of_episodes' => $show['number_of_episodes'] ?? null,
-            'number_of_seasons' => $show['number_of_seasons'] ?? null,
-            'original_name' => $show['original_name'] ?? null,
-            'imdbRating' => $this->rating($show),
-            'imdbVotes' => $show['vote_count'] ?? null,
-            'dt_cast' => $cast,
-            'dt_creator' => $creators,
-            'cast_profiles' => $castProfiles,
-            'crew_profiles' => $crewProfiles,
-        ]);
-
-        $this->syncTerms('item', $itemId, 'genres', $this->names($show['genres'] ?? []));
-        $this->syncTerms('item', $itemId, 'dtyear', $releaseYear !== '' ? [$releaseYear] : []);
-        $this->syncTerms('item', $itemId, 'dtnetworks', $this->names($show['networks'] ?? []));
-        $this->syncTerms('item', $itemId, 'dtstudio', $this->names($show['production_companies'] ?? []));
-        $this->syncTerms('item', $itemId, 'dtcast', $this->names(array_slice($show['credits']['cast'] ?? [], 0, 10)));
-        $this->syncTerms('item', $itemId, 'dtcreator', $this->names($show['created_by'] ?? []));
-    }
-
-    private function syncSeasonDooPlayData(int $seasonId, int $tmdbTvId, string $showTitle, array $season, int $seasonNumber): void
+    /**
+     * Writes cast_profiles and crew_profiles into content_meta for a media item.
+     * These are the only two meta keys actually read by the frontend.
+     */
+    private function syncItemMeta(int $itemId, ?string $castProfiles, ?string $crewProfiles): void
     {
-        $this->syncMeta('season', $seasonId, [
-            'ids' => $tmdbTvId,
-            'temporada' => $seasonNumber,
-            'serie' => $showTitle,
-            'air_date' => $season['air_date'] ?? null,
-            'dt_poster' => $season['poster_path'] ?? null,
-        ]);
-    }
-
-    private function syncEpisodeDooPlayData(
-        int $episodeId,
-        int $tmdbTvId,
-        string $showTitle,
-        array $episode,
-        int $seasonNumber,
-        int $episodeNumber,
-        ?string $images
-    ): void {
-        $this->syncMeta('episode', $episodeId, [
-            'ids' => $tmdbTvId,
-            'temporada' => $seasonNumber,
-            'episodio' => $episodeNumber,
-            'serie' => $showTitle,
-            'episode_name' => $episode['name'] ?? null,
-            'air_date' => $episode['air_date'] ?? null,
-            'imagenes' => $images,
-            'dt_backdrop' => $episode['still_path'] ?? null,
-        ]);
-    }
-
-    private function syncMeta(string $ownerType, int $ownerId, array $meta): void
-    {
-        foreach ($meta as $key => $value) {
-            $value = is_scalar($value) ? trim((string) $value) : null;
-
+        foreach (['cast_profiles' => $castProfiles, 'crew_profiles' => $crewProfiles] as $key => $value) {
             if ($value === null || $value === '') {
                 $this->db->delete('content_meta', [
-                    'owner_type' => $ownerType,
-                    'owner_id' => $ownerId,
+                    'owner_type' => 'item',
+                    'owner_id' => $itemId,
                     'meta_key' => $key,
                 ]);
                 continue;
             }
 
             $this->db->updateOrInsert('content_meta', [
-                'owner_type' => $ownerType,
-                'owner_id' => $ownerId,
+                'owner_type' => 'item',
+                'owner_id' => $itemId,
                 'meta_key' => $key,
             ], ['meta_value' => $value]);
         }
     }
 
-    private function syncTerms(string $ownerType, int $ownerId, string $taxonomy, array $names): void
+    /**
+     * Syncs the genres taxonomy for a media item.
+     * Only the genres taxonomy is queried anywhere in the project.
+     */
+    private function syncGenres(int $ownerId, string $ownerType, array $names): void
     {
+        // Remove existing genre links for this item
         $existing = $this->db->select(
             'SELECT content_term_links.term_id
              FROM content_term_links
@@ -851,7 +725,7 @@ class TmdbImporterService
              WHERE content_term_links.owner_type = :owner_type
              AND content_term_links.owner_id = :owner_id
              AND content_terms.taxonomy = :taxonomy',
-            ['owner_type' => $ownerType, 'owner_id' => $ownerId, 'taxonomy' => $taxonomy]
+            ['owner_type' => $ownerType, 'owner_id' => $ownerId, 'taxonomy' => 'genres']
         );
 
         foreach ($existing as $row) {
@@ -865,15 +739,13 @@ class TmdbImporterService
         foreach (array_values(array_unique(array_filter(array_map('trim', $names)))) as $name) {
             $slug = $this->slug($name);
             $termId = $this->upsertAndGetId('content_terms', [
-                'taxonomy' => $taxonomy,
+                'taxonomy' => 'genres',
                 'slug' => $slug,
             ], ['name' => $name]);
 
-            $this->attachPivot('content_term_links', [
-                'owner_type' => $ownerType,
-                'owner_id' => $ownerId,
-                'term_id' => $termId,
-            ]);
+            if (!$this->db->existsWhere('content_term_links', ['owner_type' => $ownerType, 'owner_id' => $ownerId, 'term_id' => $termId])) {
+                $this->db->insert('content_term_links', ['owner_type' => $ownerType, 'owner_id' => $ownerId, 'term_id' => $termId]);
+            }
         }
     }
 
@@ -885,18 +757,10 @@ class TmdbImporterService
             if ($data !== []) {
                 $this->db->update($table, $data, $where);
             }
-
             return (int) $existing['id'];
         }
 
         return (int) $this->db->insert($table, [...$where, ...$data]);
-    }
-
-    private function attachPivot(string $table, array $where): void
-    {
-        if (!$this->db->existsWhere($table, $where)) {
-            $this->db->insert($table, $where);
-        }
     }
 
     public function posterUrl(?string $path): ?string
@@ -926,49 +790,25 @@ class TmdbImporterService
         return $this->imageBaseUrl . '/' . ltrim($path, '/');
     }
 
-    private function profileUrl(?string $path): ?string
-    {
-        return $this->imageUrl($path);
-    }
-
     private function yearFromDate(?string $date): ?int
     {
         $date = trim((string) $date);
 
-        if ($date === '') {
-            return null;
-        }
-
-        return (int) substr($date, 0, 4);
+        return $date !== '' ? (int) substr($date, 0, 4) : null;
     }
 
     private function dateOrNull(?string $date): ?string
     {
         $date = trim((string) $date);
 
-        if ($date === '') {
-            return null;
-        }
-
-        return substr($date, 0, 10);
-    }
-
-    private function dateTimeOrNull(?string $datetime): ?string
-    {
-        $timestamp = strtotime((string) $datetime);
-
-        return $timestamp === false ? null : date('Y-m-d H:i:s', $timestamp);
+        return $date !== '' ? substr($date, 0, 10) : null;
     }
 
     private function nullableString(mixed $value, int $maxLength): ?string
     {
         $value = trim((string) $value);
 
-        if ($value === '') {
-            return null;
-        }
-
-        return mb_substr($value, 0, $maxLength);
+        return $value !== '' ? mb_substr($value, 0, $maxLength) : null;
     }
 
     private function csv(array $values): ?string
@@ -978,20 +818,36 @@ class TmdbImporterService
             $values
         )));
 
-        return $values === [] ? null : implode(',', $values);
-    }
-
-    private function languageCsv(array $languages): ?string
-    {
-        return $this->csv(array_map(
-            fn(array $language): string => (string) ($language['iso_639_1'] ?? ''),
-            $languages
-        ));
+        return $values !== [] ? implode(',', $values) : null;
     }
 
     private function normalizeStatus(string $status): string
     {
-        return in_array($status, ['draft', 'published', 'archived'], true) ? $status : 'draft';
+        return in_array($status, ['draft', 'published', 'archived', 'scheduled'], true) ? $status : 'draft';
+    }
+
+    /**
+     * Determines the correct status for an episode based on its air date.
+     * If the requested status is 'published' but the air date is in the future,
+     * the episode is stored as 'scheduled' instead so it stays hidden until it airs.
+     * If there is no air date at all, the requested status is used as-is.
+     */
+    private function episodeStatus(string $requestedStatus, ?string $airDate): string
+    {
+        $requestedStatus = $this->normalizeStatus($requestedStatus);
+
+        if ($requestedStatus !== 'published' || $airDate === null || $airDate === '') {
+            return $requestedStatus;
+        }
+
+        $today = new \DateTimeImmutable('today', new \DateTimeZone('UTC'));
+        $air   = \DateTimeImmutable::createFromFormat('Y-m-d', substr($airDate, 0, 10), new \DateTimeZone('UTC'));
+
+        if ($air === false) {
+            return $requestedStatus;
+        }
+
+        return $air > $today ? 'scheduled' : 'published';
     }
 
     private function rating(array $data): ?float
@@ -1046,36 +902,6 @@ class TmdbImporterService
         return $relativePath;
     }
 
-    private function firstYoutubeKey(array $videos): ?string
-    {
-        foreach ($videos as $video) {
-            if (strtolower((string) ($video['site'] ?? '')) === 'youtube' && !empty($video['key'])) {
-                return (string) $video['key'];
-            }
-        }
-
-        return null;
-    }
-
-    private function imageLines(array $images): ?string
-    {
-        $paths = [];
-
-        foreach ($images as $image) {
-            $path = trim((string) ($image['file_path'] ?? ''));
-
-            if ($path !== '') {
-                $paths[] = $path;
-            }
-
-            if (count($paths) === 10) {
-                break;
-            }
-        }
-
-        return $paths === [] ? null : implode("\n", $paths);
-    }
-
     private function castMeta(array $cast): ?string
     {
         $items = [];
@@ -1088,7 +914,7 @@ class TmdbImporterService
             }
 
             $profile = $person['profile_path'] ?? null;
-            $path = $profile === null || $profile === '' ? 'null' : (string) $profile;
+            $path = ($profile === null || $profile === '') ? 'null' : (string) $profile;
             $character = trim((string) ($person['character'] ?? ''));
             $items[] = '[' . $path . ';' . $name . ',' . $character . ']';
 
@@ -1097,10 +923,10 @@ class TmdbImporterService
             }
         }
 
-        return $items === [] ? null : implode('', $items);
+        return $items !== [] ? implode('', $items) : null;
     }
 
-    private function castProfileMeta(array $cast, string $folder): ?string
+    private function castProfileMeta(array $cast): ?string
     {
         $items = [];
 
@@ -1112,20 +938,13 @@ class TmdbImporterService
             }
 
             $profilePath = trim((string) ($person['profile_path'] ?? ''));
-            $profileImage = $profilePath !== ''
-                ? $this->downloadImageAsWebp(
-                    $this->profileUrl($profilePath),
-                    'people/' . trim($folder, '/'),
-                    'person-' . ((int) ($person['id'] ?? 0) ?: $this->slug($name))
-                )
-                : null;
 
             $items[] = [
-                'tmdb_id' => (int) ($person['id'] ?? 0),
-                'name' => $name,
-                'character' => trim((string) ($person['character'] ?? '')),
+                'tmdb_id'      => (int) ($person['id'] ?? 0),
+                'name'         => $name,
+                'character'    => trim((string) ($person['character'] ?? '')),
                 'profile_path' => $profilePath !== '' ? $profilePath : null,
-                'profile_image' => $profileImage,
+                'profile_image'=> null,
             ];
 
             if (count($items) === 12) {
@@ -1133,10 +952,10 @@ class TmdbImporterService
             }
         }
 
-        return $items === [] ? null : json_encode($items, JSON_UNESCAPED_SLASHES);
+        return $items !== [] ? json_encode($items, JSON_UNESCAPED_SLASHES) : null;
     }
 
-    private function crewProfileMeta(array $crew, string $folder): ?string
+    private function crewProfileMeta(array $crew): ?string
     {
         $items = [];
         $seen = [];
@@ -1157,20 +976,13 @@ class TmdbImporterService
 
             $seen[$key] = true;
             $profilePath = trim((string) ($person['profile_path'] ?? ''));
-            $profileImage = $profilePath !== ''
-                ? $this->downloadImageAsWebp(
-                    $this->profileUrl($profilePath),
-                    'people/' . trim($folder, '/'),
-                    'person-' . ((int) ($person['id'] ?? 0) ?: $this->slug($name))
-                )
-                : null;
 
             $items[] = [
-                'tmdb_id' => (int) ($person['id'] ?? 0),
-                'name' => $name,
-                'job' => $job,
+                'tmdb_id'      => (int) ($person['id'] ?? 0),
+                'name'         => $name,
+                'job'          => $job,
                 'profile_path' => $profilePath !== '' ? $profilePath : null,
-                'profile_image' => $profileImage,
+                'profile_image'=> null,
             ];
 
             if (count($items) === 12) {
@@ -1178,7 +990,7 @@ class TmdbImporterService
             }
         }
 
-        return $items === [] ? null : json_encode($items, JSON_UNESCAPED_SLASHES);
+        return $items !== [] ? json_encode($items, JSON_UNESCAPED_SLASHES) : null;
     }
 
     private function directorMeta(array $crew): ?string
@@ -1197,11 +1009,11 @@ class TmdbImporterService
             }
 
             $profile = $person['profile_path'] ?? null;
-            $path = $profile === null || $profile === '' ? 'null' : (string) $profile;
+            $path = ($profile === null || $profile === '') ? 'null' : (string) $profile;
             $items[] = '[' . $path . ';' . $name . ']';
         }
 
-        return $items === [] ? null : implode('', $items);
+        return $items !== [] ? implode('', $items) : null;
     }
 
     private function creatorMeta(array $creators): ?string
@@ -1216,29 +1028,11 @@ class TmdbImporterService
             }
 
             $profile = $creator['profile_path'] ?? null;
-            $path = $profile === null || $profile === '' ? 'null' : (string) $profile;
+            $path = ($profile === null || $profile === '') ? 'null' : (string) $profile;
             $items[] = '[' . $path . ';' . $name . ']';
         }
 
-        return $items === [] ? null : implode('', $items);
-    }
-
-    private function names(array $items): array
-    {
-        return array_values(array_filter(array_map(
-            fn(array $item): string => trim((string) ($item['name'] ?? '')),
-            $items
-        )));
-    }
-
-    private function crewNamesByDepartment(array $crew, string $department): array
-    {
-        return array_values(array_filter(array_map(
-            fn(array $item): string => (string) ($item['department'] ?? '') === $department
-                ? trim((string) ($item['name'] ?? ''))
-                : '',
-            $crew
-        )));
+        return $items !== [] ? implode('', $items) : null;
     }
 
     private function movieCertification(array $movie): ?string
@@ -1250,6 +1044,25 @@ class TmdbImporterService
                 if ($certification !== '') {
                     return $certification;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    private function names(array $items): array
+    {
+        return array_values(array_filter(array_map(
+            fn(array $item): string => trim((string) ($item['name'] ?? '')),
+            $items
+        )));
+    }
+
+    private function firstYoutubeKey(array $videos): ?string
+    {
+        foreach ($videos as $video) {
+            if (strtolower((string) ($video['site'] ?? '')) === 'youtube' && !empty($video['key'])) {
+                return (string) $video['key'];
             }
         }
 

@@ -13,6 +13,7 @@ Dotenv\Dotenv::createImmutable($root)->safeLoad();
 try {
     match ($command) {
         'install' => installDatabase($root),
+        'publish-scheduled' => publishScheduledEpisodes($root),
         'create-controller' => createController($root, $arguments),
         'create-middleware' => createMiddleware($root, $arguments),
         'create-service' => createService($root, $arguments),
@@ -31,6 +32,7 @@ function showHelp(): void
     echo "Paper-PHPFramework CLI\n";
     echo "Usage:\n";
     echo "  php cli.php install                                      Create the database and import database.sql\n";
+    echo "  php cli.php publish-scheduled                            Publish episodes whose air date has passed\n";
     echo "  php cli.php create-controller --UserController           Create and register UserController/UserController.php\n";
     echo "  php cli.php create-controller --UserController --ProfileController\n";
     echo "      Create and register UserController/ProfileController.php\n";
@@ -2227,6 +2229,36 @@ function viewStub(string $viewTitle): string
 <?= \$this->end() ?>
 
 PHP;
+}
+
+function publishScheduledEpisodes(string $root): void
+{
+    // Bootstrap just enough to get a Database + TmdbImporterService instance.
+    require_once $root . '/src/App/functions.php';
+
+    $db = new Framework\Database(
+        envValue('DB_DRIVER', 'mysql'),
+        [
+            'host'   => envValue('DB_HOST', 'localhost'),
+            'port'   => envValue('DB_PORT', '3306'),
+            'dbname' => envValue('DB_NAME', 'paper_phpframework'),
+        ],
+        envValue('DB_USER', 'root'),
+        envValue('DB_PASSWORD', '')
+    );
+
+    $importer = new App\Services\TMDB\TmdbImporterService($db);
+    $result   = $importer->publishScheduled();
+
+    $total = $result['published'];
+    echo "Published {$total} episode(s) with fresh TMDB metadata.\n";
+
+    if (!empty($result['errors'])) {
+        echo "Errors (" . count($result['errors']) . "):\n";
+        foreach ($result['errors'] as $error) {
+            echo "  - {$error}\n";
+        }
+    }
 }
 
 function installDatabase(string $root): void

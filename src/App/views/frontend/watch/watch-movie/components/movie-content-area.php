@@ -20,43 +20,12 @@ if ($releaseDateRaw !== '') {
 }
 $language = $item['original_language'] ?? 'EN';
 $country = $item['country'] ?? $item['origin_country'] ?? 'N/A';
-$status = $item['status'] ?? 'published';
 $rated = $item['rated'] ?? 'PG-13';
 $synopsis = $item['synopsis'] ?? 'No synopsis available.';
 $tagline = $item['tagline'] ?? '';
-$cast = $item['dt_cast'] ?? '';
-$director = $item['dt_dir'] ?? '';
 $imdbId = $item['imdb_id'] ?? '';
-$writer = $item['dt_writer'] ?? $item['writer'] ?? '';
-$studio = $item['dt_studio'] ?? $item['production_companies'] ?? 'N/A';
 $budget = $item['budget'] ?? null;
 $revenue = $item['revenue'] ?? null;
-$castProfiles = json_decode((string) ($item['cast_profiles'] ?? '[]'), true);
-$castProfiles = is_array($castProfiles) ? $castProfiles : [];
-$crewProfiles = json_decode((string) ($item['crew_profiles'] ?? '[]'), true);
-$crewProfiles = is_array($crewProfiles) ? $crewProfiles : [];
-$legacyCast = [];
-if (preg_match_all('/\[[^;]*;([^,\]]+)(?:,([^\]]*))?\]/', (string) $cast, $matches, PREG_SET_ORDER)) {
-  foreach ($matches as $match) {
-    $legacyCast[] = [
-      'name' => trim((string) ($match[1] ?? '')),
-      'character' => trim((string) ($match[2] ?? 'Cast')),
-    ];
-  }
-} else {
-  foreach (array_filter(array_map('trim', explode(',', (string) $cast))) as $name) {
-    $legacyCast[] = ['name' => $name, 'character' => 'Cast'];
-  }
-}
-$legacyCrew = [];
-if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SET_ORDER)) {
-  foreach ($matches as $match) {
-    $legacyCrew[] = [
-      'name' => trim((string) ($match[1] ?? '')),
-      'job' => 'Director',
-    ];
-  }
-}
 ?>
 <!-- CONTENT AREA -->
       <div class="container">
@@ -172,72 +141,6 @@ if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SE
 
           <?= $this->includePartial('/frontend/watch/watch-movie/ad/movie-midpage-ad') ?>
 
-          <!-- CAST -->
-          <div class="sec-mini-head">
-            <div class="sec-mini-title">
-              <div class="icon-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              </div>
-              CAST &amp; <span class="accent">CREW</span>
-            </div>
-            <a href="#" class="see-all" onclick="showToast('Full cast list')">
-              Full Credits
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </a>
-          </div>
-          <div class="cast-row" style="margin-bottom:28px;">
-            <?php foreach (array_slice($castProfiles, 0, 10) as $idx => $person): ?>
-              <?php
-              $name = trim((string) ($person['name'] ?? ''));
-              $role = trim((string) (($person['character'] ?? '') ?: 'Cast'));
-              $image = trim((string) ($person['profile_image'] ?? ''));
-              ?>
-              <?php if ($name !== ''): ?>
-                <div class="cast-card" onclick="showToast('Profile opened')">
-                  <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?php if ($image !== ''): ?><img src="<?= escape($image) ?>" alt="<?= escape($name) ?>"><?php else: ?><?= escape(strtoupper(substr($name, 0, 2))) ?><?php endif; ?></div>
-                  <div class="cast-name"><?= escape($name) ?></div>
-                  <div class="cast-role"><?= escape($role !== '' ? $role : 'Cast') ?></div>
-                </div>
-              <?php endif; ?>
-            <?php endforeach; ?>
-            <?php if ($castProfiles === []): ?>
-              <?php foreach (array_slice($legacyCast, 0, 10) as $idx => $person): ?>
-                <?php
-                $name = trim((string) ($person['name'] ?? ''));
-                $role = trim((string) ($person['character'] ?? 'Cast'));
-                ?>
-                <?php if ($name !== ''): ?>
-                  <div class="cast-card" onclick="showToast('Profile opened')">
-                    <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?= escape(strtoupper(substr($name, 0, 2))) ?></div>
-                    <div class="cast-name"><?= escape($name) ?></div>
-                    <div class="cast-role"><?= escape($role !== '' ? $role : 'Cast') ?></div>
-                  </div>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            <?php endif; ?>
-            <?php if ($castProfiles === [] && $legacyCast === []): ?>
-              <div class="detail-card"><div class="detail-val">Cast details unavailable</div></div>
-            <?php endif; ?>
-          </div>
-          <?php $crewToRender = $crewProfiles !== [] ? $crewProfiles : $legacyCrew; ?>
-          <?php if ($crewToRender !== []): ?>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
-              <?php foreach (array_slice($crewToRender, 0, 8) as $idx => $person): ?>
-                <?php
-                $name = trim((string) ($person['name'] ?? ''));
-                $role = trim((string) ($person['job'] ?? 'Crew'));
-                $image = trim((string) ($person['profile_image'] ?? ''));
-                ?>
-                <?php if ($name !== ''): ?>
-                  <div class="cast-card">
-                    <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?php if ($image !== ''): ?><img src="<?= escape($image) ?>" alt="<?= escape($name) ?>"><?php else: ?><?= escape(strtoupper(substr($name, 0, 2))) ?><?php endif; ?></div>
-                    <div class="cast-name"><?= escape($name) ?></div>
-                    <div class="cast-role"><?= escape($role !== '' ? $role : 'Crew') ?></div>
-                  </div>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            </div>
-          <?php endif; ?>
           <!-- RATING WIDGET -->
           <div class="rating-widget">
             <div class="rating-score-big">
@@ -354,18 +257,6 @@ if (preg_match_all('/\[[^;]*;([^\]]+)\]/', (string) $director, $matches, PREG_SE
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div class="detail-card">
-                  <div class="detail-label">Director</div>
-                  <div class="detail-val"><?= escape((string) ($legacyCrew[0]['name'] ?? $director ?: 'N/A')) ?></div>
-                </div>
-                <div class="detail-card">
-                  <div class="detail-label">Writer</div>
-                  <div class="detail-val"><?= escape((string) ($writer ?: 'N/A')) ?></div>
-                </div>
-                <div class="detail-card">
-                  <div class="detail-label">Studio</div>
-                  <div class="detail-val"><?= escape((string) ($studio ?: 'N/A')) ?></div>
-                </div>
                 <div class="detail-card">
                   <div class="detail-label">IMDb</div>
                   <div class="detail-val"><?= escape((string) ($imdbId ?: 'N/A')) ?></div>

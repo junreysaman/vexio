@@ -649,44 +649,57 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         `;
     };
 
+    // Serial import queue — ensures each import uses the fresh CSRF token
+    // returned by the previous one, preventing concurrent token mismatch (419).
+    let importQueue = Promise.resolve();
+
+    const runImport = (importForm) => {
+        const button = importForm.querySelector('button');
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="icon-hourglass_top"></i>Importing...';
+
+        // Sync the hidden token field with the latest known token before sending.
+        const tokenField = importForm.querySelector('[name="token"]');
+        if (tokenField) tokenField.value = state.token;
+
+        return fetch('/admin/importer/import', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+            body: new URLSearchParams(new FormData(importForm)),
+        })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+            const freshToken = data.csrf_token || data.error?.csrf_token;
+            if (freshToken) {
+                state.token = freshToken;
+                document.querySelectorAll('[name="token"]').forEach((field) => {
+                    field.value = freshToken;
+                });
+            }
+
+            if (!response.ok || !data.ok) {
+                throw new Error(data.error?.message || 'Import failed.');
+            }
+
+            importForm.closest('.import-card')?.remove();
+            if (!grid.querySelector('.import-card')) {
+                empty('icon-check', 'Imported all visible items', 'Fetch the next page or adjust your filters.');
+            }
+        })
+        .catch((error) => {
+            alert(error.message);
+            button.disabled = false;
+            button.innerHTML = original;
+        });
+    };
+
     const bindImports = () => {
         grid.querySelectorAll('[data-import-form]').forEach((importForm) => {
-            importForm.addEventListener('submit', async (event) => {
+            importForm.addEventListener('submit', (event) => {
                 event.preventDefault();
-                const button = importForm.querySelector('button');
-                const original = button.innerHTML;
-                button.disabled = true;
-                button.innerHTML = '<i class="icon-hourglass_top"></i>Importing...';
-
-                try {
-                    const response = await fetch('/admin/importer/import', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
-                        body: new URLSearchParams(new FormData(importForm)),
-                    });
-                    const data = await response.json();
-                    const freshToken = data.csrf_token || data.error?.csrf_token;
-
-                    if (freshToken) {
-                        state.token = freshToken;
-                        document.querySelectorAll('[name="token"]').forEach((field) => {
-                            field.value = freshToken;
-                        });
-                    }
-
-                    if (!response.ok || !data.ok) {
-                        throw new Error(data.error?.message || 'Import failed.');
-                    }
-
-                    importForm.closest('.import-card')?.remove();
-                    if (!grid.querySelector('.import-card')) {
-                        empty('icon-check', 'Imported all visible items', 'Fetch the next page or adjust your filters.');
-                    }
-                } catch (error) {
-                    alert(error.message);
-                    button.disabled = false;
-                    button.innerHTML = original;
-                }
+                // Chain onto the queue so imports run one at a time.
+                importQueue = importQueue.then(() => runImport(importForm));
             });
         });
     };

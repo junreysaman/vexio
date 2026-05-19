@@ -22,25 +22,6 @@ $seasonCount = (int) (($show['number_of_seasons'] ?? 0) ?: count($seasons ?? [])
 $episodeCount = (int) (($show['number_of_episodes'] ?? 0) ?: count($episodes ?? []));
 $runtime = (int) ($show['runtime_minutes'] ?? 0);
 $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
-$castProfiles = json_decode((string) ($show['cast_profiles'] ?? '[]'), true);
-$castProfiles = is_array($castProfiles) ? $castProfiles : [];
-$legacyCast = [];
-if (preg_match_all('/\[[^;]*;([^,\]]+)(?:,([^\]]*))?\]/', (string) ($show['dt_cast'] ?? ''), $matches, PREG_SET_ORDER)) {
-  foreach ($matches as $match) {
-    $legacyCast[] = [
-      'name' => trim((string) ($match[1] ?? '')),
-      'character' => trim((string) ($match[2] ?? 'Cast')),
-    ];
-  }
-} else {
-  foreach (array_filter(array_map('trim', explode(',', (string) ($show['dt_cast'] ?? '')))) as $name) {
-    $legacyCast[] = ['name' => $name, 'character' => 'Cast'];
-  }
-}
-$crewProfiles = json_decode((string) ($show['crew_profiles'] ?? '[]'), true);
-$crewProfiles = is_array($crewProfiles) ? $crewProfiles : [];
-$creator = trim((string) ($show['dt_creator'] ?? ''));
-$director = trim((string) ($show['dt_dir'] ?? ''));
 ?>
 <div class="container">
   <div class="content-pad">
@@ -120,7 +101,6 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
 
     <div class="content-tabs">
       <button class="ctab active" onclick="switchTab('episodes',this)">Episodes</button>
-      <button class="ctab" onclick="switchTab('cast',this)">Cast & Crew</button>
       <button class="ctab" onclick="switchTab('details',this)">Details</button>
       <button class="ctab" onclick="switchTab('comments',this)">Comments</button>
     </div>
@@ -178,59 +158,6 @@ $director = trim((string) ($show['dt_dir'] ?? ''));
       <div class="ep-load-more-wrap">
         <button class="btn-secondary ep-load-more" type="button" data-episode-load-more>Load More Episodes</button>
       </div>
-    </div>
-
-    <div class="tab-panel" id="tab-cast">
-      <div class="cast-row">
-        <?php foreach (array_slice($castProfiles, 0, 8) as $idx => $person): ?>
-          <?php
-          $name = trim((string) ($person['name'] ?? ''));
-          $role = trim((string) (($person['character'] ?? '') ?: ($person['job'] ?? 'Cast')));
-          $image = trim((string) ($person['profile_image'] ?? ''));
-          ?>
-          <?php if ($name !== ''): ?>
-            <div class="cast-card">
-              <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?php if ($image !== ''): ?><img src="<?= escape($image) ?>" alt="<?= escape($name) ?>"><?php else: ?><?= escape(strtoupper(substr($name, 0, 2))) ?><?php endif; ?></div>
-              <div class="cast-name"><?= escape($name) ?></div>
-              <div class="cast-role"><?= escape($role !== '' ? $role : 'Cast') ?></div>
-            </div>
-          <?php endif; ?>
-        <?php endforeach; ?>
-        <?php if ($castProfiles === []): ?>
-          <?php foreach (array_slice($legacyCast, 0, 8) as $idx => $person): ?>
-            <?php
-            $name = trim((string) ($person['name'] ?? ''));
-            $role = trim((string) ($person['character'] ?? 'Cast'));
-            ?>
-            <?php if ($name !== ''): ?>
-              <div class="cast-card"><div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?= escape(strtoupper(substr($name, 0, 2))) ?></div><div class="cast-name"><?= escape($name) ?></div><div class="cast-role"><?= escape($role !== '' ? $role : 'Cast') ?></div></div>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        <?php endif; ?>
-        <?php if ($castProfiles === [] && $legacyCast === []): ?><div class="detail-card"><div class="detail-val">Cast details unavailable</div></div><?php endif; ?>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:20px;">
-        <div class="detail-card"><div class="detail-label">Creator</div><div class="detail-val" style="font-size:13px;"><?= escape($creator !== '' ? $creator : 'N/A') ?></div></div>
-        <div class="detail-card"><div class="detail-label">Director</div><div class="detail-val" style="font-size:13px;"><?= escape($director !== '' ? $director : 'N/A') ?></div></div>
-      </div>
-      <?php if ($crewProfiles !== []): ?>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:16px;">
-          <?php foreach (array_slice($crewProfiles, 0, 8) as $idx => $person): ?>
-            <?php
-            $name = trim((string) ($person['name'] ?? ''));
-            $role = trim((string) ($person['job'] ?? 'Crew'));
-            $image = trim((string) ($person['profile_image'] ?? ''));
-            ?>
-            <?php if ($name !== ''): ?>
-              <div class="cast-card">
-                <div class="cast-avatar ca<?= ($idx % 6) + 1 ?>"><?php if ($image !== ''): ?><img src="<?= escape($image) ?>" alt="<?= escape($name) ?>"><?php else: ?><?= escape(strtoupper(substr($name, 0, 2))) ?><?php endif; ?></div>
-                <div class="cast-name"><?= escape($name) ?></div>
-                <div class="cast-role"><?= escape($role) ?></div>
-              </div>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
     </div>
 
     <div class="tab-panel" id="tab-details">
