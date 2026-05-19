@@ -731,6 +731,31 @@ ul{list-style:none;}
 }
 .acard-desc{display:none;}
 .acard-dot{display:none;}
+
+/* Title + year overlaid inside the card — matches trending card layout */
+.acard-inner-content{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  z-index:3;
+  padding:10px 10px 10px;
+  background:linear-gradient(to top,rgba(6,9,16,.97) 0%,rgba(6,9,16,.6) 55%,transparent 100%);
+  transition:transform .3s;
+}
+.acard:hover .acard-inner-content{transform:translateY(-3px);}
+.acard-inner-title{
+  font-size:13px;font-weight:700;line-height:1.25;
+  color:#fff;margin-bottom:4px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.acard-inner-meta{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;
+  color:rgba(255,255,255,.5);
+}
+.acard-inner-meta strong{color:var(--gold);}
+.acard-inner-dot{color:rgba(255,255,255,.3);}
+/* Hide the old below-card title/meta since content is now inside */
+.acard-title,.acard-meta{display:none;}
 .tag-s{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(0,200,240,.15);color:var(--cyan);border:1px solid rgba(0,200,240,.3);}
 .tag-d{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(255,195,64,.1);color:var(--gold);border:1px solid rgba(255,195,64,.3);}
 
