@@ -6,6 +6,10 @@
         <h1>Top movies and TV episodes by views</h1>
         <p>Use this first dashboard view to spot the licensed content people are watching most.</p>
     </div>
+    <a class="dashboard-visit-btn" href="/" target="_blank" rel="noopener">
+        <i class="icon-open_in_new"></i>
+        Visit website
+    </a>
 </div>
 
 <section class="stat-grid" aria-label="Content statistics">
@@ -65,11 +69,13 @@
                     <strong><?= number_format((int) $item['views']) ?></strong>
                     <span>views</span>
                 </div>
-                <?php if (!empty($item['watchUrl'])): ?>
-                    <a class="icon-action" href="<?= escape((string) $item['watchUrl']) ?>" title="Open watch page" aria-label="Open watch page">
-                        <i class="icon-play_arrow"></i>
-                    </a>
-                <?php endif; ?>
+                <div class="dashboard-row-actions">
+                    <?php if (!empty($item['watchUrl'])): ?>
+                        <a class="icon-action" href="<?= escape((string) $item['watchUrl']) ?>" target="_blank" rel="noopener" title="Open watch page" aria-label="Open watch page">
+                            <i class="icon-play_arrow"></i>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </article>
         <?php endforeach; ?>
     </div>

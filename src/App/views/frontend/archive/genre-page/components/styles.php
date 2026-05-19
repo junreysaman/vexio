@@ -607,7 +607,20 @@
   aspect-ratio:2/3;
   background:var(--bg3);
   margin-bottom:10px;
+  border:1px solid transparent;
+  transition:border-color .25s,box-shadow .25s;
 }
+.acard-thumb::after{
+  content:"";
+  position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(to right,var(--gold),var(--accent));
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .35s;
+  z-index:3;
+}
+.acard:hover .acard-thumb{border-color:rgba(255,195,64,.28);box-shadow:0 16px 34px rgba(0,0,0,.28);}
+.acard:hover .acard-thumb::after{transform:scaleX(1);}
 .acard-ph{
   width:100%;
   height:100%;
@@ -626,7 +639,9 @@
   height:100%;
   object-fit:cover;
   display:block;
+  transition:transform .5s,filter .35s;
 }
+.acard:hover .acard-thumb img{transform:scale(1.08);filter:saturate(1.08) brightness(.78);}
 .acard-overlay{
   position:absolute;
   inset:0;
@@ -722,4 +737,8 @@
 .genre-card,.genre-card-large,.genre-card-sm,.stats-banner{
   animation:fadeUp .5s ease both;
 }
+
+#genre-hero.vex-page-hero{padding:40px 0 0;margin-top:var(--nav-h);}
+.genre-search-row.vex-page-controls{padding:20px 0 24px;}
+.genre-count-pill.vex-page-pill{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.25);color:var(--green);}
 </style>

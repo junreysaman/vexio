@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initScheduleTabs();
     initLazySkeletons();
     initNav();
+    initInterstitialAd();
+    initStickyMobileAd();
     if (typeof initSearch === 'function') initSearch();
 });
 
@@ -189,4 +191,92 @@ function showToast(msg) {
     toast.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function initInterstitialAd() {
+    const ad = document.getElementById('ad-interstitial');
+    if (!ad) return;
+
+    const storageKey = 'vexioInterstitialNextAt';
+    const intervalMinutes = Math.max(1, Number(ad.dataset.intervalMinutes || 30));
+    const dismissSeconds = Math.max(1, Number(ad.dataset.dismissSeconds || 5));
+    const closeBtn = document.getElementById('interCloseBtn');
+    const skipCount = document.getElementById('skipCount');
+    const skipBtn = document.getElementById('skipBtn');
+    const link = ad.querySelector('[data-interstitial-link]');
+    let secondsLeft = dismissSeconds;
+    let timer = null;
+
+    function nextEligibleAt() {
+        return Date.now() + intervalMinutes * 60 * 1000;
+    }
+
+    function rememberInterval() {
+        try {
+            window.localStorage.setItem(storageKey, String(nextEligibleAt()));
+        } catch (error) {
+            ad.dataset.intervalFallback = String(nextEligibleAt());
+        }
+    }
+
+    function isEligible() {
+        try {
+            const stored = Number(window.localStorage.getItem(storageKey) || 0);
+            return !stored || Date.now() >= stored;
+        } catch (error) {
+            const fallback = Number(ad.dataset.intervalFallback || 0);
+            return !fallback || Date.now() >= fallback;
+        }
+    }
+
+    function dismissInterstitial() {
+        ad.classList.add('hidden');
+        clearInterval(timer);
+    }
+
+    function showInterstitial() {
+        rememberInterval();
+        ad.classList.remove('hidden');
+        if (skipCount) skipCount.textContent = String(secondsLeft);
+
+        timer = setInterval(() => {
+            secondsLeft -= 1;
+            if (skipCount) skipCount.textContent = String(Math.max(0, secondsLeft));
+            if (secondsLeft <= 0) dismissInterstitial();
+        }, 1000);
+    }
+
+    closeBtn?.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissInterstitial();
+    });
+
+    skipBtn?.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissInterstitial();
+    });
+
+    link?.addEventListener('click', () => {
+        rememberInterval();
+        dismissInterstitial();
+    });
+
+    window.dismissInterstitial = dismissInterstitial;
+
+    if (isEligible()) {
+        showInterstitial();
+    }
+}
+
+function initStickyMobileAd() {
+    const ad = document.getElementById('ad-sticky-mobile');
+    if (!ad) return;
+
+    const close = ad.querySelector('.ad-sticky-close');
+    close?.addEventListener('click', event => {
+        event.preventDefault();
+        ad.hidden = true;
+    });
 }

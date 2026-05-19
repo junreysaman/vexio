@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Config;
 
 use App\Controllers\AppController;
+use App\Controllers\SupportPageController;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\AuthPageController;
 use App\Controllers\Admin\DashboardController;
@@ -31,7 +32,7 @@ function registerRoutes(App $app): void
         ['POST', '/register', [AuthController::class, 'store']],
         ['POST', '/logout', [AuthController::class, 'logout']],
         ['GET', '/admin/dashboard', [DashboardController::class, 'index'], [AdminRequiredMiddleware::class]],
-        ['GET', '/admin/users', [UserController::class, 'index']],
+        ['GET', '/admin/users', [UserController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/users/create', [UserController::class, 'create'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/users', [UserController::class, 'store'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/users/{id}/edit', [UserController::class, 'edit'], [AdminRequiredMiddleware::class]],
@@ -59,6 +60,14 @@ function registerRoutes(App $app): void
         ['GET', '/archive/browse', [AppController::class, 'archiveBrowse']],
         ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
         ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
+        ['GET', '/faq', [SupportPageController::class, 'faq']],
+        ['GET', '/contact', [SupportPageController::class, 'contact']],
+        ['GET', '/report-issue', [SupportPageController::class, 'reportIssue']],
+        ['GET', '/request-title', [SupportPageController::class, 'requestTitle']],
+        ['GET', '/privacy-policy', [SupportPageController::class, 'privacyPolicy']],
+        ['GET', '/terms-of-use', [SupportPageController::class, 'termsOfUse']],
+        ['GET', '/dmca', [SupportPageController::class, 'dmca']],
+        ['GET', '/advertise', [SupportPageController::class, 'advertise']],
         ['GET', '/api/search', [SearchController::class, 'index']],
         ['POST', '/api/comments', [CommentController::class, 'store']],
         ['GET', '/movie/{tmdbId}', [WatchMovieController::class, 'index']],

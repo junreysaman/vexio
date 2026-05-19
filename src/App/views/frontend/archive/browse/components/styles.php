@@ -300,9 +300,10 @@ ul{list-style:none;}
 .arch-hero-meta{
   display:flex;align-items:center;gap:16px;
   font-size:12px;color:var(--muted2);font-weight:600;
-  margin-bottom:0;padding-bottom:28px;
+  margin-bottom:0;padding-bottom:24px;
   flex-wrap:wrap;
 }
+.arch-hero-meta.vex-page-controls{padding:20px 0 24px;}
 .arch-hero-meta .count{
   font-size:14px;font-weight:800;
   color:var(--text);
@@ -642,7 +643,16 @@ ul{list-style:none;}
 .acard-thumb{
   position:relative;border-radius:var(--r);overflow:hidden;
   aspect-ratio:2/3;background:var(--bg3);margin-bottom:10px;
+  border:1px solid transparent;
+  transition:border-color .25s,box-shadow .25s;
 }
+.acard-thumb::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(to right,var(--gold),var(--accent));
+  transform:scaleX(0);transform-origin:left;transition:transform .35s;z-index:3;
+}
+.acard:hover .acard-thumb{border-color:rgba(255,195,64,.28);box-shadow:0 16px 34px rgba(0,0,0,.28);}
+.acard:hover .acard-thumb::after{transform:scaleX(1);}
 .acard-ph{
   width:100%;height:100%;
   display:flex;align-items:center;justify-content:center;
@@ -656,7 +666,9 @@ ul{list-style:none;}
   height:100%;
   object-fit:cover;
   display:block;
+  transition:transform .5s,filter .35s;
 }
+.acard:hover .acard-thumb img{transform:scale(1.08);filter:saturate(1.08) brightness(.78);}
 .acard-overlay{
   position:absolute;inset:0;
   background:linear-gradient(180deg,transparent 40%,rgba(6,9,16,.95) 100%);
@@ -900,4 +912,6 @@ ul{list-style:none;}
 }
 .fd-close:hover{border-color:var(--accent);color:var(--accent);}
 .fd-close svg{width:16px;height:16px;}
+
+#archive-hero.vex-page-hero{padding:40px 0 0;margin-top:var(--nav-h);}
 </style>

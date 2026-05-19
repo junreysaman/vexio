@@ -1,77 +1,113 @@
-/* ═══ INTERSTITIAL AD ═══════════════════════════════ */
 (function () {
-    var el = document.getElementById('ad-interstitial');
-    var skipBtn = document.getElementById('skipBtn');
-    var skipCount = document.getElementById('skipCount');
-    var closeBtn = document.getElementById('interCloseBtn');
-    var seconds = 5;
+    const state = {
+        filter: 'all',
+        time: 'day',
+    };
 
-    function dismissInterstitial() {
-        el.classList.add('hidden');
+    function initTrendingPage() {
+        const controls = document.querySelector('[data-trending-controls]');
+        if (!controls) return;
+
+        bindFilters();
+        bindTimeButtons();
+        bindSectionShortcuts();
+        bindAdCloseButtons();
+        applyTrendingState();
     }
-    window.dismissInterstitial = dismissInterstitial;
 
-    // Close button
-    if (closeBtn) closeBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        dismissInterstitial();
-    });
-
-    // Countdown
-    var interval = setInterval(function () {
-        seconds--;
-        if (skipCount) skipCount.textContent = seconds;
-        if (seconds <= 0) {
-            clearInterval(interval);
-            dismissInterstitial();
-        }
-    }, 1000);
-})();
-
-/* ═══ SEARCH OVERLAY ═══════════════════════════════ */
-function initSearch() {
-    const overlay = document.getElementById('search-overlay');
-    ['searchOpen', 'mobileSearchOpen'].forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', () => {
-            overlay.classList.add('open');
-            setTimeout(() => document.getElementById('searchInput').focus(), 150);
+    function bindFilters() {
+        document.querySelectorAll('.tf-pill').forEach(button => {
+            button.addEventListener('click', () => {
+                state.filter = button.dataset.filter || 'all';
+                document.querySelectorAll('.tf-pill').forEach(item => item.classList.toggle('active', item === button));
+                applyTrendingState();
+                showTrendingToast('Filter: ' + button.textContent.trim());
+            });
         });
-    });
-    document.getElementById('searchClose').addEventListener('click', () => overlay.classList.remove('open'));
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') overlay.classList.remove('open');
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); overlay.classList.add('open'); setTimeout(() => document.getElementById('searchInput').focus(), 150); }
-    });
-}
-function fillSearch(t) { document.getElementById('searchInput').value = t; document.getElementById('searchInput').focus(); }
+    }
 
-/* ═══ NAV SCROLL ════════════════════════════════════ */
-window.addEventListener('scroll', () => {
-    document.getElementById('topnav').classList.toggle('scrolled', window.scrollY > 20);
-}, { passive: true });
+    function bindTimeButtons() {
+        document.querySelectorAll('.tts-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                state.time = button.dataset.time || 'day';
+                document.querySelectorAll('.tts-btn').forEach(item => item.classList.toggle('active', item === button));
+                applyTrendingState();
+                showTrendingToast('Showing: ' + button.textContent.trim());
+            });
+        });
+    }
 
-/* ═══ TOAST ═════════════════════════════════════════ */
-let tt;
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200);
-}
+    function bindSectionShortcuts() {
+        document.querySelectorAll('[data-filter-target]').forEach(button => {
+            button.addEventListener('click', () => {
+                const filter = button.dataset.filterTarget || 'all';
+                const target = document.querySelector('.tf-pill[data-filter="' + filter + '"]');
+                if (target) target.click();
+            });
+        });
+    }
 
-/* ═══ FILTER PILLS ══════════════════════════════════ */
-function setFilter(btn) {
-    document.querySelectorAll('.tf-pill').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    showToast(`Filter: ${btn.textContent.trim()}`);
-}
+    function bindAdCloseButtons() {
+        document.querySelectorAll('.ad-close').forEach(button => {
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                button.closest('.ad-unit')?.setAttribute('hidden', '');
+            });
+        });
+    }
 
-/* ═══ TIME TOGGLE ═══════════════════════════════════ */
-function setTime(btn) {
-    document.querySelectorAll('.tts-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    showToast(`Showing: ${btn.textContent.trim()} trending`);
-}
+    function applyTrendingState() {
+        const items = Array.from(document.querySelectorAll('[data-trending-item]'));
+        if (!items.length) return;
 
-/* ═══ INIT ══════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', initSearch);
+        items.forEach(item => {
+            item.hidden = !matchesFilter(item, state.filter);
+        });
+
+        sortContainer(document.getElementById('trendGrid'), '.trend-card');
+        sortContainer(document.getElementById('trendRankTable'), '.rank-row');
+        sortContainer(document.getElementById('trendTodayRow'), '.hscroll-card');
+        updateEmptyState();
+    }
+
+    function matchesFilter(item, filter) {
+        if (filter === 'all') return true;
+
+        const type = item.dataset.type || '';
+        const category = item.dataset.category || '';
+        const secondary = item.dataset.secondary || '';
+
+        return filter === type || filter === category || filter === secondary;
+    }
+
+    function sortContainer(container, selector) {
+        if (!container) return;
+
+        Array.from(container.querySelectorAll(selector))
+            .sort((a, b) => scoreFor(b) - scoreFor(a))
+            .forEach(item => container.appendChild(item));
+    }
+
+    function scoreFor(item) {
+        const key = state.time.charAt(0).toUpperCase() + state.time.slice(1);
+        return Number(item.dataset[state.time + 'Score'] || item.getAttribute('data-' + state.time + '-score') || item.dataset['score' + key] || 0);
+    }
+
+    function updateEmptyState() {
+        const grid = document.getElementById('trendGrid');
+        const empty = document.getElementById('trendFilterEmpty');
+        if (!grid || !empty) return;
+
+        const visibleCards = Array.from(grid.querySelectorAll('.trend-card')).filter(item => !item.hidden);
+        empty.hidden = visibleCards.length > 0;
+    }
+
+    function showTrendingToast(message) {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initTrendingPage);
+})();

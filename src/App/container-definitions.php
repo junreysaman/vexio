@@ -9,6 +9,7 @@ use App\Controllers\Admin\ImporterController;
 use App\Controllers\Admin\UserController;
 use App\Controllers\Admin\CommentController as AdminCommentController;
 use App\Controllers\AppController;
+use App\Controllers\SupportPageController;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\AuthPageController;
 use App\Controllers\Search\SearchController;
@@ -31,6 +32,7 @@ use App\Controllers\Archive\GenrePageController;
 use App\Controllers\Archive\TrendingPageController;
 use App\Services\Archive\BrowseService;
 use App\Services\Archive\GenrePageService;
+use App\Services\Archive\TrendingPageService;
 use Framework\Database;
 use Framework\TemplateEngine;
 
@@ -47,6 +49,7 @@ return [
         (string) ($_ENV['DB_PASSWORD'] ?? '')
     ),
     AppController::class => fn($container) => $container->resolve(AppController::class),
+    SupportPageController::class => fn($container) => $container->resolve(SupportPageController::class),
     HomeController::class => fn($container) => $container->resolve(HomeController::class),
     AuthPageController::class => fn($container) => $container->resolve(AuthPageController::class),
     AuthController::class => fn($container) => $container->resolve(AuthController::class),
@@ -74,4 +77,5 @@ return [
     TrendingPageController::class => fn($container) => $container->resolve(TrendingPageController::class),
     BrowseService::class => fn($container) => new BrowseService(fn() => $container->get(Database::class)),
     GenrePageService::class => fn($container) => new GenrePageService(fn() => $container->get(Database::class)),
+    TrendingPageService::class => fn($container) => new TrendingPageService(fn() => $container->get(Database::class)),
 ];

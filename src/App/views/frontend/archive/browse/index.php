@@ -4,9 +4,9 @@
 
 <?= $this->start('content') ?>
 
-<main id="archive-main">
-    <?= $this->includePartial('/frontend/archive/browse/components/archive-hero') ?>
+<?= $this->includePartial('/frontend/archive/browse/components/archive-hero') ?>
 
+<main id="archive-main">
     <section class="container archive-layout">
         <?= $this->includePartial('/frontend/archive/browse/components/archive-sidebar-dynamic') ?>
         <?= $this->includePartial('/frontend/archive/browse/components/archive-results-dynamic') ?>

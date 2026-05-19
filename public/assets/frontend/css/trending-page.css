@@ -137,6 +137,38 @@
   padding:4px 0;cursor:pointer;white-space:nowrap;
 }
 .section-see-all:hover{color:var(--gold);}
+.section-see-all{background:transparent;border:0;}
+.trend-link-card{display:block;color:inherit;text-decoration:none;}
+.rank-row.trend-link-card{display:grid;}
+.hscroll-card.trend-link-card,.gb-card{color:inherit;text-decoration:none;}
+.trend-empty{
+  border:1px solid var(--border);
+  background:var(--bg2);
+  border-radius:14px;
+  padding:32px;
+  text-align:center;
+  color:var(--muted2);
+}
+.trend-empty h2{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px;
+  letter-spacing:1.5px;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.trend-empty a{
+  display:inline-flex;
+  margin-top:18px;
+  padding:10px 20px;
+  border-radius:99px;
+  background:var(--gold);
+  color:#000;
+  font-weight:800;
+}
+.trend-filter-empty{margin-top:18px;padding:18px;}
+.stat-tone-purple{background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.stat-tone-green{background:linear-gradient(135deg,var(--green),#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.stat-tone-accent{background:linear-gradient(135deg,var(--accent2),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 
 /* ═══════════════════════════════════════════════════════
    STATS BANNER
@@ -449,8 +481,8 @@
 }
 .rank-row{
   display:grid;
-  grid-template-columns:44px 64px 1fr auto;
-  align-items:center;gap:16px;
+  grid-template-columns:36px 56px minmax(0,1fr) minmax(74px,max-content);
+  align-items:center;gap:12px;
   padding:14px 20px;
   border-bottom:1px solid var(--border);
   cursor:pointer;
@@ -468,7 +500,7 @@
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
 .rr-thumb{
-  width:64px;height:40px;border-radius:6px;
+  width:56px;height:38px;border-radius:6px;
   background-size:cover;background-position:center;
   border:1px solid var(--border);flex-shrink:0;
   overflow:hidden;position:relative;
@@ -480,27 +512,34 @@
 .rr-info{min-width:0;}
 .rr-title{
   font-family:'Bebas Neue',sans-serif;
-  font-size:17px;letter-spacing:1px;
-  color:var(--text);margin-bottom:3px;
+  font-size:18px;letter-spacing:1px;
+  color:var(--text);margin-bottom:6px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .rr-sub{
-  font-size:11px;font-weight:600;color:var(--muted);
+  font-size:10px;font-weight:800;color:var(--muted);
   display:flex;align-items:center;gap:6px;
+  letter-spacing:.7px;text-transform:uppercase;
 }
-.rr-sub .hl{color:var(--muted2);}
-.rr-sub .dot{color:var(--dim);}
+.rr-type{
+  color:var(--gold);
+  background:rgba(255,195,64,.1);
+  border:1px solid rgba(255,195,64,.18);
+  border-radius:4px;
+  padding:2px 7px;
+}
 .rr-right{
-  display:flex;flex-direction:column;align-items:flex-end;gap:4px;
-  flex-shrink:0;
+  display:flex;flex-direction:column;align-items:flex-end;gap:5px;
+  flex-shrink:0;min-width:74px;justify-self:end;
 }
 .rr-views{
-  font-size:12px;font-weight:700;color:var(--text);
+  font-size:13px;font-weight:800;color:var(--text);
   white-space:nowrap;
 }
 .rr-change{
   font-size:10px;font-weight:800;
   display:flex;align-items:center;gap:3px;
+  white-space:nowrap;
 }
 .rr-change.up{color:var(--green);}
 .rr-change.down{color:var(--accent2);}
@@ -510,6 +549,9 @@
   .rr-num{font-size:18px;}
   .rr-thumb{width:50px;height:32px;}
   .rr-title{font-size:14px;}
+  .rr-sub{font-size:9px;gap:5px;}
+  .rr-type{padding:1px 5px;}
+  .rr-views{font-size:11px;}
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -517,23 +559,26 @@
 ═══════════════════════════════════════════════════════ */
 .hscroll-wrap{
   position:relative;
+  min-width:0;
+  max-width:100%;
 }
 .hscroll-row{
-  display:flex;gap:14px;
-  overflow-x:auto;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:12px;
+  overflow:visible;
   padding-bottom:8px;
   scrollbar-width:none;
-  scroll-snap-type:x mandatory;
 }
 .hscroll-row::-webkit-scrollbar{display:none;}
 .hscroll-card{
   position:relative;overflow:hidden;
   border-radius:12px;
-  flex-shrink:0;
-  width:200px;height:300px;
+  width:auto;height:auto;
+  aspect-ratio:2/3;
+  min-width:0;
   cursor:pointer;
   border:1px solid var(--border);
-  scroll-snap-align:start;
   transition:border-color .25s,transform .25s;
 }
 .hscroll-card:hover{border-color:rgba(0,200,240,.3);transform:translateY(-4px);}
@@ -577,6 +622,27 @@
   transition:transform .3s;
 }
 .hscroll-card:hover .hc-strip{transform:scaleX(1);}
+
+@media(max-width:768px){
+  .hscroll-row{
+    display:flex;
+    gap:14px;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    padding-bottom:8px;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-inline:contain;
+    touch-action:pan-x;
+    max-width:100%;
+  }
+  .hscroll-card{
+    flex:0 0 clamp(168px,72vw,220px);
+    width:clamp(168px,72vw,220px);
+    height:300px;
+    aspect-ratio:auto;
+    scroll-snap-align:start;
+  }
+}
 
 /* ═══════════════════════════════════════════════════════
    REGION GRID
@@ -737,9 +803,11 @@
 /* TWO COLUMN LAYOUT for rank + carousel */
 .two-col{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:minmax(300px,360px) minmax(0,1fr);
   gap:24px;
+  min-width:0;
 }
+ .two-col > *{min-width:0;}
 @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
 
 /* ═══════════════════════════════════════════════════════
@@ -1002,45 +1070,6 @@
 }
 
 /* ── AD-5 · Sticky Mobile Banner (320×50) ────────── */
-#ad-sticky-mobile{
-  display:none;
-  position:fixed;
-  bottom:var(--bot-nav-h);
-  left:0;right:0;z-index:190;
-  height:50px;
-  background:linear-gradient(90deg,#0d1a10,#0a1a18,#0d1a10);
-  border-top:1px solid rgba(34,197,94,.2);
-  align-items:center;justify-content:center;
-  gap:12px;padding:0 12px;
-  animation:slideUpAd .4s ease both;
-}
-@keyframes slideUpAd{
-  from{transform:translateY(100%);opacity:0;}
-  to{transform:translateY(0);opacity:1;}
-}
-@media(max-width:768px){#ad-sticky-mobile{display:flex;}}
-.ad-sticky-icon{font-size:18px;flex-shrink:0;}
-.ad-sticky-text{
-  flex:1;min-width:0;
-  font-size:11px;font-weight:700;
-  color:var(--text);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;
-}
-.ad-sticky-text em{color:var(--green);font-style:normal;}
-.ad-sticky-cta{
-  flex-shrink:0;
-  padding:5px 14px;border-radius:99px;
-  font-size:10px;font-weight:800;
-  background:var(--green);color:#000;
-  transition:opacity .2s;
-}
-.ad-sticky-close{
-  flex-shrink:0;width:18px;height:18px;
-  border-radius:50%;background:var(--dim);
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:var(--muted2);cursor:pointer;
-}
-
 /* ── AD-6 · Interstitial Entry Banner (dismissable) ── */
 #ad-interstitial{
   position:fixed;inset:0;z-index:800;
@@ -1127,3 +1156,6 @@
   font-size:10px;font-weight:700;color:var(--muted);
   margin-top:6px;
 }
+
+#trend-hero.vex-page-hero{padding:40px 0 0;margin-top:var(--nav-h);}
+.trend-filter-row.vex-page-controls{padding:20px 0 24px;}

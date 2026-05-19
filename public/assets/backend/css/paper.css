@@ -213,6 +213,29 @@ a {
     margin-bottom: 20px;
 }
 
+.dashboard-visit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 1px solid rgba(50, 119, 200, .22);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--paper-blue);
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+    box-shadow: var(--paper-shadow);
+}
+
+.dashboard-visit-btn:hover {
+    border-color: rgba(50, 119, 200, .45);
+    color: var(--paper-blue);
+    box-shadow: 0 10px 24px rgba(29, 39, 51, .10);
+}
+
 .dashboard-hero h1 {
     max-width: 760px;
     margin: 14px 0 0;
@@ -287,7 +310,7 @@ a {
 
 .trending-row {
     display: grid;
-    grid-template-columns: 42px 58px minmax(0, 1fr) minmax(100px, auto);
+    grid-template-columns: 42px 58px minmax(0, 1fr) minmax(100px, auto) 42px;
     align-items: center;
     gap: 14px;
     padding: 14px 18px;
@@ -361,6 +384,12 @@ a {
     font-size: 20px;
 }
 
+.dashboard-row-actions {
+    display: inline-flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
 .empty-state {
     display: grid;
     gap: 6px;
@@ -373,12 +402,23 @@ a {
     }
 
     .trending-row {
-        grid-template-columns: 34px 50px minmax(0, 1fr);
+        grid-template-columns: 34px 50px minmax(0, 1fr) 38px;
     }
 
     .view-count {
         grid-column: 3;
         text-align: left;
+    }
+
+    .dashboard-row-actions {
+        grid-column: 4;
+        grid-row: 1 / span 2;
+        align-self: center;
+    }
+
+    .dashboard-hero {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 

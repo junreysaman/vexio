@@ -476,11 +476,16 @@
   display:flex;gap:14px;overflow-x:auto;
   scrollbar-width:none;padding-bottom:8px;
   margin-bottom:28px;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-inline:contain;
+  touch-action:pan-x;
 }
 .cast-row::-webkit-scrollbar{display:none;}
 .cast-card{
   flex-shrink:0;text-align:center;width:90px;cursor:pointer;
   transition:transform .2s;
+  scroll-snap-align:start;
 }
 .cast-card:hover{transform:translateY(-4px);}
 .cast-avatar{
@@ -707,7 +712,20 @@
 .rcard-thumb{
   position:relative;border-radius:var(--r);overflow:hidden;
   aspect-ratio:2/3;background:var(--bg3);margin-bottom:10px;
+  border:1px solid transparent;
+  transition:border-color .25s,box-shadow .25s;
 }
+.rcard-thumb::after{
+  content:"";
+  position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(to right,var(--gold),var(--accent));
+  transform:scaleX(0);transform-origin:left;transition:transform .35s;
+  z-index:3;
+}
+.rcard:hover .rcard-thumb{border-color:rgba(255,195,64,.28);box-shadow:0 16px 34px rgba(0,0,0,.28);}
+.rcard:hover .rcard-thumb::after{transform:scaleX(1);}
+.rcard-thumb img{transition:transform .5s,filter .35s;}
+.rcard:hover .rcard-thumb img{transform:scale(1.08);filter:saturate(1.08) brightness(.78);}
 .rcard-ph{
   width:100%;height:100%;
   display:flex;align-items:center;justify-content:center;

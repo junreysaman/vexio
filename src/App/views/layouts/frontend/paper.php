@@ -29,6 +29,8 @@
       <!-- $this->includePartial('frontend/partials/page-loader')  -->
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
+    <?= $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial') ?>
+    <?= $this->includePartial('frontend/archive/trending-page/ad/trending-mobile-sticky') ?>
     
         <?= $this->section('content') ?>
 
