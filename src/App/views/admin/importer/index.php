@@ -565,8 +565,20 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         country: state.country,
     });
 
+    const skeletonGrid = () => {
+        const count = 12;
+        grid.innerHTML = Array.from({length: count}, () =>
+            `<div class="sk-card"></div>`
+        ).join('');
+        grid.className = 'importer-grid sk-grid';
+    };
+
     const setBusy = (busy) => {
-        grid.classList.toggle('is-loading', busy);
+        if (busy) {
+            skeletonGrid();
+        } else {
+            grid.className = 'importer-grid';
+        }
         form.querySelectorAll('button, input, select').forEach((field) => field.disabled = busy);
         prev.disabled = busy || state.page <= 1;
         next.disabled = busy || state.page >= state.totalPages;
@@ -706,7 +718,6 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
 
     const load = async () => {
         setBusy(true);
-        empty('icon-cloud_download', 'Loading importer', 'Fetching fresh TMDB metadata without reloading the page.');
 
         try {
             const response = await fetch('/admin/importer/results?' + queryString().toString(), {
@@ -731,6 +742,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             grid.innerHTML = releasedItems.length
                 ? releasedItems.map(card).join('')
                 : '<div class="importer-empty"><i class="icon-search"></i><strong>No released content found</strong><span>Items displayed are only those released today or earlier. Try a different page or adjust your filters.</span></div>';
+            grid.className = 'importer-grid';
             bindImports();
         } catch (error) {
             meta.innerHTML = '<span>TMDB connection issue</span><span>Page ' + state.page + '</span>';

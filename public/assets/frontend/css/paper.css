@@ -2109,3 +2109,169 @@ body.auth-page #ad-sticky-mobile{display:none;}
   font-size:10px;font-weight:700;color:var(--muted);
   margin-top:6px;
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   SKELETON LOADING  — sitewide
+   Usage:
+     <div class="sk-card"></div>          poster card
+     <div class="sk-box" style="..."></div>  any shape
+     <div class="sk-grid">...</div>       card grid wrapper
+     <div class="sk-text"></div>          text line
+     <div class="sk-text sk-text--sm"></div>
+     <div class="sk-circle"></div>        avatar
+═══════════════════════════════════════════════════════ */
+
+/* Shimmer keyframe */
+@keyframes sk-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+/* Base shimmer mixin — applied to every skeleton element */
+.sk-box,
+.sk-card,
+.sk-text,
+.sk-circle,
+.sk-card-body,
+.sk-card-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.10) 40%,
+    rgba(255,255,255,.04) 80%
+  );
+  background-size: 600px 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Generic box — size via inline style or utility classes */
+.sk-box {
+  display: block;
+  min-height: 16px;
+}
+
+/* Text line */
+.sk-text {
+  display: block;
+  height: 13px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.sk-text:last-child { margin-bottom: 0; }
+.sk-text--sm  { height: 10px; width: 60%; }
+.sk-text--lg  { height: 18px; }
+.sk-text--xl  { height: 28px; }
+
+/* Avatar / circle */
+.sk-circle {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Poster card — matches trend-card / acard aspect ratio */
+.sk-card {
+  position: relative;
+  border-radius: 12px;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.05);
+}
+/* Subtle inner gradient to suggest poster shape */
+.sk-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(6,9,16,.4), transparent);
+  pointer-events: none;
+}
+
+/* Card body lines below the poster */
+.sk-card-body {
+  margin-top: 10px;
+  height: 13px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.10) 40%,
+    rgba(255,255,255,.04) 80%
+  );
+  background-size: 600px 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+.sk-card-line {
+  margin-top: 6px;
+  height: 10px;
+  width: 55%;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.10) 40%,
+    rgba(255,255,255,.04) 80%
+  );
+  background-size: 600px 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Grid wrapper — same columns as trend-grid */
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  .sk-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+/* Stagger animation delay so cards don't all pulse in sync */
+.sk-card:nth-child(1)  { animation-delay: 0s;    }
+.sk-card:nth-child(2)  { animation-delay: .08s;  }
+.sk-card:nth-child(3)  { animation-delay: .16s;  }
+.sk-card:nth-child(4)  { animation-delay: .24s;  }
+.sk-card:nth-child(5)  { animation-delay: .32s;  }
+.sk-card:nth-child(6)  { animation-delay: .40s;  }
+.sk-card:nth-child(7)  { animation-delay: .48s;  }
+.sk-card:nth-child(8)  { animation-delay: .56s;  }
+.sk-card:nth-child(9)  { animation-delay: .64s;  }
+.sk-card:nth-child(10) { animation-delay: .72s;  }
+.sk-card:nth-child(11) { animation-delay: .80s;  }
+.sk-card:nth-child(12) { animation-delay: .88s;  }
+
+/* Horizontal scroll row skeleton (recently-added) */
+.sk-hrow {
+  display: flex;
+  gap: 14px;
+  overflow: hidden;
+}
+.sk-hrow .sk-card {
+  flex-shrink: 0;
+  width: 160px;
+}
+
+/* Thread / list row skeleton */
+.sk-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+.sk-row:first-child { border-radius: 14px 14px 0 0; }
+.sk-row:last-child  { border-bottom: 1px solid var(--border); border-radius: 0 0 14px 14px; }
+.sk-row-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+/* Fade-in when skeleton is replaced by real content */
+.sk-reveal {
+  animation: sk-reveal .35s ease both;
+}
+@keyframes sk-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
