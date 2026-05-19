@@ -259,6 +259,55 @@
   .thread-item{grid-template-columns:1fr auto;}
   .thread-vote{display:none;}
 }
+
+/* ── New Thread Modal ── */
+.forum-modal-overlay{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(6,9,16,.88);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s;
+  padding:16px;
+}
+.forum-modal-overlay.open{opacity:1;pointer-events:all;}
+.forum-modal{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;width:100%;max-width:580px;
+  padding:28px;display:flex;flex-direction:column;gap:18px;
+  max-height:90vh;overflow-y:auto;
+  transform:translateY(16px);transition:transform .25s;
+}
+.forum-modal-overlay.open .forum-modal{transform:translateY(0);}
+.forum-modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;
+}
+.forum-modal-close{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--muted);font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.forum-modal-close:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.forum-field{display:flex;flex-direction:column;gap:6px;}
+.forum-field label{
+  font-size:11px;font-weight:800;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--muted);
+}
+.forum-field input,
+.forum-field select,
+.forum-field textarea{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;
+  font-family:inherit;font-size:13px;color:var(--text);
+  outline:none;transition:border-color .2s;resize:vertical;
+  width:100%;
+}
+.forum-field input:focus,
+.forum-field select:focus,
+.forum-field textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(139,92,246,.12);}
+.forum-field select option{background:var(--bg3);}
 </style>
 <?= $this->end() ?>
 
@@ -445,10 +494,56 @@
     </div>
   </section>
 
+</div><!-- /forum-page -->
+
+<?php if ($currentUser): ?>
+<!-- New Thread Modal — inside content section so layout wraps it -->
+<div id="newThreadModal" class="forum-modal-overlay" onclick="if(event.target===this)closeNewThread()">
+  <div class="forum-modal">
+    <div class="forum-modal-head">
+      <span>New Thread</span>
+      <button onclick="closeNewThread()" class="forum-modal-close" aria-label="Close">✕</button>
+    </div>
+    <form id="newThreadForm">
+      <input type="hidden" name="token" value="<?= escape($_SESSION['token'] ?? '') ?>">
+      <div class="forum-field">
+        <label>Category</label>
+        <select name="category" required>
+          <?php foreach ($categories ?? \App\Services\Forum\ForumService::CATEGORIES as $key => $cat): ?>
+            <option value="<?= escape($key) ?>"><?= escape($cat['label']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="forum-field">
+        <label>Title</label>
+        <input type="text" name="title" id="threadTitle"
+               placeholder="Thread title (5–200 characters)"
+               required minlength="5" maxlength="200"
+               oninput="document.getElementById('titleChars').textContent=this.value.length+'/200'">
+        <span style="font-size:11px;color:var(--muted);text-align:right;" id="titleChars">0/200</span>
+      </div>
+      <div class="forum-field">
+        <label>Body</label>
+        <textarea name="body" id="threadBody" rows="7"
+                  placeholder="Write your post here…"
+                  required minlength="10" maxlength="10000"
+                  oninput="document.getElementById('bodyChars').textContent=this.value.length+'/10000'"></textarea>
+        <span style="font-size:11px;color:var(--muted);text-align:right;" id="bodyChars">0/10000</span>
+      </div>
+      <p id="threadFormError" hidden style="color:var(--accent2);font-size:13px;margin:0;"></p>
+      <button type="submit" id="threadSubmitBtn" class="forum-new-btn" style="width:100%;justify-content:center;border-radius:8px;margin-top:4px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Post Thread
+      </button>
+    </form>
+  </div>
 </div>
+<?php endif; ?>
+
 <?= $this->end() ?>
 
-<?= $this->start('scripts') ?>
+
+<?= $this->start('scripts'); ?>
 <script>
 /* ── New Thread Modal ─────────────────────────────── */
 const csrfToken = <?= json_encode($_SESSION['token'] ?? '') ?>;
@@ -519,7 +614,7 @@ async function voteThread(id, value, btn) {
   <div class="forum-modal">
     <div class="forum-modal-head">
       <span>New Thread</span>
-      <button onclick="closeNewThread()" class="forum-modal-close">✕</button>
+      <button onclick="closeNewThread()" class="forum-modal-close" aria-label="Close">✕</button>
     </div>
     <form id="newThreadForm">
       <input type="hidden" name="token" value="<?= escape($_SESSION['token'] ?? '') ?>">
@@ -533,54 +628,26 @@ async function voteThread(id, value, btn) {
       </div>
       <div class="forum-field">
         <label>Title</label>
-        <input type="text" name="title" placeholder="Thread title (5–200 characters)" required minlength="5" maxlength="200">
+        <input type="text" name="title" id="threadTitle"
+               placeholder="Thread title (5–200 characters)"
+               required minlength="5" maxlength="200"
+               oninput="document.getElementById('titleChars').textContent=this.value.length+'/200'">
+        <span style="font-size:11px;color:var(--muted);text-align:right;" id="titleChars">0/200</span>
       </div>
       <div class="forum-field">
         <label>Body</label>
-        <textarea name="body" rows="6" placeholder="Write your post here…" required minlength="10" maxlength="10000"></textarea>
+        <textarea name="body" id="threadBody" rows="7"
+                  placeholder="Write your post here…"
+                  required minlength="10" maxlength="10000"
+                  oninput="document.getElementById('bodyChars').textContent=this.value.length+'/10000'"></textarea>
+        <span style="font-size:11px;color:var(--muted);text-align:right;" id="bodyChars">0/10000</span>
       </div>
-      <p id="threadFormError" hidden style="color:var(--accent2);font-size:13px;margin-bottom:8px;"></p>
-      <button type="submit" class="forum-new-btn" style="width:100%;justify-content:center;border-radius:8px;">Post Thread</button>
+      <p id="threadFormError" hidden style="color:var(--accent2);font-size:13px;margin:0;"></p>
+      <button type="submit" id="threadSubmitBtn" class="forum-new-btn" style="width:100%;justify-content:center;border-radius:8px;margin-top:4px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Post Thread
+      </button>
     </form>
   </div>
 </div>
-
-<style>
-.forum-modal-overlay{
-  position:fixed;inset:0;z-index:600;
-  background:rgba(6,9,16,.85);backdrop-filter:blur(8px);
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .25s;
-  padding:16px;
-}
-.forum-modal-overlay.open{opacity:1;pointer-events:all;}
-.forum-modal{
-  background:var(--bg2);border:1px solid var(--border2);
-  border-radius:16px;width:100%;max-width:560px;
-  padding:28px;display:flex;flex-direction:column;gap:20px;
-  max-height:90vh;overflow-y:auto;
-}
-.forum-modal-head{
-  display:flex;align-items:center;justify-content:space-between;
-  font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;
-}
-.forum-modal-close{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--bg3);border:1px solid var(--border);
-  color:var(--muted);font-size:14px;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .2s;
-}
-.forum-modal-close:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
-.forum-field{display:flex;flex-direction:column;gap:6px;}
-.forum-field label{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);}
-.forum-field input,.forum-field select,.forum-field textarea{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;padding:10px 14px;
-  font-family:inherit;font-size:13px;color:var(--text);
-  outline:none;transition:border-color .2s;resize:vertical;
-}
-.forum-field input:focus,.forum-field select:focus,.forum-field textarea:focus{border-color:var(--purple);}
-.forum-field select option{background:var(--bg3);}
-</style>
 <?php endif; ?>
