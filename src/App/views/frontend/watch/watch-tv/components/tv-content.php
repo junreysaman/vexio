@@ -184,19 +184,20 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
 
     <div class="related-section">
       <div class="sec-mini-head"><div class="sec-mini-title"><div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>YOU MAY ALSO <span class="accent">LIKE</span></div></div>
-      <div class="related-grid">
-        <?php foreach (array_slice(($related ?? []), 0, 6) as $idx => $item): ?>
-          <?php $itemPoster = (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '')); ?>
-          <a class="rcard" href="<?= escape((string) ($item['watchUrl'] ?? $item['watch_url'] ?? '#')) ?>">
-            <div class="rcard-thumb c<?= ($idx % 8) + 1 ?>">
-              <?php if ($itemPoster !== ''): ?><img src="<?= escape($itemPoster) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php else: ?><div class="rcard-ph"><?= escape(strtoupper(substr((string) ($item['title'] ?? 'TV Show'), 0, 20))) ?></div><?php endif; ?>
-              <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>
-              <span class="rcard-badge badge-hd">HD</span>
-              <span class="rcard-score"><?= escape((string) ($item['tmdb_rating'] ?? 'N/A')) ?></span>
-            </div>
-            <div class="rcard-title"><?= escape((string) ($item['title'] ?? 'TV Show')) ?></div>
-            <div class="rcard-meta"><span><?= escape((string) ($item['release_year'] ?? 'N/A')) ?></span><div class="rcard-dot"></div><span><?= escape((string) (($item['genres'] ?? '') ?: 'TV')) ?></span></div>
-          </a>
+      <div class="trend-grid">
+        <?php foreach (array_slice(($related ?? []), 0, 6) as $item): ?>
+          <?php
+            $rType = (string) ($item['type'] ?? 'tv_show');
+            echo $this->includePartial('/frontend/partials/card', [
+              'cardTitle'    => (string) ($item['title'] ?? 'Untitled'),
+              'cardPoster'   => (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '')),
+              'cardWatchUrl' => (string) ($item['watchUrl'] ?? $item['watch_url'] ?? '#'),
+              'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',
+              'cardBadge'    => '',
+              'cardRating'   => is_numeric($item['tmdb_rating'] ?? null) ? (float) $item['tmdb_rating'] : null,
+              'cardYear'     => (string) ($item['release_year'] ?? ''),
+            ]);
+          ?>
         <?php endforeach; ?>
       </div>
     </div>

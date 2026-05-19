@@ -193,55 +193,23 @@ $revenue = $item['revenue'] ?? null;
 
           <!-- RELATED TAB -->
           <div class="tab-panel" id="tab-related">
-            <div class="related-grid">
-              <?php foreach (array_slice(($related ?? []), 0, 6) as $idx => $relatedItem): ?>
+            <div class="trend-grid">
+              <?php foreach (array_slice(($related ?? []), 0, 6) as $relatedItem): ?>
                 <?php
-                $relatedPoster = (string) (($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? ''));
-                $relatedGenres = (string) (($relatedItem['genres'] ?? '') ?: 'Movie');
+                  $rType = (string) ($relatedItem['type'] ?? 'movie');
+                  echo $this->includePartial('/frontend/partials/card', [
+                    'cardTitle'    => (string) ($relatedItem['title'] ?? 'Untitled'),
+                    'cardPoster'   => (string) (($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? '')),
+                    'cardWatchUrl' => (string) ($relatedItem['watchUrl'] ?? $relatedItem['watch_url'] ?? '#'),
+                    'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',
+                    'cardBadge'    => '',
+                    'cardRating'   => is_numeric($relatedItem['tmdb_rating'] ?? null) ? (float) $relatedItem['tmdb_rating'] : null,
+                    'cardYear'     => (string) ($relatedItem['release_year'] ?? ''),
+                  ]);
                 ?>
-                <a class="rcard" href="<?= escape((string) ($relatedItem['watchUrl'] ?? $relatedItem['watch_url'] ?? '#')) ?>">
-                  <div class="rcard-thumb c<?= ($idx % 8) + 1 ?>">
-                    <?php if ($relatedPoster !== ''): ?><img src="<?= escape($relatedPoster) ?>" alt="<?= escape((string) ($relatedItem['title'] ?? 'Movie')) ?>" style="width:100%;height:100%;object-fit:cover;"><?php else: ?><div class="rcard-ph"><?= escape(strtoupper(substr((string) ($relatedItem['title'] ?? 'Movie'), 0, 20))) ?></div><?php endif; ?>
-                    <div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>
-                    <span class="rcard-badge badge-hd">HD</span>
-                    <div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><?= escape((string) ($relatedItem['tmdb_rating'] ?? 'N/A')) ?></div>
-                  </div>
-                  <div class="rcard-title"><?= escape((string) ($relatedItem['title'] ?? 'Movie')) ?></div>
-                  <div class="rcard-meta"><span><?= escape((string) ($relatedItem['release_year'] ?? 'N/A')) ?></span><div class="rcard-dot"></div><span><?= escape($relatedGenres) ?></span></div>
-                </a>
               <?php endforeach; ?>
               <?php if (empty($related)): ?>
-              <!-- Related cards -->
-              <div class="rcard" onclick="showToast('Opening Ghost Circuit…')">
-                <div class="rcard-thumb c2"><div class="rcard-ph">GHOST CIRCUIT</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-new">NEW</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>9.1</div></div>
-                <div class="rcard-title">Ghost Circuit</div>
-                <div class="rcard-meta"><span>Sci-Fi</span><div class="rcard-dot"></div><span>2024</span></div>
-              </div>
-              <div class="rcard" onclick="showToast('Opening Synthetic Dawn…')">
-                <div class="rcard-thumb c3"><div class="rcard-ph">SYNTHETIC DAWN</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-hd">4K</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>8.4</div></div>
-                <div class="rcard-title">Synthetic Dawn</div>
-                <div class="rcard-meta"><span>Thriller</span><div class="rcard-dot"></div><span>2023</span></div>
-              </div>
-              <div class="rcard" onclick="showToast('Opening Voidwalker…')">
-                <div class="rcard-thumb c4"><div class="rcard-ph">VOIDWALKER</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-hot">HOT</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>7.9</div></div>
-                <div class="rcard-title">Voidwalker</div>
-                <div class="rcard-meta"><span>Action</span><div class="rcard-dot"></div><span>2024</span></div>
-              </div>
-              <div class="rcard" onclick="showToast('Opening Chrome Rain…')">
-                <div class="rcard-thumb c5"><div class="rcard-ph">CHROME RAIN</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-hd">HD</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>8.2</div></div>
-                <div class="rcard-title">Chrome Rain</div>
-                <div class="rcard-meta"><span>Neo-Noir</span><div class="rcard-dot"></div><span>2023</span></div>
-              </div>
-              <div class="rcard" onclick="showToast('Opening Last Protocol…')">
-                <div class="rcard-thumb c6"><div class="rcard-ph">LAST PROTOCOL</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-new">NEW</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>7.6</div></div>
-                <div class="rcard-title">Last Protocol</div>
-                <div class="rcard-meta"><span>Drama</span><div class="rcard-dot"></div><span>2024</span></div>
-              </div>
-              <div class="rcard" onclick="showToast('Opening Pixel Requiem…')">
-                <div class="rcard-thumb c7"><div class="rcard-ph">PIXEL REQUIEM</div><div class="rcard-overlay"><div class="rcard-play-btn"><svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div><span class="rcard-badge badge-hd">4K</span><div class="rcard-score"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>8.8</div></div>
-                <div class="rcard-title">Pixel Requiem</div>
-                <div class="rcard-meta"><span>Sci-Fi</span><div class="rcard-dot"></div><span>2024</span></div>
-              </div>
+                <p style="color:var(--muted2);font-size:13px;grid-column:1/-1;">No related titles found.</p>
               <?php endif; ?>
             </div>
           </div>
