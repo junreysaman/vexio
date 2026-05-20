@@ -70,4 +70,6 @@ $totalItems = (int) ($total_items ?? count($items));
     <strong>No titles match these filters</strong>
     <span>Try a broader type, genre, rating, or year range.</span>
   </div>
+
+  <div class="archive-infinite-sentinel" id="archiveInfiniteSentinel" aria-hidden="true"></div>
 </div>

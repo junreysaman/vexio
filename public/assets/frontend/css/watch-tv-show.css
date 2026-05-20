@@ -675,6 +675,15 @@ ul{list-style:none;}
 .sidebar-sort:hover{color:var(--cyan);}
 .sidebar-sort svg{width:13px;height:13px;}
 .sidebar-ad-slot{padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:center;}
+.episode-sidebar-scroll{
+  overflow-y:auto;
+  flex:1;
+  max-height:calc((76px * 12) + 8px);
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+}
+.episode-sidebar-scroll .ep-sidebar-card[hidden]{display:none;}
+.episode-sidebar-sentinel{height:1px;}
 
 /* Episode Card in Sidebar */
 .ep-sidebar-card{

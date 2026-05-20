@@ -13,7 +13,7 @@
       <?= $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-1') ?>
 
       <div style="overflow-y:auto;flex:1;">
-        <?php $relatedItems = $related ?? []; ?>
+        <?php $relatedItems = array_slice(($related ?? []), 0, 15); ?>
         <?php if (!empty($relatedItems)): ?>
           <?php foreach ($relatedItems as $idx => $rel): ?>
             <?php

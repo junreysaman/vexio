@@ -48,7 +48,7 @@ $genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : []
     <aside class="watch-side-card">
       <h2 class="watch-kicker">Related Movies</h2>
       <div class="related-list">
-        <?php foreach (($related ?? []) as $relatedItem): ?>
+        <?php foreach (array_slice(($related ?? []), 0, 15) as $relatedItem): ?>
           <?php
           $relatedPoster = ($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? '');
           $relatedWatchUrl = (string) ($relatedItem['watchUrl'] ?? '#');

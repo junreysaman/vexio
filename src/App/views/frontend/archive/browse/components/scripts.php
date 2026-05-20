@@ -76,6 +76,30 @@ function cardMatches(card, state) {
   return true;
 }
 
+let archiveVisibleLimit = 24;
+const archivePageSize = 24;
+
+function matchingArchiveCards(state = filterState()) {
+  return Array.from(document.querySelectorAll('#cardGrid .trend-card, #cardGrid .acard')).filter((card) => cardMatches(card, state));
+}
+
+function renderArchiveCards(state = filterState()) {
+  const cards = Array.from(document.querySelectorAll('#cardGrid .trend-card, #cardGrid .acard'));
+  const matches = matchingArchiveCards(state);
+  const matchSet = new Set(matches);
+
+  cards.forEach((card) => {
+    const matchIndex = matches.indexOf(card);
+    card.hidden = !matchSet.has(card) || matchIndex >= archiveVisibleLimit;
+  });
+
+  const sentinel = document.getElementById('archiveInfiniteSentinel');
+  if (sentinel) sentinel.hidden = matches.length <= archiveVisibleLimit;
+
+  document.getElementById('resultNum').textContent = matches.length.toLocaleString();
+  document.getElementById('archiveEmpty').hidden = matches.length !== 0;
+}
+
 function updateActiveFilters(state) {
   const container = document.getElementById('activeFilters');
   if (!container) return;
@@ -106,15 +130,8 @@ function updateFilterBadgeCount() {
 
 function updateFilters() {
   const state = filterState();
-  let visible = 0;
-  document.querySelectorAll('#cardGrid .acard').forEach((card) => {
-    const show = cardMatches(card, state);
-    card.hidden = !show;
-    if (show) visible += 1;
-  });
-
-  document.getElementById('resultNum').textContent = visible.toLocaleString();
-  document.getElementById('archiveEmpty').hidden = visible !== 0;
+  archiveVisibleLimit = archivePageSize;
+  renderArchiveCards(state);
   updateActiveFilters(state);
   updateFilterBadgeCount();
   sortCards(document.getElementById('sortSelect')?.value || 'popular', false);
@@ -124,7 +141,7 @@ function sortCards(value, notify = true) {
   const grid = document.getElementById('cardGrid');
   if (!grid) return;
 
-  const cards = Array.from(grid.querySelectorAll('.acard'));
+  const cards = Array.from(grid.querySelectorAll('.trend-card, .acard'));
   const sorted = cards.sort((left, right) => {
     if (value === 'rating') return Number(right.dataset.rating || 0) - Number(left.dataset.rating || 0);
     if (value === 'newest') return String(right.dataset.created || '').localeCompare(String(left.dataset.created || ''));
@@ -135,6 +152,7 @@ function sortCards(value, notify = true) {
   });
 
   sorted.forEach((card) => grid.appendChild(card));
+  renderArchiveCards();
   if (notify) showToast('Results sorted');
 }
 
@@ -213,6 +231,7 @@ function initArchivePage() {
   const slider = document.getElementById('ratingSlider');
   if (slider) updateRating(slider);
   updateFilters();
+  initArchiveInfiniteScroll();
 
   const overlay = document.getElementById('search-overlay');
   ['searchOpen', 'mobileSearchOpen'].forEach((id) => {
@@ -236,6 +255,29 @@ function initArchivePage() {
       setTimeout(() => document.getElementById('searchInput')?.focus(), 150);
     }
   });
+}
+
+function initArchiveInfiniteScroll() {
+  const sentinel = document.getElementById('archiveInfiniteSentinel');
+  if (!sentinel) return;
+
+  const revealMore = () => {
+    const matches = matchingArchiveCards();
+    if (archiveVisibleLimit >= matches.length) return;
+    archiveVisibleLimit = Math.min(matches.length, archiveVisibleLimit + archivePageSize);
+    renderArchiveCards();
+  };
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) revealMore();
+    }, { rootMargin: '360px 0px' });
+    observer.observe(sentinel);
+  } else {
+    window.addEventListener('scroll', () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 360) revealMore();
+    }, { passive: true });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initArchivePage);

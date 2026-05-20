@@ -71,6 +71,57 @@ if (document.readyState === 'loading') {
     initEpisodeList();
 }
 
+function initSidebarEpisodeList() {
+    const scroller = document.querySelector('[data-sidebar-episodes]');
+    if (!scroller) return;
+
+    const rows = Array.from(scroller.querySelectorAll('[data-sidebar-episode]'));
+    const sentinel = scroller.querySelector('[data-sidebar-episode-sentinel]');
+    const pageSize = Math.max(1, parseInt(scroller.dataset.pageSize || '12', 10));
+    const currentIndex = Math.max(0, rows.findIndex(row => row.dataset.currentEpisode === '1'));
+    let visibleLimit = Math.max(pageSize, Math.ceil((currentIndex + 1) / pageSize) * pageSize);
+
+    const render = () => {
+        rows.forEach((row, index) => {
+            row.hidden = index >= visibleLimit;
+        });
+
+        if (sentinel) {
+            sentinel.hidden = visibleLimit >= rows.length;
+        }
+    };
+
+    const revealMore = () => {
+        if (visibleLimit >= rows.length) return;
+        visibleLimit = Math.min(rows.length, visibleLimit + pageSize);
+        render();
+    };
+
+    if ('IntersectionObserver' in window && sentinel) {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                revealMore();
+            }
+        }, { root: scroller, rootMargin: '160px 0px' });
+        observer.observe(sentinel);
+    } else {
+        scroller.addEventListener('scroll', () => {
+            if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 160) {
+                revealMore();
+            }
+        }, { passive: true });
+    }
+
+    render();
+    rows[currentIndex]?.scrollIntoView({ block: 'nearest' });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSidebarEpisodeList);
+} else {
+    initSidebarEpisodeList();
+}
+
 
 const EPISODE_TOTAL_SECONDS = 45 * 60;
 let tvIsPlaying = false;
