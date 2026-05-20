@@ -103,11 +103,6 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             <input type="hidden" name="token" value="<?= escape((string) ($_csrfToken ?? '')) ?>">
             <label for="dbmvs-generate-limit" class="sr-only">Shows per run</label>
             <input id="dbmvs-generate-limit" name="limit" type="number" min="1" max="100" value="10" aria-label="TV shows per run">
-            <label for="dbmvs-generate-status" class="sr-only">Generated status</label>
-            <select id="dbmvs-generate-status" name="status" class="custom-select" aria-label="Generated content status">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-            </select>
             <button type="submit" id="dbmvs-btn-generate-missing" class="paper-btn primary">
                 <i class="icon-auto_fix_high"></i> Generate Missing Seasons & Episodes
             </button>
@@ -123,6 +118,12 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     <div id="importerMeta" class="importer-meta">
         <span id="dbmvs-total-results">Loading TMDB results...</span>
         <span id="dbmvs-current-page">Page 1</span>
+    </div>
+
+    <div class="importer-bulk-actions">
+        <button type="button" id="importVisible" class="paper-btn primary" disabled>
+            <i class="icon-cloud_download"></i> Import All Displayed
+        </button>
     </div>
 
     <div id="importerGrid" class="importer-grid">
@@ -174,6 +175,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     const genreField = document.getElementById('dbmvs-genre');
     const hydrateForm = document.getElementById('dbmovies-hydrate-form');
     const generateMissingForm = document.getElementById('dbmovies-generate-missing-form');
+    const importVisible = document.getElementById('importVisible');
 
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;',
@@ -215,6 +217,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         form.querySelectorAll('button, input, select').forEach((field) => field.disabled = busy);
         prev.disabled = busy || state.page <= 1;
         next.disabled = busy || state.page >= state.totalPages;
+        importVisible.disabled = busy || !grid.querySelector('[data-import-form]');
     };
 
     const renderMeta = (data) => {
@@ -280,10 +283,6 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                     <input type="hidden" name="token" value="${esc(state.token)}">
                     <input type="hidden" name="tab" value="${esc(state.tab)}">
                     <input type="hidden" name="tmdb_id" value="${item.id}">
-                    <select class="custom-select" name="status" aria-label="Import status">
-                        <option value="draft">Draft</option>
-                        <option value="published">Publish</option>
-                    </select>
                     <label class="import-featured-toggle">
                         <input type="checkbox" name="featured" value="1">
                         <span>Featured</span>
@@ -328,8 +327,10 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             }
 
             importForm.closest('.import-card')?.remove();
+            importVisible.disabled = !grid.querySelector('[data-import-form]');
             if (!grid.querySelector('.import-card')) {
                 empty('icon-check', 'Imported all visible items', 'Fetch the next page or adjust your filters.');
+                importVisible.disabled = true;
             }
         })
         .catch((error) => {
@@ -347,6 +348,27 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                 importQueue = importQueue.then(() => runImport(importForm));
             });
         });
+        importVisible.disabled = !grid.querySelector('[data-import-form]');
+    };
+
+    const importDisplayed = () => {
+        const forms = Array.from(grid.querySelectorAll('[data-import-form]'));
+        if (!forms.length) {
+            return;
+        }
+
+        const original = importVisible.innerHTML;
+        importVisible.disabled = true;
+        importVisible.innerHTML = '<i class="icon-hourglass_top"></i>Importing displayed...';
+
+        importQueue = importQueue
+            .then(() => forms.reduce((chain, importForm) => (
+                chain.then(() => document.body.contains(importForm) ? runImport(importForm) : Promise.resolve())
+            ), Promise.resolve()))
+            .finally(() => {
+                importVisible.innerHTML = original;
+                importVisible.disabled = !grid.querySelector('[data-import-form]');
+            });
     };
 
     const runHydration = (formEl) => {
@@ -454,9 +476,11 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                 : '<div class="importer-empty"><i class="icon-search"></i><strong>No released content found</strong><span>Items displayed are only those released today or earlier. Try a different page or adjust your filters.</span></div>';
             grid.className = 'importer-grid';
             bindImports();
+            importVisible.disabled = releasedItems.length === 0;
         } catch (error) {
             meta.innerHTML = '<span>TMDB connection issue</span><span>Page ' + state.page + '</span>';
             empty('icon-cloud_off', 'TMDB is not connected yet', error.message);
+            importVisible.disabled = true;
         } finally {
             setBusy(false);
         }
@@ -525,6 +549,8 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             load();
         }
     });
+
+    importVisible.addEventListener('click', importDisplayed);
 
     hydrateForm?.addEventListener('submit', (event) => {
         event.preventDefault();

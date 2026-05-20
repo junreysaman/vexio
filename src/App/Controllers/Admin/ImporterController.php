@@ -93,7 +93,7 @@ class ImporterController
         $payload = $request->data();
         $tab = $this->activeTab((string) ($payload['tab'] ?? 'movies'));
         $tmdbId = (int) ($payload['tmdb_id'] ?? 0);
-        $status = (string) ($payload['status'] ?? 'draft');
+        $status = 'published';
         $featured = !empty($payload['featured']);
 
         if ($tmdbId < 1) {
@@ -155,7 +155,7 @@ class ImporterController
     {
         $payload = $request->data();
         $limit = (int) ($payload['limit'] ?? 10);
-        $status = (string) ($payload['status'] ?? 'draft');
+        $status = 'published';
 
         try {
             $summary = $this->tmdb->generateMissingTvSeasonsAndEpisodes($limit, $status);
