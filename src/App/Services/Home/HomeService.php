@@ -221,9 +221,9 @@ class HomeService
      * @param int $limit Number of items to return.
      * @return array<int, array<string, mixed>>
      */
-    public function recentlyAdded(int $limit = 10): array
+    public function recentlyAdded(int $limit = 25): array
     {
-        $limit = max(1, min(20, $limit));
+        $limit = max(1, min(50, $limit));
 
         $items = $this->db->select(
             'SELECT *
