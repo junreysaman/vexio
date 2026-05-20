@@ -10,7 +10,6 @@ use App\Controllers\Admin\ImporterController;
 use App\Controllers\Admin\UserController;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\AuthPageController;
-use App\Controllers\Forum\ForumController;
 use App\Controllers\Search\SearchController;
 use App\Controllers\Watch\CommentController;
 use App\Controllers\Watch\WatchMovieController;
@@ -101,12 +100,6 @@ function registerRoutes(App $app): void
         ['GET', '/watch/tvshow/{tmdbId}/episode/{episodeId}', [WatchTvController::class, 'episodeById']],
         ['GET', '/watch/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],
         ['GET', '/watch/tvshow/{tmdbId}/{slug}/season/{seasonNo}/episode/{episodeNo}', [WatchTvController::class, 'episode']],
-        // Forum Routes (Disabled - Coming Soon)
-        // ['GET', '/forum', [ForumController::class, 'index']],
-        // ['POST', '/forum/threads', [ForumController::class, 'store'], [AuthRequiredMiddleware::class]],
-        // ['GET', '/forum/thread/{id}', [ForumController::class, 'show']],
-        // ['POST', '/forum/thread/{id}/replies', [ForumController::class, 'storeReply'], [AuthRequiredMiddleware::class]],
-        // ['POST', '/forum/thread/{id}/vote', [ForumController::class, 'vote'], [AuthRequiredMiddleware::class]],
         // Error Pages
         ['GET', '/404', [AppController::class, 'notFound']],
     ];

@@ -28,7 +28,6 @@
 
 <body class="<?= escape($body_class ?? 'paper-frontend') ?>">
 
-    <?= $this->includePartial('frontend/partials/skeleton-loader') ?>
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
      <!-- $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial')

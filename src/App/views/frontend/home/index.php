@@ -16,7 +16,6 @@
 
 <?= $this->includePartial('/frontend/home/components/genre-section') ?>
 
-<!-- $this->includePartial('/frontend/home/components/forum-section') -->
 
 <?= $this->includePartial('/frontend/home/ads/ad-footer') ?>
 

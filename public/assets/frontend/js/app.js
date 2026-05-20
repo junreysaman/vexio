@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    initPageSkeleton();
     initMediaImageSkeletons();
     initSlider();
     initTrendTabs();
@@ -117,37 +116,7 @@ function initScheduleTabs() {
     });
 }
 
-const PAGE_SKELETON_MIN_MS = 5000;
 const MEDIA_IMG_SKELETON_MAX_MS = 5000;
-
-function initPageSkeleton() {
-    const skeletonLoader = document.getElementById('skeletonLoader');
-    if (!skeletonLoader) return;
-
-    const started = performance.now();
-    let hidden = false;
-
-    const hide = () => {
-        if (hidden) return;
-        hidden = true;
-        skeletonLoader.classList.add('hidden');
-        skeletonLoader.setAttribute('aria-hidden', 'true');
-    };
-
-    const scheduleHide = () => {
-        const elapsed = performance.now() - started;
-        const delay = Math.max(0, PAGE_SKELETON_MIN_MS - elapsed);
-        setTimeout(hide, delay);
-    };
-
-    if (document.readyState === 'complete') {
-        scheduleHide();
-    } else {
-        window.addEventListener('load', scheduleHide, { once: true });
-    }
-
-    setTimeout(hide, PAGE_SKELETON_MIN_MS + 500);
-}
 
 function initMediaImageSkeletons() {
     document.querySelectorAll('[data-media-img]').forEach(wrap => {

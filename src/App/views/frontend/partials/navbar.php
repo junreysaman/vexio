@@ -49,16 +49,6 @@ $navItems = [
         'icon' => '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
     ],
 
-    [
-        'key' => 'forum',
-        'label' => 'Forum',
-        'href' => 'javascript:void(0)',
-        'active' => false,
-        'icon' => '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-        'disabled',
-        'onclick' => "showToast('Forum coming soon!')"
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Hidden Watch Menu
@@ -74,6 +64,11 @@ $navItems = [
         'icon' => '<polygon points="5 3 19 12 5 21 5 3"/>',
     ]] : []),
 ];
+
+$mobileNavItems = array_values(array_filter(
+    $navItems,
+    static fn (array $item): bool => in_array($item['key'], ['home', 'browse', 'genre', 'trending', 'watching'], true)
+));
 ?>
 
 <!-- ===================================================== -->
@@ -168,7 +163,7 @@ $navItems = [
 
 <nav id="botnav">
 
-    <?php foreach ($navItems as $item): ?>
+    <?php foreach ($mobileNavItems as $item): ?>
 
         <a
             href="<?= escape($item['href']) ?>"
