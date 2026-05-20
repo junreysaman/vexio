@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+<!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=G-KR80HH59JY"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-KR80HH59JY'); </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="index, follow">
@@ -26,11 +27,11 @@
 
 <body class="<?= escape($body_class ?? 'paper-frontend') ?>">
 
-      <!-- $this->includePartial('frontend/partials/page-loader')  -->
+    <?= $this->includePartial('frontend/partials/skeleton-loader') ?>
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
-    <?= $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial') ?>
-    <?= $this->includePartial('frontend/archive/trending-page/ad/trending-mobile-sticky') ?>
+     <!-- $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial')
+    $this->includePartial('frontend/archive/trending-page/ad/trending-mobile-sticky')  -->
     
         <?= $this->section('content') ?>
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Home;
 
+use App\Cache\CacheInterface;
 use App\Database\TmdbMetadataSchema;
 use App\Support\MediaUrl;
 use Framework\Database;
@@ -15,8 +16,10 @@ class HomeService
      *
      * @param Database $db Database connection used to query homepage content.
      */
-    public function __construct(private Database $db)
-    {
+    public function __construct(
+        private Database $db,
+        private CacheInterface $cache
+    ) {
         TmdbMetadataSchema::ensure($db);
     }
 
@@ -27,7 +30,19 @@ class HomeService
      */
     public function pageData(): array
     {
-        return [
+        $cacheKey = 'home:pageData:v1';
+        $useCache = filter_var($_ENV['HOME_PAGE_CACHE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $ttl = (int) ($_ENV['HOME_PAGE_CACHE_TTL'] ?? 120);
+        $ttl = max(15, min(3600, $ttl));
+
+        if ($useCache) {
+            $cached = $this->cache->get($cacheKey);
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+
+        $data = [
             'title' => 'Home',
             'featured' => $this->getFeatured(),
             'trending' => $this->getTrending(),
@@ -35,6 +50,12 @@ class HomeService
             'topByTmdb' => $this->getTopByTmdb(),
             'genres' => $this->getAllGenre(),
         ];
+
+        if ($useCache) {
+            $this->cache->set($cacheKey, $data, $ttl);
+        }
+
+        return $data;
     }
 
     /**
@@ -244,8 +265,8 @@ class HomeService
             'eps' => ($item['type'] ?? '') === 'movie' ? 'Movie' : 'Series',
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
             'desc' => (string) ($item['synopsis'] ?: 'Featured from the Vexio catalogue.'),
-            'poster' => $item['poster_image'] ?: $item['poster_url'],
-            'backdrop' => $item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'],
+            'poster' => $item['poster_url'] ?: $item['poster_image'],
+            'backdrop' => $item['backdrop_image'] ?: $item['poster_url'] ?: $item['poster_image'],
             'streamLink' => $item['stream_link'] ?? null,
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
@@ -274,8 +295,8 @@ class HomeService
             'genres' => $genres,
             'year' => (string) ($item['release_year'] ?: 'N/A'),
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
-            'poster' => $item['poster_image'] ?: $item['poster_url'],
-            'backdrop' => $item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'],
+            'poster' => $item['poster_url'] ?: $item['poster_image'],
+            'backdrop' => $item['backdrop_image'] ?: $item['poster_url'] ?: $item['poster_image'],
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
             'synopsis' => (string) ($item['synopsis'] ?: ''),
@@ -303,8 +324,8 @@ class HomeService
             'genres' => $genres,
             'year' => (string) ($item['release_year'] ?: 'N/A'),
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
-            'poster' => $item['poster_image'] ?: $item['poster_url'],
-            'backdrop' => $item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'],
+            'poster' => $item['poster_url'] ?: $item['poster_image'],
+            'backdrop' => $item['backdrop_image'] ?: $item['poster_url'] ?: $item['poster_image'],
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
             'views' => (int) ($item['views'] ?? 0),

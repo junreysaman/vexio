@@ -10,6 +10,7 @@ use App\Controllers\Admin\UserController;
 use App\Controllers\Admin\CommentController as AdminCommentController;
 use App\Controllers\AppController;
 use App\Controllers\SupportPageController;
+use App\Controllers\PublicSeoController;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\AuthPageController;
 use App\Controllers\Search\SearchController;
@@ -35,10 +36,13 @@ use App\Services\Archive\GenrePageService;
 use App\Services\Archive\TrendingPageService;
 use App\Controllers\Forum\ForumController;
 use App\Services\Forum\ForumService;
+use App\Cache\CacheInterface;
+use App\Support\RedisBootstrap;
 use Framework\Database;
 use Framework\TemplateEngine;
 
 return [
+    CacheInterface::class => static fn(): CacheInterface => RedisBootstrap::makeCache(),
     TemplateEngine::class => fn() => new TemplateEngine(Paths::VIEW),
     Database::class => fn() => new Database(
         (string) ($_ENV['DB_DRIVER'] ?? 'mysql'),
@@ -82,4 +86,5 @@ return [
     TrendingPageService::class => fn($container) => new TrendingPageService(fn() => $container->get(Database::class)),
     ForumController::class => fn($container) => $container->resolve(ForumController::class),
     ForumService::class    => fn($container) => $container->resolve(ForumService::class),
+    PublicSeoController::class => fn($container) => $container->resolve(PublicSeoController::class),
 ];

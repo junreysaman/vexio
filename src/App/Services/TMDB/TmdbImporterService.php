@@ -305,6 +305,7 @@ class TmdbImporterService
         ));
 
         $generated = ['seasons' => 0, 'skipped' => 0];
+        $downloadImages = $this->bulkDownloadsImages();
 
         foreach ($seasonSummaries as $seasonSummary) {
             $seasonNumber = (int) ($seasonSummary['season_number'] ?? 0);
@@ -315,7 +316,7 @@ class TmdbImporterService
             }
 
             $season = $this->tvSeasonDetails($tmdbTvId, $seasonNumber);
-            $this->upsertTvSeasonFromData($tmdbTvId, $show, $season, $seasonNumber, 0, $status);
+            $this->upsertTvSeasonFromData($tmdbTvId, $show, $season, $seasonNumber, 0, $status, null, $downloadImages);
             $generated['seasons']++;
         }
 
@@ -358,6 +359,7 @@ class TmdbImporterService
         }
 
         $generated = ['episodes' => 0, 'skipped' => 0, 'errors' => []];
+        $downloadImages = $this->bulkDownloadsImages();
 
         foreach ($episodes as $episode) {
             $episodeNumber = (int) ($episode['episode_number'] ?? 0);
@@ -368,7 +370,18 @@ class TmdbImporterService
             }
 
             try {
-                $this->upsertTvEpisodeFromData($tmdbTvId, $show, $episode, $seasonNumber, $episodeNumber, 0, $status);
+                $this->upsertTvEpisodeFromData(
+                    $tmdbTvId,
+                    $show,
+                    $episode,
+                    $seasonNumber,
+                    $episodeNumber,
+                    0,
+                    $status,
+                    $parent,
+                    $seasonItem,
+                    $downloadImages
+                );
                 $generated['episodes']++;
             } catch (Throwable $e) {
                 $generated['errors'][] = 'Episode ' . $episodeNumber . ': ' . $e->getMessage();
@@ -456,6 +469,279 @@ class TmdbImporterService
         return $this->upsertTvSeasonFromData($tmdbTvId, $show, $season, $seasonNumber, $views, $status);
     }
 
+    /**
+     * Backfill locally cached WebP assets for already imported records.
+     *
+     * @return array{scope:string, limit:int, scanned:int, hydrated:int, failed:int}
+     */
+    public function hydrateMissingImages(string $scope = 'all', int $limit = 50): array
+    {
+        $scope = in_array($scope, ['all', 'items', 'seasons', 'episodes'], true) ? $scope : 'all';
+        $limit = max(1, min(200, $limit));
+
+        $result = [
+            'scope' => $scope,
+            'limit' => $limit,
+            'scanned' => 0,
+            'hydrated' => 0,
+            'failed' => 0,
+        ];
+
+        if ($scope === 'all' || $scope === 'items') {
+            $rows = $this->db->select(
+                "SELECT id, type, tmdb_id, poster_url, backdrop_image
+                 FROM media_items
+                 WHERE (
+                     (poster_url IS NOT NULL AND poster_url <> '' AND (poster_image IS NULL OR poster_image = ''))
+                     OR (backdrop_image IS NULL OR backdrop_image = '')
+                 )
+                 ORDER BY id DESC
+                 LIMIT {$limit}"
+            );
+
+            foreach ($rows as $row) {
+                $result['scanned']++;
+                $type = (string) ($row['type'] ?? 'movies');
+                $folder = $type === 'tv_show' ? 'tv' : 'movies';
+                $tmdbId = (int) ($row['tmdb_id'] ?? 0);
+                $id = (int) ($row['id'] ?? 0);
+
+                $updates = [];
+                if (!empty($row['poster_url'])) {
+                    $poster = $this->downloadImageAsWebp((string) $row['poster_url'], $folder, 'poster-' . ($tmdbId ?: $id));
+                    if ($poster !== null) {
+                        $updates['poster_image'] = $poster;
+                    }
+                }
+                if (empty($row['backdrop_image']) && !empty($row['poster_url'])) {
+                    $backdrop = $this->downloadImageAsWebp((string) $row['poster_url'], $folder, 'backdrop-' . ($tmdbId ?: $id));
+                    if ($backdrop !== null) {
+                        $updates['backdrop_image'] = $backdrop;
+                    }
+                }
+
+                if ($updates !== []) {
+                    $this->db->updateById('media_items', $id, $updates);
+                    $result['hydrated']++;
+                } else {
+                    $result['failed']++;
+                }
+            }
+        }
+
+        if ($scope === 'all' || $scope === 'seasons') {
+            $rows = $this->db->select(
+                "SELECT id, tmdb_parent_id, season_number, poster_url
+                 FROM media_seasons
+                 WHERE poster_url IS NOT NULL AND poster_url <> ''
+                 AND (
+                    poster_image IS NULL OR poster_image = ''
+                    OR backdrop_image IS NULL OR backdrop_image = ''
+                 )
+                 ORDER BY id DESC
+                 LIMIT {$limit}"
+            );
+
+            foreach ($rows as $row) {
+                $result['scanned']++;
+                $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
+                $seasonNumber = (int) ($row['season_number'] ?? 0);
+                $id = (int) ($row['id'] ?? 0);
+                $url = (string) ($row['poster_url'] ?? '');
+
+                $poster = $this->downloadImageAsWebp($url, 'tv-seasons', 'poster-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber));
+                $backdrop = $this->downloadImageAsWebp($url, 'tv-seasons', 'backdrop-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber));
+
+                $updates = [];
+                if ($poster !== null) {
+                    $updates['poster_image'] = $poster;
+                }
+                if ($backdrop !== null) {
+                    $updates['backdrop_image'] = $backdrop;
+                }
+
+                if ($updates !== []) {
+                    $this->db->updateById('media_seasons', $id, $updates);
+                    $result['hydrated']++;
+                } else {
+                    $result['failed']++;
+                }
+            }
+        }
+
+        if ($scope === 'all' || $scope === 'episodes') {
+            $rows = $this->db->select(
+                "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url
+                 FROM media_episodes
+                 WHERE poster_url IS NOT NULL AND poster_url <> ''
+                 AND (
+                    poster_image IS NULL OR poster_image = ''
+                    OR backdrop_image IS NULL OR backdrop_image = ''
+                 )
+                 ORDER BY id DESC
+                 LIMIT {$limit}"
+            );
+
+            foreach ($rows as $row) {
+                $result['scanned']++;
+                $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
+                $seasonNumber = (int) ($row['season_number'] ?? 0);
+                $episodeNumber = (int) ($row['episode_number'] ?? 0);
+                $id = (int) ($row['id'] ?? 0);
+                $url = (string) ($row['poster_url'] ?? '');
+
+                $poster = $this->downloadImageAsWebp($url, 'tv-episodes', 'poster-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber) . 'e' . max(1, $episodeNumber));
+                $backdrop = $this->downloadImageAsWebp($url, 'tv-episodes', 'backdrop-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber) . 'e' . max(1, $episodeNumber));
+
+                $updates = [];
+                if ($poster !== null) {
+                    $updates['poster_image'] = $poster;
+                }
+                if ($backdrop !== null) {
+                    $updates['backdrop_image'] = $backdrop;
+                }
+
+                if ($updates !== []) {
+                    $this->db->updateById('media_episodes', $id, $updates);
+                    $result['hydrated']++;
+                } else {
+                    $result['failed']++;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Generate missing TV seasons and episodes for imported TV shows.
+     *
+     * @return array{limit:int,shows_scanned:int,seasons_created:int,episodes_created:int,errors:list<string>}
+     */
+    public function generateMissingTvSeasonsAndEpisodes(int $limit = 10, string $status = 'draft'): array
+    {
+        $limit = max(1, min(100, $limit));
+        $status = $this->normalizeStatus($status);
+        $downloadImages = $this->bulkDownloadsImages();
+
+        $shows = $this->db->select(
+            "SELECT id, tmdb_id
+             FROM media_items
+             WHERE tmdb_type = 'tv_show'
+             AND tmdb_id IS NOT NULL
+             AND tmdb_id > 0
+             ORDER BY id DESC
+             LIMIT {$limit}"
+        );
+
+        $result = [
+            'limit' => $limit,
+            'shows_scanned' => 0,
+            'seasons_created' => 0,
+            'episodes_created' => 0,
+            'errors' => [],
+        ];
+
+        foreach ($shows as $showRow) {
+            $result['shows_scanned']++;
+            $tmdbTvId = (int) ($showRow['tmdb_id'] ?? 0);
+            $mediaItemId = (int) ($showRow['id'] ?? 0);
+
+            if ($tmdbTvId < 1 || $mediaItemId < 1) {
+                continue;
+            }
+
+            try {
+                $show = $this->tvShowDetails($tmdbTvId);
+                $parent = $this->ensureSeriesItem($tmdbTvId, $status);
+
+                $existingSeasons = $this->db->select(
+                    'SELECT id, season_number FROM media_seasons WHERE media_item_id = :media_item_id',
+                    ['media_item_id' => $mediaItemId]
+                );
+                $seasonMap = [];
+                foreach ($existingSeasons as $seasonRow) {
+                    $seasonMap[(int) ($seasonRow['season_number'] ?? 0)] = (int) ($seasonRow['id'] ?? 0);
+                }
+
+                $seasonSummaries = array_values(array_filter(
+                    $show['seasons'] ?? [],
+                    static fn(array $season): bool => (int) ($season['season_number'] ?? 0) > 0
+                ));
+
+                foreach ($seasonSummaries as $seasonSummary) {
+                    $seasonNumber = (int) ($seasonSummary['season_number'] ?? 0);
+                    if ($seasonNumber < 1) {
+                        continue;
+                    }
+
+                    $seasonData = $this->tvSeasonDetails($tmdbTvId, $seasonNumber);
+                    $isNewSeason = !isset($seasonMap[$seasonNumber]);
+                    $seasonItem = $this->upsertTvSeasonFromData(
+                        $tmdbTvId,
+                        $show,
+                        $seasonData,
+                        $seasonNumber,
+                        0,
+                        $status,
+                        $parent,
+                        $downloadImages
+                    );
+
+                    if ($isNewSeason) {
+                        $result['seasons_created']++;
+                    }
+
+                    $seasonId = (int) ($seasonItem['id'] ?? 0);
+                    if ($seasonId < 1) {
+                        continue;
+                    }
+
+                    $existingEpisodes = $this->db->select(
+                        'SELECT episode_number FROM media_episodes WHERE media_item_id = :media_item_id AND season_number = :season_number',
+                        ['media_item_id' => $mediaItemId, 'season_number' => $seasonNumber]
+                    );
+                    $episodeMap = [];
+                    foreach ($existingEpisodes as $episodeRow) {
+                        $episodeMap[(int) ($episodeRow['episode_number'] ?? 0)] = true;
+                    }
+
+                    foreach (($seasonData['episodes'] ?? []) as $episode) {
+                        $episodeNumber = (int) ($episode['episode_number'] ?? 0);
+                        if ($episodeNumber < 1) {
+                            continue;
+                        }
+
+                        $isNewEpisode = !isset($episodeMap[$episodeNumber]);
+                        $this->upsertTvEpisodeFromData(
+                            $tmdbTvId,
+                            $show,
+                            $episode,
+                            $seasonNumber,
+                            $episodeNumber,
+                            0,
+                            $status,
+                            $parent,
+                            ['id' => $seasonId],
+                            $downloadImages
+                        );
+                        if ($isNewEpisode) {
+                            $result['episodes_created']++;
+                        }
+                    }
+
+                    $this->db->updateById('media_seasons', $seasonId, ['clgnrt' => 1]);
+                }
+
+                $this->db->updateById('media_items', $mediaItemId, ['clgnrt' => 1]);
+            } catch (Throwable $e) {
+                $result['errors'][] = 'TMDB show ' . $tmdbTvId . ': ' . $e->getMessage();
+            }
+        }
+
+        return $result;
+    }
+
     private function upsertTvEpisodeFromData(
         int $tmdbTvId,
         array $show,
@@ -463,10 +749,13 @@ class TmdbImporterService
         int $seasonNumber,
         int $episodeNumber,
         int $views,
-        string $status
+        string $status,
+        ?array $parentOverride = null,
+        ?array $seasonOverride = null,
+        bool $downloadImages = true
     ): ?array {
-        $parent = $this->ensureSeriesItem($tmdbTvId, $status);
-        $season = $this->ensureSeasonItem($tmdbTvId, $show, $seasonNumber, $status);
+        $parent = $parentOverride ?: $this->ensureSeriesItem($tmdbTvId, $status);
+        $season = $seasonOverride ?: $this->ensureSeasonItem($tmdbTvId, $show, $seasonNumber, $status);
         $episodeTitle = trim((string) ($episode['name'] ?? 'Episode ' . $episodeNumber));
         $showTitle = trim((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'));
         $posterUrl = $this->imageUrl($show['poster_path'] ?? null);
@@ -480,8 +769,8 @@ class TmdbImporterService
             'episode_name'   => $episodeTitle,
             'synopsis'       => (string) ($episode['overview'] ?? $show['overview'] ?? ''),
             'poster_url'     => $posterUrl,
-            'poster_image'   => $this->downloadImageAsWebp($posterUrl, 'tv-episodes', 'poster-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber),
-            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, 'tv-episodes', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber),
+            'poster_image'   => $downloadImages ? $this->downloadImageAsWebp($posterUrl, 'tv-episodes', 'poster-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber) : null,
+            'backdrop_image' => $downloadImages ? $this->downloadImageAsWebp($backdropUrl, 'tv-episodes', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber) : null,
             'stream_link'    => null,
             'release_year'   => $this->yearFromDate($episode['air_date'] ?? $show['first_air_date'] ?? null),
             'air_date'       => $airDate,
@@ -493,7 +782,25 @@ class TmdbImporterService
 
         $externalId = (int) ($episode['id'] ?? 0);
         $tmdbId = $externalId > 0 ? $externalId : (int) ($tmdbTvId . $seasonNumber . $episodeNumber);
-        $id = $this->upsertMediaEpisode((int) $parent['id'], (int) $season['id'], 'tv_episode', $tmdbId, $tmdbTvId, $payload);
+        try {
+            $id = $this->upsertMediaEpisode((int) $parent['id'], (int) $season['id'], 'tv_episode', $tmdbId, $tmdbTvId, $payload);
+        } catch (Throwable $e) {
+            // Handle schema drift where status ENUM differs.
+            $message = strtolower($e->getMessage());
+            if (!str_contains($message, 'status') || (!str_contains($message, '1265') && !str_contains($message, 'truncat'))) {
+                throw $e;
+            }
+
+            // Retry with safest status.
+            $payload['status'] = 'draft';
+            try {
+                $id = $this->upsertMediaEpisode((int) $parent['id'], (int) $season['id'], 'tv_episode', $tmdbId, $tmdbTvId, $payload);
+            } catch (Throwable) {
+                // Final retry: omit the status field entirely to use DB default.
+                unset($payload['status']);
+                $id = $this->upsertMediaEpisode((int) $parent['id'], (int) $season['id'], 'tv_episode', $tmdbId, $tmdbTvId, $payload);
+            }
+        }
 
         return $this->db->findById('media_episodes', $id);
     }
@@ -504,9 +811,11 @@ class TmdbImporterService
         array $season,
         int $seasonNumber,
         int $views,
-        string $status
+        string $status,
+        ?array $parentOverride = null,
+        bool $downloadImages = true
     ): ?array {
-        $parent = $this->ensureSeriesItem($tmdbTvId, $status);
+        $parent = $parentOverride ?: $this->ensureSeriesItem($tmdbTvId, $status);
         $showTitle = trim((string) ($show['name'] ?? $show['original_name'] ?? 'Untitled Series'));
         $seasonTitle = trim((string) ($season['name'] ?? 'Season ' . $seasonNumber));
         $posterUrl = $this->imageUrl($season['poster_path'] ?? null) ?? $this->imageUrl($show['poster_path'] ?? null);
@@ -517,19 +826,45 @@ class TmdbImporterService
             'serie'          => $showTitle,
             'synopsis'       => (string) ($season['overview'] ?? $show['overview'] ?? ''),
             'poster_url'     => $posterUrl,
-            'poster_image'   => $this->downloadImageAsWebp($posterUrl, 'tv-seasons', 'poster-' . $tmdbTvId . '-s' . $seasonNumber),
-            'backdrop_image' => $this->downloadImageAsWebp($backdropUrl, 'tv-seasons', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber),
+            'poster_image'   => $downloadImages ? $this->downloadImageAsWebp($posterUrl, 'tv-seasons', 'poster-' . $tmdbTvId . '-s' . $seasonNumber) : null,
+            'backdrop_image' => $downloadImages ? $this->downloadImageAsWebp($backdropUrl, 'tv-seasons', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber) : null,
             'release_year'   => $this->yearFromDate($season['air_date'] ?? $show['first_air_date'] ?? null),
             'air_date'       => $this->dateOrNull($season['air_date'] ?? null),
             'season_number'  => $seasonNumber,
-            'status'         => $this->normalizeStatus($status),
+            // Seasons should never be 'scheduled' (that's episode-only in some schemas).
+            'status'         => $this->normalizeSeasonStatus($status),
         ];
 
         $externalId = (int) ($season['id'] ?? 0);
         $tmdbId = $externalId > 0 ? $externalId : (int) ($tmdbTvId . $seasonNumber);
-        $id = $this->upsertMediaSeason((int) $parent['id'], 'tv_season', $tmdbId, $tmdbTvId, $payload);
+        try {
+            $id = $this->upsertMediaSeason((int) $parent['id'], 'tv_season', $tmdbId, $tmdbTvId, $payload);
+        } catch (Throwable $e) {
+            // Handle schema drift where status ENUM differs.
+            $message = strtolower($e->getMessage());
+            if (!str_contains($message, 'status') || (!str_contains($message, '1265') && !str_contains($message, 'truncat'))) {
+                throw $e;
+            }
+
+            // Retry with safest status.
+            $payload['status'] = 'draft';
+            try {
+                $id = $this->upsertMediaSeason((int) $parent['id'], 'tv_season', $tmdbId, $tmdbTvId, $payload);
+            } catch (Throwable) {
+                // Final retry: omit the status field entirely to use DB default.
+                unset($payload['status']);
+                $id = $this->upsertMediaSeason((int) $parent['id'], 'tv_season', $tmdbId, $tmdbTvId, $payload);
+            }
+        }
 
         return $this->db->findById('media_seasons', $id);
+    }
+
+    private function normalizeSeasonStatus(string $status): string
+    {
+        $status = $this->normalizeStatus($status);
+
+        return in_array($status, ['draft', 'published', 'archived'], true) ? $status : 'draft';
     }
 
     private function get(string $path, array $query = []): array
@@ -896,10 +1231,18 @@ class TmdbImporterService
         imagepalettetotruecolor($image);
         imagealphablending($image, true);
         imagesavealpha($image, true);
-        imagewebp($image, $absolutePath, 82);
+        $quality = (int) ($_ENV['TMDB_WEBP_QUALITY'] ?? 82);
+        $quality = max(40, min(92, $quality));
+        imagewebp($image, $absolutePath, $quality);
         imagedestroy($image);
 
         return $relativePath;
+    }
+
+    private function bulkDownloadsImages(): bool
+    {
+        // Season/episode generators are batch operations; allow skipping heavy I/O by default.
+        return filter_var($_ENV['TMDB_BULK_DOWNLOAD_IMAGES'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function castMeta(array $cast): ?string

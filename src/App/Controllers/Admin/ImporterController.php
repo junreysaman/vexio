@@ -122,6 +122,60 @@ class ImporterController
         }
     }
 
+    public function hydrateImages(Request $request, Response $response): Response
+    {
+        $payload = $request->data();
+        $scope = (string) ($payload['scope'] ?? 'all');
+        $limit = (int) ($payload['limit'] ?? 50);
+
+        try {
+            $summary = $this->tmdb->hydrateMissingImages($scope, $limit);
+
+            return $response->json([
+                'ok' => true,
+                'message' => sprintf(
+                    'Hydration complete: scanned %d, hydrated %d, failed %d.',
+                    (int) ($summary['scanned'] ?? 0),
+                    (int) ($summary['hydrated'] ?? 0),
+                    (int) ($summary['failed'] ?? 0)
+                ),
+                'summary' => $summary,
+                'csrf_token' => $this->refreshCsrfToken(),
+            ]);
+        } catch (RuntimeException $exception) {
+            return $response->error($exception->getMessage(), 422, [
+                'csrf_token' => $this->refreshCsrfToken(),
+            ]);
+        }
+    }
+
+    public function generateMissingTvContent(Request $request, Response $response): Response
+    {
+        $payload = $request->data();
+        $limit = (int) ($payload['limit'] ?? 10);
+        $status = (string) ($payload['status'] ?? 'draft');
+
+        try {
+            $summary = $this->tmdb->generateMissingTvSeasonsAndEpisodes($limit, $status);
+
+            return $response->json([
+                'ok' => true,
+                'message' => sprintf(
+                    'Processed %d shows. Created %d seasons and %d episodes.',
+                    (int) ($summary['shows_scanned'] ?? 0),
+                    (int) ($summary['seasons_created'] ?? 0),
+                    (int) ($summary['episodes_created'] ?? 0)
+                ),
+                'summary' => $summary,
+                'csrf_token' => $this->refreshCsrfToken(),
+            ]);
+        } catch (RuntimeException $exception) {
+            return $response->error($exception->getMessage(), 422, [
+                'csrf_token' => $this->refreshCsrfToken(),
+            ]);
+        }
+    }
+
     private function fetch(string $tab, string $query, int $page, ?int $year, string $sort, ?int $genre, ?string $language, ?string $country): array
     {
         if ($query !== '') {

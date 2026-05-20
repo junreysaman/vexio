@@ -6,6 +6,8 @@ namespace App\Middleware;
 
 use App\Config\Paths;
 use App\Exceptions\SessionException;
+use App\Session\PredisSessionHandler;
+use App\Support\RedisBootstrap;
 use Framework\Contracts\MiddlewareInterface;
 
 class SessionMiddleware implements MiddlewareInterface
@@ -26,11 +28,29 @@ class SessionMiddleware implements MiddlewareInterface
             'samesite' => 'lax',
         ]);
 
-        if (!is_dir(Paths::SESSIONS)) {
-            mkdir(Paths::SESSIONS, 0775, true);
+        $usePredisSessions = false;
+        if (RedisBootstrap::sessionRedisEnabledFromEnv()) {
+            $sessionDb = (int) ($_ENV['REDIS_SESSION_DB'] ?? $_ENV['REDIS_DB'] ?? 0);
+            $predis = RedisBootstrap::createPredisClient($sessionDb);
+            if ($predis !== null) {
+                $prefix = (string) ($_ENV['REDIS_SESSION_PREFIX'] ?? 'vexio:sess:');
+                $ttl = (int) ini_get('session.gc_maxlifetime');
+                if ($ttl < 60) {
+                    $ttl = 1440;
+                }
+                session_set_save_handler(new PredisSessionHandler($predis, $prefix, $ttl), true);
+                $usePredisSessions = true;
+            }
         }
 
-        session_save_path(Paths::SESSIONS);
+        if (!$usePredisSessions) {
+            if (!is_dir(Paths::SESSIONS)) {
+                mkdir(Paths::SESSIONS, 0775, true);
+            }
+
+            session_save_path(Paths::SESSIONS);
+        }
+
         session_start();
 
         try {

@@ -72,6 +72,9 @@ class WatchTvController
             [
                 'title' => (string) ($show['title'] ?? 'Watch TV Show'),
                 'body_class' => 'paper-watch-watch-tv',
+                'meta_description' => $this->truncate((string) ($episode['synopsis'] ?? $show['synopsis'] ?? ''), 160),
+                'meta_keywords' => (string) ($show['genres'] ?? ''),
+                'meta_image' => $episode['poster_image'] ?? $episode['backdrop_image'] ?? $show['poster_image'] ?? $show['backdrop_image'] ?? null,
                 'show' => $show,
                 'episode' => $episode,
                 'seasons' => $data['seasons'] ?? [],
@@ -91,5 +94,13 @@ class WatchTvController
             'body_class' => 'paper-not-found-page',
             'message' => $message,
         ]), 404);
+    }
+
+    private function truncate(string $text, int $length): string
+    {
+        if (strlen($text) <= $length) {
+            return $text;
+        }
+        return substr($text, 0, $length - 3) . '...';
     }
 }

@@ -17,6 +17,13 @@
     <?= $this->includePartial('/frontend/watch/watch-tv/components/tv-sidebar') ?>
   </div>
 </div>
+
+<?= $this->includePartial('/frontend/partials/share-modal', [
+  'pageUrl' => $_SERVER['REQUEST_URI'] ?? '/',
+  'pageTitle' => $show['title'] ?? 'Watch TV Show',
+  'pageImage' => $show['poster_image'] ?? $show['backdrop_image'] ?? '/favicon.png',
+]) ?>
+
 <?= $this->end() ?>
 
 <?= $this->start('scripts') ?>

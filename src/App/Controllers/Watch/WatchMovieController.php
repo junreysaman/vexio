@@ -27,17 +27,22 @@ class WatchMovieController
             return $this->notFound($response);
         }
 
+        $item = $data['item'];
+        
         return $response->html($this->view->render(
             'frontend/watch/watch-movie/index',
             'layouts/frontend/paper',
             [
-                'title' => (string) ($data['item']['title'] ?? 'Watch Movie'),
+                'title' => (string) ('Watch' . ' ' . $item['title'] . ' ' .  $item['release_year'] ?? 'Watch Movie'),
                 'body_class' => 'paper-watch-watch-movie',
-                'item' => $data['item'],
+                'meta_description' => $this->truncate((string) ($item['synopsis'] ?? ''), 160),
+                'meta_keywords' => (string) ($item['genres'] ?? ''),
+                'meta_image' => $item['poster_image'] ?? $item['backdrop_image'] ?? null,
+                'item' => $item,
                 'related' => $data['related'] ?? [],
-                'comments' => $this->comments->forItem((int) ($data['item']['id'] ?? 0)),
-                'commentCount' => $this->comments->count('item', (int) ($data['item']['id'] ?? 0)),
-                'watchUrl' => $data['item']['watchUrl'] ?? ($data['item']['watch_url'] ?? null),
+                'comments' => $this->comments->forItem((int) ($item['id'] ?? 0)),
+                'commentCount' => $this->comments->count('item', (int) ($item['id'] ?? 0)),
+                'watchUrl' => $item['watchUrl'] ?? ($item['watch_url'] ?? null),
             ]
         ));
     }
@@ -49,6 +54,14 @@ class WatchMovieController
             'body_class' => 'paper-not-found-page',
             'message' => 'The requested movie is not published or does not exist.',
         ]), 404);
+    }
+
+    private function truncate(string $text, int $length): string
+    {
+        if (strlen($text) <= $length) {
+            return $text;
+        }
+        return substr($text, 0, $length - 3) . '...';
     }
 
 }

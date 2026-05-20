@@ -52,9 +52,11 @@ $navItems = [
     [
         'key' => 'forum',
         'label' => 'Forum',
-        'href' => '/forum',
+        'href' => 'javascript:void(0)',
         'active' => false,
         'icon' => '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+        'disabled',
+        'onclick' => "showToast('Forum coming soon!')"
     ],
 
     /*
@@ -130,10 +132,18 @@ $navItems = [
             <kbd>Ctrl K</kbd>
 
         </div>
-        <!-- if user logged in do not show -->
-        <a href="/login" class="nav-sign-btn">
-            Sign In
-        </a>
+        <?php if ($currentUser): ?>
+            <form action="/logout" method="POST" style="display: inline;">
+                <input type="hidden" name="token" value="<?= escape($_csrfToken) ?>">
+                <button type="submit" class="nav-sign-btn">
+                    Sign Out
+                </button>
+            </form>
+        <?php else: ?>
+            <a href="/login" class="nav-sign-btn">
+                Sign In
+            </a>
+        <?php endif; ?>
 
         <button
             class="mobile-search-btn"

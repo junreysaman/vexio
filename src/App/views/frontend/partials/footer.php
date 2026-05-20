@@ -45,8 +45,11 @@
         </div>
       </div>
     </div>
+    <p class="foot-disclaimer" role="note">
+      VEXIO does not host, store, or claim ownership of any movies or TV shows. All playback is provided via third-party streaming platforms and embedded sources; we are a discovery and navigation service only. Titles, artwork, and trademarks remain the property of their respective rights holders.
+    </p>
     <div class="foot-bottom">
-      <p class="foot-copy">&copy; 2025 VEXIO - All titles belong to their respective rights holders.</p>
+      <p class="foot-copy">&copy; 2026 VEXIO - All titles belong to their respective rights holders.</p>
       <div class="foot-legal">
         <a href="/privacy-policy">Privacy</a>
         <a href="/terms-of-use">Terms</a>

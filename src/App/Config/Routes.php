@@ -1,49 +1,59 @@
-<?php
-
+<?php 
 declare(strict_types=1);
 
 namespace App\Config;
 
-use App\Controllers\AppController;
-use App\Controllers\SupportPageController;
-use App\Controllers\Auth\AuthController;
-use App\Controllers\Auth\AuthPageController;
+use App\Controllers\Admin\Content\ContentController;
+use App\Controllers\Admin\CommentController as AdminCommentController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImporterController;
 use App\Controllers\Admin\UserController;
-use App\Controllers\Admin\CommentController as AdminCommentController;
-use App\Controllers\Admin\Content\ContentController;
-use App\Middleware\AdminRequiredMiddleware;
+use App\Controllers\Auth\AuthController;
+use App\Controllers\Auth\AuthPageController;
+use App\Controllers\Forum\ForumController;
 use App\Controllers\Search\SearchController;
+use App\Controllers\Watch\CommentController;
 use App\Controllers\Watch\WatchMovieController;
 use App\Controllers\Watch\WatchTvController;
-use App\Controllers\Watch\CommentController;
-use App\Controllers\Forum\ForumController;
+use App\Controllers\AppController;
+use App\Controllers\SupportPageController;
+use App\Controllers\PublicSeoController;
+use App\Middleware\AdminRequiredMiddleware;
 use App\Middleware\AuthRequiredMiddleware;
 use Framework\App;
 
 function registerRoutes(App $app): void
 {
     $routes = [
+        // Public/App Routes
         ['GET', '/', [AppController::class, 'home']],
         ['GET', '/genres', [AppController::class, 'genreGenrePage']],
         ['GET', '/genre/{slug}', [AppController::class, 'archiveGenrePage']],
+        // Archive Routes
+        ['GET', '/archive/browse', [AppController::class, 'archiveBrowse']],
+        ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
+        ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
+        // Auth Routes
         ['GET', '/login', [AuthPageController::class, 'login']],
         ['GET', '/register', [AuthPageController::class, 'register']],
         ['POST', '/login', [AuthController::class, 'authenticate']],
         ['POST', '/register', [AuthController::class, 'store']],
         ['POST', '/logout', [AuthController::class, 'logout'], [AuthRequiredMiddleware::class]],
+        // Admin Dashboard
         ['GET', '/admin/dashboard', [DashboardController::class, 'index'], [AdminRequiredMiddleware::class]],
+        // Admin Users
         ['GET', '/admin/users', [UserController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/users/create', [UserController::class, 'create'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/users', [UserController::class, 'store'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/users/{id}/edit', [UserController::class, 'edit'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/users/{id}/edit', [UserController::class, 'update'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/users/{id}/delete', [UserController::class, 'destroy'], [AdminRequiredMiddleware::class]],
+        // Admin Comments
         ['GET', '/admin/comments', [AdminCommentController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/comments/{id}/publish', [AdminCommentController::class, 'publish'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/comments/{id}/hide', [AdminCommentController::class, 'hide'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/comments/{id}/delete', [AdminCommentController::class, 'destroy'], [AdminRequiredMiddleware::class]],
+        // Admin Content
         ['GET', '/admin/content', [ContentController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/content/{id}/edit', [ContentController::class, 'edit'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/edit', [ContentController::class, 'update'], [AdminRequiredMiddleware::class]],
@@ -56,12 +66,17 @@ function registerRoutes(App $app): void
         ['POST', '/admin/content/{id}/episodes', [ContentController::class, 'storeEpisode'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/episodes/{episodeId}/edit', [ContentController::class, 'updateEpisode'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/episodes/{episodeId}/delete', [ContentController::class, 'deleteEpisode'], [AdminRequiredMiddleware::class]],
-        ['GET', '/admin/importer', [ImporterController::class, 'index'],[AdminRequiredMiddleware::class]],
+        // Admin Importer
+        ['GET', '/admin/importer', [ImporterController::class, 'index'], [AdminRequiredMiddleware::class]],
         ['GET', '/admin/importer/results', [ImporterController::class, 'results'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/importer/import', [ImporterController::class, 'import'], [AdminRequiredMiddleware::class]],
-        ['GET', '/archive/browse', [AppController::class, 'archiveBrowse']],
-        ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
-        ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
+        ['POST', '/admin/importer/hydrate-images', [ImporterController::class, 'hydrateImages'], [AdminRequiredMiddleware::class]],
+        ['POST', '/admin/importer/generate-missing-tv', [ImporterController::class, 'generateMissingTvContent'], [AdminRequiredMiddleware::class]],
+        // Crawlers / monetization (Google Search Console, ads.txt validators)
+        ['GET', '/robots.txt', [PublicSeoController::class, 'robots']],
+        ['GET', '/sitemap.xml', [PublicSeoController::class, 'sitemap']],
+        ['GET', '/ads.txt', [PublicSeoController::class, 'adsTxt']],
+        // Support/Info Pages
         ['GET', '/faq', [SupportPageController::class, 'faq']],
         ['GET', '/contact', [SupportPageController::class, 'contact']],
         ['GET', '/report-issue', [SupportPageController::class, 'reportIssue']],
@@ -70,23 +85,28 @@ function registerRoutes(App $app): void
         ['GET', '/terms-of-use', [SupportPageController::class, 'termsOfUse']],
         ['GET', '/dmca', [SupportPageController::class, 'dmca']],
         ['GET', '/advertise', [SupportPageController::class, 'advertise']],
+        // API Routes
         ['GET', '/api/search', [SearchController::class, 'index']],
         ['POST', '/api/comments', [CommentController::class, 'store']],
+        // Watch/Movie Routes
         ['GET', '/movie/{tmdbId}', [WatchMovieController::class, 'index']],
-        ['GET', '/tvshow/{tmdbId}', [WatchTvController::class, 'root']],
-        ['GET', '/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],
         ['GET', '/watch/movie/{tmdbId}', [WatchMovieController::class, 'index']],
         ['GET', '/watch/movie/{tmdbId}/{slug}', [WatchMovieController::class, 'index']],
+        // Watch/TV Routes
+        ['GET', '/tvshow/{tmdbId}', [WatchTvController::class, 'root']],
+        ['GET', '/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],
         ['GET', '/watch/tvshow/{tmdbId}', [WatchTvController::class, 'root']],
         ['GET', '/watch/tvshow/{tmdbId}/{slug}', [WatchTvController::class, 'root']],
         ['GET', '/watch/tvshow/{tmdbId}/episode/{episodeId}', [WatchTvController::class, 'episodeById']],
         ['GET', '/watch/tvshow/{tmdbId}/{seasonNo}/{episodeNo}', [WatchTvController::class, 'legacyEpisode']],
         ['GET', '/watch/tvshow/{tmdbId}/{slug}/season/{seasonNo}/episode/{episodeNo}', [WatchTvController::class, 'episode']],
-        ['GET',  '/forum',                          [ForumController::class, 'index']],
-        ['POST', '/forum/threads',                    [ForumController::class, 'store'],      [AuthRequiredMiddleware::class]],
-        ['GET',  '/forum/thread/{id}',                [ForumController::class, 'show']],
-        ['POST', '/forum/thread/{id}/replies',        [ForumController::class, 'storeReply'], [AuthRequiredMiddleware::class]],
-        ['POST', '/forum/thread/{id}/vote',           [ForumController::class, 'vote'],       [AuthRequiredMiddleware::class]],
+        // Forum Routes (Disabled - Coming Soon)
+        // ['GET', '/forum', [ForumController::class, 'index']],
+        // ['POST', '/forum/threads', [ForumController::class, 'store'], [AuthRequiredMiddleware::class]],
+        // ['GET', '/forum/thread/{id}', [ForumController::class, 'show']],
+        // ['POST', '/forum/thread/{id}/replies', [ForumController::class, 'storeReply'], [AuthRequiredMiddleware::class]],
+        // ['POST', '/forum/thread/{id}/vote', [ForumController::class, 'vote'], [AuthRequiredMiddleware::class]],
+        // Error Pages
         ['GET', '/404', [AppController::class, 'notFound']],
     ];
 

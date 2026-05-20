@@ -134,6 +134,48 @@ class BrowseService
     }
 
     /**
+     * Published watch URLs for sitemap generation (lightweight; no genre JOIN).
+     *
+     * @return list<array{path: string, lastmod: ?string}>
+     */
+    public function getPublishedWatchPathsForSitemap(int $limit = 50000): array
+    {
+        $limit = max(1, min(100000, $limit));
+        $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
+
+        $rows = $db->select(
+            'SELECT tmdb_id, slug, title, type, updated_at
+             FROM media_items
+             WHERE status = :status
+             AND type IN (\'movie\', \'tv_show\')
+             AND tmdb_id IS NOT NULL AND tmdb_id > 0
+             ORDER BY updated_at DESC, id DESC
+             LIMIT ' . $limit,
+            ['status' => 'published']
+        );
+
+        $out = [];
+        foreach ($rows as $row) {
+            $path = MediaUrl::watchUrlForItem($row);
+            if ($path === null) {
+                continue;
+            }
+
+            $raw = $row['updated_at'] ?? null;
+            $lastmod = null;
+            if (is_string($raw) && $raw !== '') {
+                $ts = strtotime($raw);
+                $lastmod = $ts !== false ? date('c', $ts) : null;
+            }
+
+            $out[] = ['path' => $path, 'lastmod' => $lastmod];
+        }
+
+        return $out;
+    }
+
+    /**
      * Build the compact catalog payload used by browse cards and filters.
      *
      * @param array<string, mixed> $item Raw media_items row.
@@ -163,7 +205,7 @@ class BrowseService
             'created_at' => (string) ($item['created_at'] ?? ''),
             'genres' => $genres,
             'genre_label' => $this->genreLabel($genres),
-            'poster' => (string) ($item['poster_image'] ?: $item['poster_url'] ?: ''),
+            'poster' => (string) ($item['poster_url'] ?: $item['poster_image'] ?: ''),
             'watch_url' => MediaUrl::watchUrlForItem($item),
             'watchUrl' => MediaUrl::watchUrlForItem($item),
         ];

@@ -1,0 +1,176 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Config\Paths;
+use App\Services\Archive\BrowseService;
+use Framework\Http\Request;
+use Framework\Http\Response;
+
+/**
+ * Crawler-facing plain-text and XML endpoints: robots.txt, sitemap.xml, ads.txt.
+ */
+final class PublicSeoController
+{
+    /** @var list<string> */
+    private const STATIC_SITEMAP_PATHS = [
+        '/',
+        '/archive/browse',
+        '/archive/trending',
+        '/genres',
+        '/faq',
+        '/contact',
+        '/report-issue',
+        '/request-title',
+        '/privacy-policy',
+        '/terms-of-use',
+        '/dmca',
+        '/advertise',
+    ];
+
+    public function __construct(private BrowseService $browse)
+    {
+    }
+
+    public function robots(Request $request, Response $response): Response
+    {
+        $sitemapLine = 'Sitemap: ' . \url('sitemap.xml');
+
+        $lines = [
+            'User-agent: *',
+            'Allow: /',
+            '',
+            'Disallow: /admin',
+            'Disallow: /login',
+            'Disallow: /register',
+            'Disallow: /logout',
+            'Disallow: /api/',
+            '',
+            $sitemapLine,
+            '',
+        ];
+
+        return $this->plain($response, implode("\n", $lines));
+    }
+
+    public function sitemap(Request $request, Response $response): Response
+    {
+        $maxTotal = (int) ($_ENV['SITEMAP_MAX_URLS'] ?? 50000);
+        $maxTotal = max(100, min(50000, $maxTotal));
+
+        $entries = [];
+        foreach (self::STATIC_SITEMAP_PATHS as $path) {
+            $entries[] = ['path' => $path, 'lastmod' => null];
+        }
+
+        foreach ($this->browse->getAllGenres() as $genre) {
+            $path = (string) ($genre['url'] ?? '');
+            if ($path !== '') {
+                $entries[] = ['path' => $path, 'lastmod' => null];
+            }
+        }
+
+        $remaining = $maxTotal - count($entries);
+        if ($remaining > 0) {
+            foreach ($this->browse->getPublishedWatchPathsForSitemap($remaining) as $row) {
+                $entries[] = $row;
+            }
+        }
+
+        $seen = [];
+        $unique = [];
+        foreach ($entries as $entry) {
+            $path = (string) ($entry['path'] ?? '');
+            if ($path === '' || isset($seen[$path])) {
+                continue;
+            }
+            $seen[$path] = true;
+            $unique[] = $entry;
+        }
+
+        $body = $this->buildSitemapXml($unique);
+
+        return $response
+            ->status(200)
+            ->header('Content-Type', 'application/xml; charset=UTF-8')
+            ->body($body);
+    }
+
+    public function adsTxt(Request $request, Response $response): Response
+    {
+        $file = Paths::STORAGE . '/seo/ads.txt';
+
+        if (is_readable($file)) {
+            $raw = (string) file_get_contents($file);
+
+            return $this->plain($response, rtrim($raw) . "\n");
+        }
+
+        $lines = [];
+        $publisher = trim((string) ($_ENV['GOOGLE_ADS_PUBLISHER_ID'] ?? ''));
+        if ($publisher !== '') {
+            if (!str_starts_with(strtolower($publisher), 'pub-')) {
+                $publisher = 'pub-' . $publisher;
+            }
+            $lines[] = 'google.com, ' . $publisher . ', DIRECT, f08c47fec0942fa0';
+        }
+
+        if ($lines === []) {
+            $lines = [
+                '# ads.txt — Authorised Digital Sellers (https://iabtechlab.com/ads-txt/)',
+                '# Put your seller lines in storage/seo/ads.txt OR set GOOGLE_ADS_PUBLISHER_ID in .env',
+                '# Example: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0',
+            ];
+        }
+
+        return $this->plain($response, implode("\n", $lines) . "\n");
+    }
+
+    private function plain(Response $response, string $body): Response
+    {
+        return $response
+            ->status(200)
+            ->header('Content-Type', 'text/plain; charset=UTF-8')
+            ->body($body);
+    }
+
+    /**
+     * @param list<array{path: string, lastmod: ?string}> $entries
+     */
+    private function buildSitemapXml(array $entries): string
+    {
+        $parts = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        ];
+
+        foreach ($entries as $entry) {
+            $path = (string) ($entry['path'] ?? '');
+            if ($path === '') {
+                continue;
+            }
+
+            $loc = $this->escapeXml(\url($path));
+            $parts[] = '  <url>';
+            $parts[] = '    <loc>' . $loc . '</loc>';
+
+            $lastmod = $entry['lastmod'] ?? null;
+            if (is_string($lastmod) && $lastmod !== '') {
+                $parts[] = '    <lastmod>' . $this->escapeXml($lastmod) . '</lastmod>';
+            }
+
+            $parts[] = '  </url>';
+        }
+
+        $parts[] = '</urlset>';
+
+        return implode("\n", $parts) . "\n";
+    }
+
+    private function escapeXml(string $value): string
+    {
+        return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+}

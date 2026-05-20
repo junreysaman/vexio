@@ -89,7 +89,7 @@ class SearchService
         return [
             'title' => (string) ($item['title'] ?? 'Untitled'),
             'year' => is_numeric($item['release_year'] ?? null) ? (string) $item['release_year'] : '',
-            'image' => (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '') ?: ($item['backdrop_image'] ?? '')),
+            'image' => (string) (($item['poster_url'] ?? '') ?: ($item['poster_image'] ?? '') ?: ($item['backdrop_image'] ?? '')),
             'watchUrl' => $watchUrl,
         ];
     }

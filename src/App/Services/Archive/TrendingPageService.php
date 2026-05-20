@@ -230,7 +230,7 @@ class TrendingPageService
             'week' => $views,
             'month' => $views,
         ];
-        $poster = (string) ($item['poster_image'] ?: $item['poster_url'] ?: 'https://picsum.photos/seed/vexio-trending-' . (int) ($item['id'] ?? 0) . '/500/750');
+        $poster = (string) ($item['poster_url'] ?: $item['poster_image'] ?: 'https://picsum.photos/seed/vexio-trending-' . (int) ($item['id'] ?? 0) . '/500/750');
         $backdrop = (string) ($item['backdrop_image'] ?: $poster);
 
         return [

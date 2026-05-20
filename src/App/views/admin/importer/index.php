@@ -82,6 +82,36 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                 <i class="icon-search"></i>
             </button>
         </form>
+
+        <form id="dbmovies-hydrate-form" class="importer-hydrate">
+            <input type="hidden" name="token" value="<?= escape((string) ($_csrfToken ?? '')) ?>">
+            <label for="dbmvs-hydrate-scope" class="sr-only">Hydrate scope</label>
+            <select id="dbmvs-hydrate-scope" name="scope" class="custom-select" aria-label="Hydrate scope">
+                <option value="all">Hydrate all</option>
+                <option value="items">Items only</option>
+                <option value="seasons">Seasons only</option>
+                <option value="episodes">Episodes only</option>
+            </select>
+            <label for="dbmvs-hydrate-limit" class="sr-only">Batch size</label>
+            <input id="dbmvs-hydrate-limit" name="limit" type="number" min="1" max="200" value="50" aria-label="Hydrate batch size">
+            <button type="submit" id="dbmvs-btn-hydrate" class="paper-btn">
+                <i class="icon-image"></i> Hydrate Missing Images
+            </button>
+        </form>
+
+        <form id="dbmovies-generate-missing-form" class="importer-generate-missing">
+            <input type="hidden" name="token" value="<?= escape((string) ($_csrfToken ?? '')) ?>">
+            <label for="dbmvs-generate-limit" class="sr-only">Shows per run</label>
+            <input id="dbmvs-generate-limit" name="limit" type="number" min="1" max="100" value="10" aria-label="TV shows per run">
+            <label for="dbmvs-generate-status" class="sr-only">Generated status</label>
+            <select id="dbmvs-generate-status" name="status" class="custom-select" aria-label="Generated content status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+            </select>
+            <button type="submit" id="dbmvs-btn-generate-missing" class="paper-btn primary">
+                <i class="icon-auto_fix_high"></i> Generate Missing Seasons & Episodes
+            </button>
+        </form>
     </div>
 
     <div class="importer-logs">
@@ -200,7 +230,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 1;
+    flex: 1 1 520px;
     min-width: 300px;
 }
 
@@ -230,6 +260,60 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 0 1 280px;
+    min-width: 220px;
+}
+
+.importer-hydrate{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex: 1 1 100%;
+    justify-content:flex-end;
+    padding-top: 8px;
+    border-top: 1px dashed var(--paper-line);
+}
+
+.importer-generate-missing{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex: 1 1 100%;
+    justify-content:flex-end;
+}
+
+.importer-generate-missing input[type="number"]{
+    width:84px;
+    padding:8px 10px;
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    background:var(--paper-surface);
+    color:var(--paper-ink);
+    font-size:12px;
+    font-weight:600;
+}
+
+.importer-hydrate input[type="number"]{
+    width:84px;
+    padding:8px 10px;
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    background:var(--paper-surface);
+    color:var(--paper-ink);
+    font-size:12px;
+    font-weight:600;
+}
+
+.sr-only{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
 }
 
 .importer-search input {
@@ -486,6 +570,23 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         flex: 1 1 100%;
     }
 
+    .importer-search {
+        flex: 1 1 100%;
+    }
+
+    .importer-search input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .importer-hydrate {
+        justify-content: flex-start;
+    }
+
+    .importer-generate-missing {
+        justify-content: flex-start;
+    }
+
     .importer-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
@@ -512,6 +613,26 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     .paper-btn {
         font-size: 12px;
         padding: 8px 12px;
+    }
+
+    .importer-hydrate {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .importer-hydrate .paper-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .importer-generate-missing {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .importer-generate-missing .paper-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 </style>
@@ -541,6 +662,8 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     const prev = document.getElementById('importPrev');
     const next = document.getElementById('importNext');
     const genreField = document.getElementById('dbmvs-genre');
+    const hydrateForm = document.getElementById('dbmovies-hydrate-form');
+    const generateMissingForm = document.getElementById('dbmovies-generate-missing-form');
 
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;',
@@ -716,6 +839,83 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         });
     };
 
+    const runHydration = (formEl) => {
+        const button = formEl.querySelector('#dbmvs-btn-hydrate');
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="icon-hourglass_top"></i>Hydrating...';
+        formEl.querySelector('[name="token"]').value = state.token;
+
+        return fetch('/admin/importer/hydrate-images', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+            body: new URLSearchParams(new FormData(formEl)),
+        })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+            const freshToken = data.csrf_token || data.error?.csrf_token;
+            if (freshToken) {
+                state.token = freshToken;
+                document.querySelectorAll('[name="token"]').forEach((field) => {
+                    field.value = freshToken;
+                });
+            }
+
+            if (!response.ok || !data.ok) {
+                throw new Error(data.error?.message || 'Hydration failed.');
+            }
+
+            alert(data.message || 'Hydration finished.');
+        })
+        .catch((error) => {
+            alert(error.message);
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = original;
+        });
+    };
+
+    const runGenerateMissing = (formEl) => {
+        const button = formEl.querySelector('#dbmvs-btn-generate-missing');
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="icon-hourglass_top"></i>Generating...';
+        formEl.querySelector('[name="token"]').value = state.token;
+
+        return fetch('/admin/importer/generate-missing-tv', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+            body: new URLSearchParams(new FormData(formEl)),
+        })
+        .then((response) => response.json().then((data) => ({ response, data })))
+        .then(({ response, data }) => {
+            const freshToken = data.csrf_token || data.error?.csrf_token;
+            if (freshToken) {
+                state.token = freshToken;
+                document.querySelectorAll('[name="token"]').forEach((field) => {
+                    field.value = freshToken;
+                });
+            }
+
+            if (!response.ok || !data.ok) {
+                throw new Error(data.error?.message || 'Generate missing failed.');
+            }
+
+            const summary = data.summary || {};
+            const errors = Array.isArray(summary.errors) ? summary.errors : [];
+            const suffix = errors.length ? `\n\nErrors (${errors.length}):\n- ` + errors.slice(0, 5).join('\n- ') : '';
+            alert((data.message || 'Generation completed.') + suffix);
+        })
+        .catch((error) => {
+            alert(error.message);
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = original;
+        });
+    };
+
     const load = async () => {
         setBusy(true);
 
@@ -814,6 +1014,16 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             state.page += 1;
             load();
         }
+    });
+
+    hydrateForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        importQueue = importQueue.then(() => runHydration(hydrateForm));
+    });
+
+    generateMissingForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        importQueue = importQueue.then(() => runGenerateMissing(generateMissingForm));
     });
 
     renderGenres();

@@ -199,7 +199,7 @@ class GenrePageService
             'type_label' => $this->typeLabel($type),
             'synopsis' => (string) ($item['synopsis'] ?? ''),
             'tmdb_id' => is_numeric($item['tmdb_id'] ?? null) ? (int) $item['tmdb_id'] : null,
-            'poster' => (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '')),
+            'poster' => (string) (($item['poster_url'] ?? '') ?: ($item['poster_image'] ?? '')),
             'release_year' => is_numeric($item['release_year'] ?? null) ? (int) $item['release_year'] : null,
             'tmdb_rating' => is_numeric($item['tmdb_rating'] ?? null) ? (float) $item['tmdb_rating'] : null,
             'views' => (int) ($item['views'] ?? 0),

@@ -11,6 +11,11 @@
 
 <?= $this->includePartial('/frontend/watch/watch-movie/components/movie-sidebar') ?>
 
+<?= $this->includePartial('/frontend/partials/share-modal', [
+  'pageUrl' => $_SERVER['REQUEST_URI'] ?? '/',
+  'pageTitle' => $item['title'] ?? 'Watch Movie',
+  'pageImage' => $item['poster_image'] ?? $item['backdrop_image'] ?? '/favicon.png',
+]) ?>
 
 <?= $this->end() ?>
 
