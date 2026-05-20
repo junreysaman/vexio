@@ -6,6 +6,7 @@ namespace App\Controllers\Admin\Content;
 
 use App\Services\Admin\Content\ContentService;
 use App\Services\TMDB\TmdbImporterService;
+use App\Support\MediaImage;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use Framework\TemplateEngine;
@@ -433,8 +434,6 @@ class ContentController
             return;
         }
 
-        if (is_file($absolutePath)) {
-            @unlink($absolutePath);
-        }
+        MediaImage::deleteVariants($path);
     }
 }

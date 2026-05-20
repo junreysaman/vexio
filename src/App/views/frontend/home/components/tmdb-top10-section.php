@@ -1,3 +1,4 @@
+<?php use App\Support\MediaImage; ?>
 <section id="top10">
   <div class="container">
     <div class="sec-head">
@@ -19,7 +20,9 @@
             $rank = $index + 1;
             $rankClass = $rank <= 3 ? 'r' . $rank : 'rn';
             $title = htmlspecialchars((string) ($item['title'] ?? 'Untitled'), ENT_QUOTES);
-            $poster = htmlspecialchars((string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-top-' . $rank . '/160/220'), ENT_QUOTES);
+            $posterMedia = is_array($item['poster_media'] ?? null)
+                ? $item['poster_media']
+                : MediaImage::fromString((string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-top-' . $rank . '/160/220'), 'thumb');
             $genre = htmlspecialchars((string) ($item['genre'] ?? 'Unknown Genre'), ENT_QUOTES);
             $duration = htmlspecialchars((string) ($item['type'] ?? 'movie') === 'movie' ? 'Movie' : 'Series', ENT_QUOTES);
             $score = htmlspecialchars((string) ($item['score'] ?? 'N/A'), ENT_QUOTES);
@@ -28,7 +31,13 @@
           ?>
           <a class="lb-item" href="<?= $watchUrl ?>"<?= $watchUrlRaw === '' || $watchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
             <span class="lb-rank <?= $rankClass ?>"><?= $rank ?></span>
-            <div class="lb-thumb"><img src="<?= $poster ?>" alt="<?= $title ?> poster" loading="lazy"></div>
+            <div class="lb-thumb">
+              <?php echo $this->includePartial('/frontend/partials/media-image', [
+                  'media' => $posterMedia,
+                  'alt' => (string) ($item['title'] ?? 'Untitled') . ' poster',
+                  'loading' => 'lazy',
+              ]); ?>
+            </div>
             <div class="lb-info">
               <div class="lb-title"><?= $title ?></div>
               <div class="lb-sub"><span><?= $genre ?></span><span><?= $duration ?></span></div>

@@ -235,11 +235,17 @@
 .spotlight-card:hover{border-color:rgba(255,195,64,.3);}
 .sp-bg{
   position:absolute;inset:0;
-  background-size:cover;background-position:center top;
-  filter:saturate(.9) brightness(.8);
-  transition:transform .7s cubic-bezier(.25,.46,.45,.94),filter .4s;
+  overflow:hidden;
+  transition:transform .7s cubic-bezier(.25,.46,.45,.94);
 }
-.spotlight-card:hover .sp-bg{transform:scale(1.05);filter:saturate(1.1) brightness(.65);}
+.sp-bg img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center top;
+  display:block;
+}
+.spotlight-card:hover .sp-bg{transform:scale(1.05);}
 .sp-gradient{
   position:absolute;inset:0;
   background:linear-gradient(to top,rgba(6,9,16,1) 0%,rgba(6,9,16,.75) 35%,rgba(6,9,16,.15) 70%,transparent 100%),
@@ -328,11 +334,17 @@
 @media(max-width:900px){.sidebar-card:hover{transform:translateY(-3px);}}
 .sc-bg{
   position:absolute;inset:0;
-  background-size:cover;background-position:center;
-  filter:saturate(.7) brightness(.5);
-  transition:transform .4s,filter .3s;
+  overflow:hidden;
+  transition:transform .4s;
 }
-.sidebar-card:hover .sc-bg{transform:scale(1.06);filter:saturate(.9) brightness(.4);}
+.sc-bg img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:block;
+}
+.sidebar-card:hover .sc-bg{transform:scale(1.06);}
 .sc-grad{
   position:absolute;inset:0;
   background:linear-gradient(to right,rgba(6,9,16,.9),rgba(6,9,16,.3));
@@ -382,16 +394,19 @@
   border-color:rgba(255,195,64,.3);
   transform:translateY(-5px);
 }
-.tc-bg{
+.tc-media{
   position:absolute;inset:0;
-  background-size:cover;background-position:center;
-  transition:transform .5s cubic-bezier(.25,.46,.45,.94),filter .4s;
-  filter:saturate(.85) brightness(.75);
+  overflow:hidden;
+  transition:transform .5s cubic-bezier(.25,.46,.45,.94);
 }
-.trend-card:hover .tc-bg{
-  transform:scale(1.08);
-  filter:saturate(1.1) brightness(.55);
+.tc-media img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:block;
 }
+.trend-card:hover .tc-media{transform:scale(1.08);}
 .tc-gradient{
   position:absolute;inset:0;
   background:linear-gradient(
@@ -501,9 +516,15 @@
 }
 .rr-thumb{
   width:56px;height:38px;border-radius:6px;
-  background-size:cover;background-position:center;
   border:1px solid var(--border);flex-shrink:0;
   overflow:hidden;position:relative;
+}
+.rr-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:block;
 }
 .rr-thumb::after{
   content:'';position:absolute;inset:0;
@@ -584,11 +605,17 @@
 .hscroll-card:hover{border-color:rgba(0,200,240,.3);transform:translateY(-4px);}
 .hc-bg{
   position:absolute;inset:0;
-  background-size:cover;background-position:center;
-  filter:saturate(.8) brightness(.7);
-  transition:transform .4s,filter .3s;
+  overflow:hidden;
+  transition:transform .4s;
 }
-.hscroll-card:hover .hc-bg{transform:scale(1.07);filter:saturate(1) brightness(.55);}
+.hc-bg img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:block;
+}
+.hscroll-card:hover .hc-bg{transform:scale(1.07);}
 .hc-grad{
   position:absolute;inset:0;
   background:linear-gradient(to top,rgba(6,9,16,.97) 0%,rgba(6,9,16,.5) 40%,transparent 70%);

@@ -134,9 +134,11 @@ class ImporterController
             return $response->json([
                 'ok' => true,
                 'message' => sprintf(
-                    'Hydration complete: scanned %d, hydrated %d, failed %d.',
+                    'Hydration complete: scanned %d, hydrated %d, posters %d, backdrops %d, failed %d.',
                     (int) ($summary['scanned'] ?? 0),
                     (int) ($summary['hydrated'] ?? 0),
+                    (int) ($summary['posters_hydrated'] ?? 0),
+                    (int) ($summary['backdrops_hydrated'] ?? 0),
                     (int) ($summary['failed'] ?? 0)
                 ),
                 'summary' => $summary,

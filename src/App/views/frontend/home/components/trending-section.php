@@ -1,3 +1,4 @@
+<?php use App\Support\MediaImage; ?>
 <section id="trending">
   <div class="container">
     <div class="sec-head">
@@ -33,7 +34,18 @@
         $featuredWatchUrl = htmlspecialchars($featuredWatchUrlRaw !== '' ? $featuredWatchUrlRaw : '#', ENT_QUOTES);
       ?>
       <a class="trend-feature" id="trendFeature" href="<?= $featuredWatchUrl ?>"<?= $featuredWatchUrlRaw === '' || $featuredWatchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
-        <div class="trend-feature-bg" style="position:absolute;inset:0;background-image:url('<?= htmlspecialchars($featured['backdrop'] ?? 'https://picsum.photos/seed/vexio-trending-feature/1200/700', ENT_QUOTES) ?>');background-size:cover;background-position:center;"></div>
+        <div class="trend-feature-bg">
+          <?php
+            $featureBackdrop = is_array($featured['backdrop_media'] ?? null)
+                ? $featured['backdrop_media']
+                : MediaImage::fromString((string) ($featured['backdrop'] ?? 'https://picsum.photos/seed/vexio-trending-feature/1200/700'), 'spotlight');
+            echo $this->includePartial('/frontend/partials/media-image', [
+                'media' => $featureBackdrop,
+                'alt' => '',
+                'loading' => 'eager',
+            ]);
+          ?>
+        </div>
         <div class="trend-feature-gradient"></div>
         <span class="tf-rank">01</span>
         <div class="trend-feature-body">
@@ -75,7 +87,9 @@
             <?php foreach ($listItems as $index => $item): ?>
               <?php
                 $title = (string) ($item['title'] ?? 'Untitled');
-                $poster = htmlspecialchars((string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-trending/180/240'), ENT_QUOTES);
+                $posterMedia = is_array($item['poster_media'] ?? null)
+                    ? $item['poster_media']
+                    : MediaImage::fromString((string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-trending/180/240'), 'thumb');
                 $watchUrlRaw = (string) ($item['watchUrl'] ?? '#');
                 $watchUrl = htmlspecialchars($watchUrlRaw !== '' ? $watchUrlRaw : '#', ENT_QUOTES);
                 $itemType = (string) ($item['type'] ?? 'unknown');
@@ -83,7 +97,13 @@
               ?>
               <a class="tl-item" href="<?= $watchUrl ?>" data-type="<?= htmlspecialchars($itemType, ENT_QUOTES) ?>"<?= $watchUrlRaw === '' || $watchUrlRaw === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '' ?>>
                 <span class="tl-rank <?= $index < 3 ? 'r' . ($index + 2) : 'rn' ?>"><?= $index + 2 ?></span>
-                <div class="tl-thumb"><img src="<?= $poster ?>" alt="<?= htmlspecialchars($title, ENT_QUOTES) ?> poster" loading="lazy"></div>
+                <div class="tl-thumb">
+                  <?php echo $this->includePartial('/frontend/partials/media-image', [
+                      'media' => $posterMedia,
+                      'alt' => $title . ' poster',
+                      'loading' => 'lazy',
+                  ]); ?>
+                </div>
                 <div class="tl-info">
                   <div class="tl-title"><?= htmlspecialchars($title, ENT_QUOTES) ?></div>
                   <div class="tl-sub"><span><?= $metaText ?></span></div>

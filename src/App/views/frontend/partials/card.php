@@ -4,19 +4,21 @@
  *
  * Required variables:
  *   string       $cardTitle
- *   string       $cardPoster     — URL or '' for placeholder
  *   string       $cardWatchUrl
  *
  * Optional variables:
- *   string       $cardLabel      — top-left pill: rank "#2" on trending, type "Movie"/"TV Show" elsewhere
- *   string       $cardBadge      — top-right pill text: 'NEW' | 'HOT' | 'TOP' | ''
- *   string       $cardBadgeClass — 'new' | 'hot' | 'top' | 'rise'
+ *   array        $cardPosterMedia — MediaImage descriptor (preferred)
+ *   string       $cardPoster      — legacy URL fallback
+ *   string       $cardLabel
+ *   string       $cardBadge
+ *   string       $cardBadgeClass
  *   float|null   $cardRating
  *   string       $cardYear
- *   string       $cardDataAttrs  — pre-built data-* attribute string for JS (already escaped)
+ *   string       $cardDataAttrs
  */
+use App\Support\MediaImage;
+
 $cardTitle      = (string) ($cardTitle ?? 'Untitled');
-$cardPoster     = (string) ($cardPoster ?? '');
 $cardWatchUrl   = (string) ($cardWatchUrl ?? '#');
 $cardLabel      = (string) ($cardLabel ?? '');
 $cardBadge      = (string) ($cardBadge ?? '');
@@ -25,13 +27,24 @@ $cardRating     = isset($cardRating) && is_numeric($cardRating) ? (float) $cardR
 $cardYear       = (string) ($cardYear ?? '');
 $cardDataAttrs  = (string) ($cardDataAttrs ?? '');
 
+$cardPosterMedia = is_array($cardPosterMedia ?? null)
+    ? $cardPosterMedia
+    : MediaImage::fromString((string) ($cardPoster ?? ''), 'card');
+
 $safeUrl  = $cardWatchUrl !== '' && $cardWatchUrl !== '#' ? $cardWatchUrl : '#';
 $noLink   = $safeUrl === '#' ? ' onclick="event.preventDefault();showToast(\'Watch unavailable\')"' : '';
 $initials = strtoupper(substr(preg_replace('/[^a-z0-9]+/i', '', $cardTitle) ?: 'VX', 0, 3));
+$hasPoster = MediaImage::srcOnly($cardPosterMedia) !== '';
 ?>
 <a class="trend-card" href="<?= escape($safeUrl) ?>"<?= $noLink ?> <?= $cardDataAttrs ?>>
-  <?php if ($cardPoster !== ''): ?>
-    <div class="tc-bg" style="background-image:url('<?= escape($cardPoster) ?>');"></div>
+  <?php if ($hasPoster): ?>
+    <div class="tc-media">
+      <?php echo $this->includePartial('/frontend/partials/media-image', [
+          'media' => $cardPosterMedia,
+          'alt' => $cardTitle . ' poster',
+          'loading' => 'lazy',
+      ]); ?>
+    </div>
   <?php else: ?>
     <div class="tc-ph"><?= escape($initials) ?></div>
   <?php endif; ?>

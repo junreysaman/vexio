@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Archive;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Closure;
 
@@ -230,8 +231,17 @@ class TrendingPageService
             'week' => $views,
             'month' => $views,
         ];
-        $poster = (string) ($item['poster_url'] ?: $item['poster_image'] ?: 'https://picsum.photos/seed/vexio-trending-' . (int) ($item['id'] ?? 0) . '/500/750');
-        $backdrop = (string) ($item['backdrop_image'] ?: $poster);
+        $posterMedia = MediaImage::posterFromRow($item, 'card');
+        if (MediaImage::srcOnly($posterMedia) === '') {
+            $posterMedia = MediaImage::fromString(
+                'https://picsum.photos/seed/vexio-trending-' . (int) ($item['id'] ?? 0) . '/500/750',
+                'card'
+            );
+        }
+        $backdropMedia = MediaImage::backdropFromRow($item, 'spotlight');
+        if (MediaImage::srcOnly($backdropMedia) === '') {
+            $backdropMedia = $posterMedia;
+        }
 
         return [
             'id' => (int) ($item['id'] ?? 0),
@@ -242,8 +252,10 @@ class TrendingPageService
             'primary_category' => $isAnime ? 'anime' : (string) ($item['type'] ?? 'unknown'),
             'secondary_category' => $isNew ? 'new' : ($isTop ? 'top' : 'trending'),
             'synopsis' => (string) ($item['synopsis'] ?: 'A trending title from the Vexio catalogue.'),
-            'poster' => $poster,
-            'backdrop' => $backdrop,
+            'poster' => MediaImage::srcOnly($posterMedia),
+            'poster_media' => $posterMedia,
+            'backdrop' => MediaImage::srcOnly($backdropMedia),
+            'backdrop_media' => $backdropMedia,
             'year' => (string) ($item['release_year'] ?: 'N/A'),
             'rating' => $rating,
             'rating_label' => $rating > 0 ? number_format($rating, 1) : 'N/A',

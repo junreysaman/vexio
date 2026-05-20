@@ -1,7 +1,3 @@
-<?= $this->start('styles') ?>
-<?= $this->includePartial('/frontend/archive/genre-page/components/styles') ?>
-<?= $this->end() ?>
-
 <?= $this->start('content') ?>
 
 <main id="genre-page">

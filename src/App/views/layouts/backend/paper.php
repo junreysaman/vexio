@@ -8,6 +8,7 @@
     <title><?= escape($title ?? 'Dashboard') ?> | <?= escape($project ?? 'Paper-PHPFramework') ?></title>
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/backend/css/paper.css">
+    <link rel="stylesheet" href="/assets/backend/css/global-views.css?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/backend/css/global-views.css') ?>">
     <?= $this->section('styles') ?>
 </head>
 

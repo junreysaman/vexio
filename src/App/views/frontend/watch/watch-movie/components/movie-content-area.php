@@ -1,7 +1,9 @@
 <?php
+use App\Support\MediaImage;
+
 // Extract data from $item
-$poster = $item['poster_image'] ?? $item['poster_url'] ?? '';
-$backdrop = $item['backdrop_image'] ?? $item['backdrop_url'] ?? $poster;
+$posterMedia = MediaImage::posterFromRow($item, 'detail');
+$backdropMedia = MediaImage::backdropFromRow($item, 'player');
 $title = $item['title'] ?? 'Unknown Title';
 $genres = $item['genres'] ?? '';
 $genreNames = is_array($item['genre_names'] ?? null)
@@ -35,8 +37,13 @@ $revenue = $item['revenue'] ?? null;
           <div class="movie-info-wrap">
             <div class="movie-poster c1">
               <div class="movie-poster-badge">4K HDR</div>
-              <?php if ($poster): ?>
-                <img src="<?= escape($poster) ?>" alt="<?= escape($title) ?>" style="width:100%;height:100%;object-fit:cover;">
+              <?php if (MediaImage::srcOnly($posterMedia) !== ''): ?>
+                <?php echo $this->includePartial('/frontend/partials/media-image', [
+                    'media' => $posterMedia,
+                    'alt' => $title . ' poster',
+                    'loading' => 'eager',
+                    'class' => 'movie-poster-img',
+                ]); ?>
               <?php else: ?>
                 <?= strtoupper(substr($title, 0, 20)) ?>
               <?php endif; ?>
@@ -199,6 +206,7 @@ $revenue = $item['revenue'] ?? null;
                   $rType = (string) ($relatedItem['type'] ?? 'movie');
                   echo $this->includePartial('/frontend/partials/card', [
                     'cardTitle'    => (string) ($relatedItem['title'] ?? 'Untitled'),
+                    'cardPosterMedia' => MediaImage::posterFromRow($relatedItem, 'card'),
                     'cardPoster'   => (string) (($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? '')),
                     'cardWatchUrl' => (string) ($relatedItem['watchUrl'] ?? $relatedItem['watch_url'] ?? '#'),
                     'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',

@@ -1,4 +1,9 @@
-<?php $embedUrl = (string) ($item['embedUrl'] ?? $item['embed_url'] ?? ''); ?>
+<?php
+use App\Support\MediaImage;
+
+$embedUrl = (string) ($item['embedUrl'] ?? $item['embed_url'] ?? '');
+$playerBackdrop = MediaImage::backdropFromRow($item, 'player');
+?>
 <div class="watch-layout">
 
     <!-- ══ MAIN COLUMN ══ -->
@@ -19,17 +24,24 @@
         <?php endif; ?>
         <!-- Cinematic backdrop -->
         <div class="player-bg">
-          <div class="player-backdrop" style="background-image:url('<?= escape(($item['backdrop_image'] ?? $item['backdrop_url'] ?? $item['poster_image'] ?? $item['poster_url'] ?? '')) ?>');background-size:cover;background-position:center;"></div>
+          <div class="player-backdrop">
+            <?php echo $this->includePartial('/frontend/partials/media-image', [
+                'media' => $playerBackdrop,
+                'alt' => '',
+                'loading' => 'lazy',
+                'class' => 'player-backdrop-img',
+            ]); ?>
+          </div>
           <div class="player-grid-overlay"></div>
           <!-- Particles -->
           <div class="player-particles" id="particles"><div class="particle" style="width: 5.5723px; height: 5.5723px; left: 14.8501%; background: rgb(0, 200, 240); animation-duration: 8.63237s; animation-delay: 7.61883s;"></div><div class="particle" style="width: 3.03513px; height: 3.03513px; left: 73.7852%; background: rgb(255, 94, 125); animation-duration: 6.64631s; animation-delay: 1.84265s;"></div><div class="particle" style="width: 5.45042px; height: 5.45042px; left: 65.1689%; background: rgb(232, 23, 63); animation-duration: 9.39261s; animation-delay: 4.32718s;"></div><div class="particle" style="width: 3.81881px; height: 3.81881px; left: 68.0895%; background: rgb(255, 94, 125); animation-duration: 12.9492s; animation-delay: 2.72327s;"></div><div class="particle" style="width: 2.11868px; height: 2.11868px; left: 16.5147%; background: rgb(0, 200, 240); animation-duration: 13.1395s; animation-delay: 0.179745s;"></div><div class="particle" style="width: 4.56133px; height: 4.56133px; left: 34.4875%; background: rgb(139, 92, 246); animation-duration: 8.5024s; animation-delay: 7.97128s;"></div><div class="particle" style="width: 2.43879px; height: 2.43879px; left: 72.8038%; background: rgb(255, 195, 64); animation-duration: 6.67894s; animation-delay: 5.24125s;"></div><div class="particle" style="width: 4.56448px; height: 4.56448px; left: 87.8389%; background: rgb(0, 200, 240); animation-duration: 10.189s; animation-delay: 7.00574s;"></div><div class="particle" style="width: 2.44655px; height: 2.44655px; left: 68.0368%; background: rgb(0, 200, 240); animation-duration: 6.93743s; animation-delay: 7.38654s;"></div><div class="particle" style="width: 4.8532px; height: 4.8532px; left: 68.9734%; background: rgb(139, 92, 246); animation-duration: 13.1416s; animation-delay: 1.5841s;"></div><div class="particle" style="width: 3.29007px; height: 3.29007px; left: 64.851%; background: rgb(232, 23, 63); animation-duration: 9.8563s; animation-delay: 6.96086s;"></div><div class="particle" style="width: 5.7733px; height: 5.7733px; left: 60.7566%; background: rgb(139, 92, 246); animation-duration: 6.3656s; animation-delay: 0.821237s;"></div><div class="particle" style="width: 5.82568px; height: 5.82568px; left: 35.9143%; background: rgb(0, 200, 240); animation-duration: 7.42511s; animation-delay: 7.62529s;"></div><div class="particle" style="width: 3.80056px; height: 3.80056px; left: 55.4831%; background: rgb(0, 200, 240); animation-duration: 12.9746s; animation-delay: 7.63898s;"></div><div class="particle" style="width: 5.79754px; height: 5.79754px; left: 39.2939%; background: rgb(0, 200, 240); animation-duration: 8.09983s; animation-delay: 5.94949s;"></div><div class="particle" style="width: 3.35007px; height: 3.35007px; left: 78.4985%; background: rgb(139, 92, 246); animation-duration: 6.49753s; animation-delay: 5.30367s;"></div><div class="particle" style="width: 2.11289px; height: 2.11289px; left: 4.5601%; background: rgb(0, 200, 240); animation-duration: 8.51985s; animation-delay: 6.52259s;"></div><div class="particle" style="width: 2.00967px; height: 2.00967px; left: 15.7872%; background: rgb(232, 23, 63); animation-duration: 7.40946s; animation-delay: 5.94391s;"></div></div>
           <!-- Center content -->
           <div class="player-center">
-            <div class="play-ring" onclick="initPlay()">
+            <button class="play-ring" type="button" aria-label="Play movie" onclick="initPlay()">
               <div class="play-ring-inner">
                 <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               </div>
-            </div>
+            </button>
             <div class="player-title-overlay"><?= escape($item['title'] ?? 'Movie') ?></div>
             <div class="player-subtitle">Click to play · <?= (int) ($item['release_year'] ?? 'N/A') ?> · <?php $rt = ($item['runtime_minutes'] ?? 0); if($rt) echo floor($rt/60) . 'h ' . ($rt%60) . 'm'; else echo 'N/A'; ?></div>
           </div>

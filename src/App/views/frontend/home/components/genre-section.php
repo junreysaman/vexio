@@ -1,3 +1,4 @@
+<?php use App\Support\MediaImage; ?>
 <section id="genres-sec">
   <div class="container">
     <div class="sec-head">
@@ -19,11 +20,19 @@
             <?php
               $name = htmlspecialchars((string) ($genre['name'] ?? 'Unknown'), ENT_QUOTES);
               $url = htmlspecialchars((string) ($genre['url'] ?? '#'), ENT_QUOTES);
-              $image = htmlspecialchars((string) ($genre['image'] ?? 'https://picsum.photos/seed/vexio-genre-empty/420/260'), ENT_QUOTES);
-              $icon = strtoupper(substr($name, 0, 3));
+              $imageMedia = is_array($genre['image_media'] ?? null)
+                  ? $genre['image_media']
+                  : MediaImage::fromString((string) ($genre['image'] ?? 'https://picsum.photos/seed/vexio-genre-empty/420/260'), 'genre');
+              $icon = strtoupper(substr((string) ($genre['name'] ?? ''), 0, 3));
             ?>
-            <a class="genre-card" href="<?= $url ?>" style="background-image:url('<?= $image ?>');">
-              <img src="<?= $image ?>" alt="<?= $name ?> genre backdrop" loading="lazy">
+            <a class="genre-card" href="<?= $url ?>">
+              <div class="genre-card-media">
+                <?php echo $this->includePartial('/frontend/partials/media-image', [
+                    'media' => $imageMedia,
+                    'alt' => (string) ($genre['name'] ?? 'Genre') . ' backdrop',
+                    'loading' => 'lazy',
+                ]); ?>
+              </div>
               <div class="gc-overlay">
                 <div class="gc-icon"><?= $icon ?></div>
                 <div class="gc-name"><?= $name ?></div>
@@ -33,7 +42,13 @@
           <?php endforeach; ?>
         <?php else: ?>
           <div class="genre-card">
-            <img src="https://picsum.photos/seed/vexio-genre-empty/420/260" alt="No genres available" loading="lazy">
+            <div class="genre-card-media">
+              <?php echo $this->includePartial('/frontend/partials/media-image', [
+                  'media' => MediaImage::fromString('https://picsum.photos/seed/vexio-genre-empty/420/260', 'genre'),
+                  'alt' => 'No genres available',
+                  'loading' => 'lazy',
+              ]); ?>
+            </div>
             <div class="gc-overlay">
               <div class="gc-icon">N/A</div>
               <div class="gc-name">No Genres</div>

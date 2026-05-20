@@ -1,4 +1,6 @@
 <?php
+use App\Support\MediaImage;
+
 /** @var array<int, array<string, mixed>>|null $featured */
 $slides = !empty($featured) ? $featured : [
     [
@@ -37,20 +39,37 @@ $slideCount = count($slides);
         $eps = (string) ($item['eps'] ?? 'Movie');
         $score = (string) ($item['score'] ?? 'N/A');
         $desc = (string) ($item['desc'] ?? '');
-        $poster = (string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-placeholder-poster/500/750');
-        $backdrop = (string) ($item['backdrop'] ?? 'https://picsum.photos/seed/vexio-placeholder-backdrop/1600/900');
+        $posterMedia = is_array($item['poster_media'] ?? null)
+            ? $item['poster_media']
+            : MediaImage::fromString((string) ($item['poster'] ?? 'https://picsum.photos/seed/vexio-placeholder-poster/500/750'), 'heroPoster');
+        $backdropMedia = is_array($item['backdrop_media'] ?? null)
+            ? $item['backdrop_media']
+            : MediaImage::fromString((string) ($item['backdrop'] ?? 'https://picsum.photos/seed/vexio-placeholder-backdrop/1600/900'), 'heroBackdrop');
         $watchUrl = (string) ($item['watchUrl'] ?? '#');
       ?>
       <div class="slide<?= $index === 0 ? ' active' : '' ?>" id="slide-<?= $index ?>">
         <div class="slide-bg">
           <div class="slide-bg-inner">
-            <div class="slide-bg-color" style="position:absolute;top:9%;left:4.5%;right:18%;bottom:11%;width:auto;height:auto;filter:blur(0px);opacity:.72;background-image:url('<?= htmlspecialchars($backdrop, ENT_QUOTES) ?>');background-size:cover;background-position:center;border-bottom-left-radius:28px;"></div>
+            <div class="slide-bg-color">
+              <div class="slide-bg-media">
+                <?php echo $this->includePartial('/frontend/partials/media-image', [
+                    'media' => $backdropMedia,
+                    'alt' => '',
+                    'loading' => $index === 0 ? 'eager' : 'lazy',
+                ]); ?>
+              </div>
+            </div>
           </div>
           <div class="slide-noise"></div>
         </div>
         <div class="slide-gradient"></div>
         <div class="slide-poster">
-          <img src="<?= htmlspecialchars($poster, ENT_QUOTES) ?>" alt="<?= htmlspecialchars($title, ENT_QUOTES) ?> poster" loading="<?= $index === 0 ? 'eager' : 'lazy' ?>">
+          <?php echo $this->includePartial('/frontend/partials/media-image', [
+              'media' => $posterMedia,
+              'alt' => $title . ' poster',
+              'loading' => $index === 0 ? 'eager' : 'lazy',
+              'fetchpriority' => $index === 0 ? 'high' : '',
+          ]); ?>
         </div>
         <div class="slide-content">
           <div class="slide-type"><span class="pulse-dot"></span><?= htmlspecialchars($badge, ENT_QUOTES) ?></div>

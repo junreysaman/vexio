@@ -1,7 +1,3 @@
-<?= $this->start('styles') ?>
-<?= $this->includePartial('/frontend/archive/browse/components/styles') ?>
-<?= $this->end() ?>
-
 <?= $this->start('content') ?>
 
 <?= $this->includePartial('/frontend/archive/browse/components/archive-hero') ?>

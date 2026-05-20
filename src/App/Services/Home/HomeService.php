@@ -6,6 +6,7 @@ namespace App\Services\Home;
 
 use App\Cache\CacheInterface;
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Framework\Database;
 
@@ -30,7 +31,7 @@ class HomeService
      */
     public function pageData(): array
     {
-        $cacheKey = 'home:pageData:v1';
+        $cacheKey = 'home:pageData:v2';
         $useCache = filter_var($_ENV['HOME_PAGE_CACHE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
         $ttl = (int) ($_ENV['HOME_PAGE_CACHE_TTL'] ?? 120);
         $ttl = max(15, min(3600, $ttl));
@@ -168,10 +169,13 @@ class HomeService
             $slug = (string) ($genre['slug'] ?? '');
             $link = $this->genreLink($name, $slug);
 
+            $imageMedia = $this->getGenreRepresentativeMedia((int) ($genre['id'] ?? 0), $slug);
+
             return [
                 'name' => $name,
                 'url' => $link['url'],
-                'image' => $this->getGenreRepresentativeImage((int) ($genre['id'] ?? 0), $slug),
+                'image' => MediaImage::srcOnly($imageMedia),
+                'image_media' => $imageMedia,
             ];
         }, $genres);
     }
@@ -183,10 +187,15 @@ class HomeService
      * @param string $slug Genre slug used for fallback image seeding.
      * @return string
      */
-    private function getGenreRepresentativeImage(int $termId, string $slug): string
+    /**
+     * @return array{src: string, srcset: string, sizes: string, width: int, height: int}
+     */
+    private function getGenreRepresentativeMedia(int $termId, string $slug): array
     {
+        $fallback = 'https://picsum.photos/seed/vexio-genre-' . rawurlencode($slug ?: 'unknown') . '/420/260';
+
         if ($termId < 1) {
-            return 'https://picsum.photos/seed/vexio-genre-' . rawurlencode($slug ?: 'unknown') . '/420/260';
+            return MediaImage::fromString($fallback, 'genre');
         }
 
         $item = $this->db->selectOne(
@@ -209,10 +218,15 @@ class HomeService
         );
 
         if (!$item) {
-            return 'https://picsum.photos/seed/vexio-genre-' . rawurlencode($slug ?: 'unknown') . '/420/260';
+            return MediaImage::fromString($fallback, 'genre');
         }
 
-        return (string) ($item['backdrop_image'] ?: $item['poster_image'] ?: $item['poster_url'] ?: 'https://picsum.photos/seed/vexio-genre-' . rawurlencode($slug ?: 'unknown') . '/420/260');
+        $media = MediaImage::backdropFromRow($item, 'genre');
+        if (MediaImage::srcOnly($media) !== '') {
+            return $media;
+        }
+
+        return MediaImage::fromString($fallback, 'genre');
     }
 
     /**
@@ -265,8 +279,10 @@ class HomeService
             'eps' => ($item['type'] ?? '') === 'movie' ? 'Movie' : 'Series',
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
             'desc' => (string) ($item['synopsis'] ?: 'Featured from the Vexio catalogue.'),
-            'poster' => $item['poster_url'] ?: $item['poster_image'],
-            'backdrop' => $item['backdrop_image'] ?: $item['poster_url'] ?: $item['poster_image'],
+            'poster' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'heroPoster')),
+            'backdrop' => MediaImage::srcOnly(MediaImage::backdropFromRow($item, 'heroBackdrop')),
+            'poster_media' => MediaImage::posterFromRow($item, 'heroPoster'),
+            'backdrop_media' => MediaImage::backdropFromRow($item, 'heroBackdrop'),
             'streamLink' => $item['stream_link'] ?? null,
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
@@ -295,8 +311,10 @@ class HomeService
             'genres' => $genres,
             'year' => (string) ($item['release_year'] ?: 'N/A'),
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
-            'poster' => $item['poster_url'] ?: $item['poster_image'],
-            'backdrop' => $item['backdrop_image'] ?: $item['poster_url'] ?: $item['poster_image'],
+            'poster' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'card')),
+            'poster_media' => MediaImage::posterFromRow($item, 'card'),
+            'backdrop' => MediaImage::srcOnly(MediaImage::backdropFromRow($item, 'heroBackdrop')),
+            'backdrop_media' => MediaImage::backdropFromRow($item, 'heroBackdrop'),
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
             'synopsis' => (string) ($item['synopsis'] ?: ''),
@@ -324,8 +342,10 @@ class HomeService
             'genres' => $genres,
             'year' => (string) ($item['release_year'] ?: 'N/A'),
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
-            'poster' => $item['poster_url'] ?: $item['poster_image'],
-            'backdrop' => $item['backdrop_image'] ?: $item['poster_url'] ?: $item['poster_image'],
+            'poster' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'thumb')),
+            'poster_media' => MediaImage::posterFromRow($item, 'thumb'),
+            'backdrop' => MediaImage::srcOnly(MediaImage::backdropFromRow($item, 'spotlight')),
+            'backdrop_media' => MediaImage::backdropFromRow($item, 'spotlight'),
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
             'views' => (int) ($item['views'] ?? 0),

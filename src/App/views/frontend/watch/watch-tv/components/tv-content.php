@@ -1,6 +1,8 @@
 <?php
+use App\Support\MediaImage;
+
 $showTitle = (string) ($show['title'] ?? 'TV Show');
-$poster = (string) (($show['poster_image'] ?? '') ?: ($show['poster_url'] ?? ''));
+$posterMedia = MediaImage::posterFromRow($show, 'detail');
 $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
 $episodeTitle = (string) (($episode['episode_name'] ?? '') ?: ($episode['title'] ?? 'Episode ' . $currentEpisode));
@@ -29,8 +31,13 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
     <div class="show-info-wrap">
       <div class="show-poster c1">
         <div class="show-poster-badge">S<?= $seasonCount ?: $currentSeason ?> <?= escape(strtoupper($status)) ?></div>
-        <?php if ($poster !== ''): ?>
-          <img src="<?= escape($poster) ?>" alt="<?= escape($showTitle) ?>" style="width:100%;height:100%;object-fit:cover;">
+        <?php if (MediaImage::srcOnly($posterMedia) !== ''): ?>
+          <?php echo $this->includePartial('/frontend/partials/media-image', [
+              'media' => $posterMedia,
+              'alt' => $showTitle . ' poster',
+              'loading' => 'eager',
+              'class' => 'show-poster-img',
+          ]); ?>
         <?php else: ?>
           <?= escape(strtoupper(substr($showTitle, 0, 20))) ?>
         <?php endif; ?>
@@ -117,7 +124,10 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
           $rowEpisode = (int) ($row['episode_number'] ?? ($idx + 1));
           $isCurrent = $rowSeason === $currentSeason && $rowEpisode === $currentEpisode;
           $rowTitle = (string) (($row['episode_name'] ?? '') ?: ($row['title'] ?? 'Episode ' . $rowEpisode));
-          $rowPoster = (string) (($row['backdrop_image'] ?? '') ?: (($row['poster_image'] ?? '') ?: ($row['poster_url'] ?? '')));
+          $rowPosterMedia = MediaImage::posterFromRow($row, 'thumb');
+          if (MediaImage::srcOnly($rowPosterMedia) === '') {
+              $rowPosterMedia = MediaImage::backdropFromRow($row, 'thumb');
+          }
           $rowUrl = (string) ($row['watchUrl'] ?? $row['watch_url'] ?? '#');
           $rowSynopsis = (string) (($row['synopsis'] ?? '') ?: ($show['synopsis'] ?? ''));
           $rowSearch = strtolower($rowTitle . ' ' . $rowSynopsis);
@@ -136,7 +146,14 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
           ?>
           <a class="<?= escape(implode(' ', $classes)) ?>" href="<?= escape($rowUrl) ?>" data-search="<?= escape($rowSearch) ?>" data-number-search="<?= escape($rowNumberSearch) ?>"<?= $idx >= 10 ? ' hidden' : '' ?>>
             <div class="ep-thumb c<?= ($idx % 8) + 1 ?>">
-              <?php if ($rowPoster !== ''): ?><img src="<?= escape($rowPoster) ?>" alt="" style="width:100%;height:100%;object-fit:cover;"><?php else: ?><div class="ep-thumb-ph">S<?= $rowSeason ?> E<?= $rowEpisode ?></div><?php endif; ?>
+              <?php if (MediaImage::srcOnly($rowPosterMedia) !== ''): ?>
+                <?php echo $this->includePartial('/frontend/partials/media-image', [
+                    'media' => $rowPosterMedia,
+                    'alt' => $rowTitle,
+                    'loading' => 'lazy',
+                    'class' => 'ep-thumb-img',
+                ]); ?>
+              <?php else: ?><div class="ep-thumb-ph">S<?= $rowSeason ?> E<?= $rowEpisode ?></div><?php endif; ?>
               <div class="ep-play-hover"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
               <span class="ep-num-badge">E<?= $rowEpisode ?></span>
               <span class="ep-duration-badge"><?= escape($runtimeLabel) ?></span>
@@ -190,6 +207,7 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
             $rType = (string) ($item['type'] ?? 'tv_show');
             echo $this->includePartial('/frontend/partials/card', [
               'cardTitle'    => (string) ($item['title'] ?? 'Untitled'),
+              'cardPosterMedia' => MediaImage::posterFromRow($item, 'card'),
               'cardPoster'   => (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '')),
               'cardWatchUrl' => (string) ($item['watchUrl'] ?? $item['watch_url'] ?? '#'),
               'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',

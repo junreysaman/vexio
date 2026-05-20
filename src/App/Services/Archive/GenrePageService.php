@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Archive;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Closure;
 
@@ -199,7 +200,8 @@ class GenrePageService
             'type_label' => $this->typeLabel($type),
             'synopsis' => (string) ($item['synopsis'] ?? ''),
             'tmdb_id' => is_numeric($item['tmdb_id'] ?? null) ? (int) $item['tmdb_id'] : null,
-            'poster' => (string) (($item['poster_url'] ?? '') ?: ($item['poster_image'] ?? '')),
+            'poster' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'card')),
+            'poster_media' => MediaImage::posterFromRow($item, 'card'),
             'release_year' => is_numeric($item['release_year'] ?? null) ? (int) $item['release_year'] : null,
             'tmdb_rating' => is_numeric($item['tmdb_rating'] ?? null) ? (float) $item['tmdb_rating'] : null,
             'views' => (int) ($item['views'] ?? 0),

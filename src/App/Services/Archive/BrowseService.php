@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Archive;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Closure;
 
@@ -205,7 +206,8 @@ class BrowseService
             'created_at' => (string) ($item['created_at'] ?? ''),
             'genres' => $genres,
             'genre_label' => $this->genreLabel($genres),
-            'poster' => (string) ($item['poster_url'] ?: $item['poster_image'] ?: ''),
+            'poster' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'card')),
+            'poster_media' => MediaImage::posterFromRow($item, 'card'),
             'watch_url' => MediaUrl::watchUrlForItem($item),
             'watchUrl' => MediaUrl::watchUrlForItem($item),
         ];

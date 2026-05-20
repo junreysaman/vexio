@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\TMDB;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Framework\Database;
 use GuzzleHttp\Client;
@@ -218,8 +219,8 @@ class TmdbImporterService
             'type'             => 'movie',
             'synopsis'         => (string) ($movie['overview'] ?? ''),
             'poster_url'       => $posterUrl,
-            'poster_image'     => $this->downloadImageAsWebp($posterUrl, 'movies', 'poster-' . $tmdbMovieId),
-            'backdrop_image'   => $this->downloadImageAsWebp($backdropUrl, 'movies', 'backdrop-' . $tmdbMovieId),
+            'poster_image'     => $this->downloadImageVariants($posterUrl, 'movies', 'poster-' . $tmdbMovieId, MediaImage::ROLE_POSTER),
+            'backdrop_image'   => $this->downloadImageVariants($backdropUrl, 'movies', 'backdrop-' . $tmdbMovieId, MediaImage::ROLE_BACKDROP),
             'stream_link'      => null,
             'rated'            => $this->movieCertification($movie),
             'country'          => $this->csv($movie['origin_country'] ?? []),
@@ -266,8 +267,8 @@ class TmdbImporterService
             'type'               => 'tv_show',
             'synopsis'           => (string) ($show['overview'] ?? ''),
             'poster_url'         => $posterUrl,
-            'poster_image'       => $this->downloadImageAsWebp($posterUrl, 'tv', 'poster-' . $tmdbTvId),
-            'backdrop_image'     => $this->downloadImageAsWebp($backdropUrl, 'tv', 'backdrop-' . $tmdbTvId),
+            'poster_image'       => $this->downloadImageVariants($posterUrl, 'tv', 'poster-' . $tmdbTvId, MediaImage::ROLE_POSTER),
+            'backdrop_image'     => $this->downloadImageVariants($backdropUrl, 'tv', 'backdrop-' . $tmdbTvId, MediaImage::ROLE_BACKDROP),
             'stream_link'        => null,
             'dt_cast'            => $this->castMeta($show['credits']['cast'] ?? []),
             'dt_creator'         => $this->creatorMeta($show['created_by'] ?? []),
@@ -472,7 +473,16 @@ class TmdbImporterService
     /**
      * Backfill locally cached WebP assets for already imported records.
      *
-     * @return array{scope:string, limit:int, scanned:int, hydrated:int, failed:int}
+     * @return array{
+     *   scope:string,
+     *   limit:int,
+     *   scanned:int,
+     *   hydrated:int,
+     *   failed:int,
+     *   posters_hydrated:int,
+     *   backdrops_hydrated:int,
+     *   variants_regenerated:int
+     * }
      */
     public function hydrateMissingImages(string $scope = 'all', int $limit = 50): array
     {
@@ -485,11 +495,14 @@ class TmdbImporterService
             'scanned' => 0,
             'hydrated' => 0,
             'failed' => 0,
+            'posters_hydrated' => 0,
+            'backdrops_hydrated' => 0,
+            'variants_regenerated' => 0,
         ];
 
         if ($scope === 'all' || $scope === 'items') {
             $rows = $this->db->select(
-                "SELECT id, type, tmdb_id, poster_url, backdrop_image
+                "SELECT id, type, tmdb_id, poster_url, poster_image, backdrop_image
                  FROM media_items
                  WHERE (
                      (poster_url IS NOT NULL AND poster_url <> '' AND (poster_image IS NULL OR poster_image = ''))
@@ -501,22 +514,31 @@ class TmdbImporterService
 
             foreach ($rows as $row) {
                 $result['scanned']++;
-                $type = (string) ($row['type'] ?? 'movies');
+                $type = (string) ($row['type'] ?? 'movie');
                 $folder = $type === 'tv_show' ? 'tv' : 'movies';
                 $tmdbId = (int) ($row['tmdb_id'] ?? 0);
                 $id = (int) ($row['id'] ?? 0);
+                $key = (string) ($tmdbId ?: $id);
 
                 $updates = [];
-                if (!empty($row['poster_url'])) {
-                    $poster = $this->downloadImageAsWebp((string) $row['poster_url'], $folder, 'poster-' . ($tmdbId ?: $id));
+                $posterUrl = trim((string) ($row['poster_url'] ?? ''));
+
+                if ($posterUrl !== '' && trim((string) ($row['poster_image'] ?? '')) === '') {
+                    $poster = $this->downloadImageVariants($posterUrl, $folder, 'poster-' . $key, MediaImage::ROLE_POSTER);
                     if ($poster !== null) {
                         $updates['poster_image'] = $poster;
+                        $result['posters_hydrated']++;
                     }
                 }
-                if (empty($row['backdrop_image']) && !empty($row['poster_url'])) {
-                    $backdrop = $this->downloadImageAsWebp((string) $row['poster_url'], $folder, 'backdrop-' . ($tmdbId ?: $id));
-                    if ($backdrop !== null) {
-                        $updates['backdrop_image'] = $backdrop;
+
+                if (trim((string) ($row['backdrop_image'] ?? '')) === '') {
+                    $backdropUrl = $this->resolveBackdropUrlForItem($type, $tmdbId, $posterUrl);
+                    if ($backdropUrl !== null) {
+                        $backdrop = $this->downloadImageVariants($backdropUrl, $folder, 'backdrop-' . $key, MediaImage::ROLE_BACKDROP);
+                        if ($backdrop !== null) {
+                            $updates['backdrop_image'] = $backdrop;
+                            $result['backdrops_hydrated']++;
+                        }
                     }
                 }
 
@@ -530,84 +552,98 @@ class TmdbImporterService
         }
 
         if ($scope === 'all' || $scope === 'seasons') {
+            $this->hydrateSeasonImages($limit, $result);
+        }
+
+        if ($scope === 'all' || $scope === 'episodes') {
+            $this->hydrateEpisodeImages($limit, $result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Regenerate width variants for rows that already have a local primary asset.
+     *
+     * @return array{scope:string, limit:int, scanned:int, variants_regenerated:int, failed:int}
+     */
+    public function regenerateImageVariants(string $scope = 'all', int $limit = 50): array
+    {
+        $scope = in_array($scope, ['all', 'items', 'seasons', 'episodes'], true) ? $scope : 'all';
+        $limit = max(1, min(200, $limit));
+
+        $result = [
+            'scope' => $scope,
+            'limit' => $limit,
+            'scanned' => 0,
+            'variants_regenerated' => 0,
+            'failed' => 0,
+        ];
+
+        if ($scope === 'all' || $scope === 'items') {
             $rows = $this->db->select(
-                "SELECT id, tmdb_parent_id, season_number, poster_url
-                 FROM media_seasons
-                 WHERE poster_url IS NOT NULL AND poster_url <> ''
-                 AND (
-                    poster_image IS NULL OR poster_image = ''
-                    OR backdrop_image IS NULL OR backdrop_image = ''
-                 )
+                "SELECT id, type, tmdb_id, poster_url, poster_image, backdrop_image
+                 FROM media_items
+                 WHERE (poster_image IS NOT NULL AND poster_image <> '')
+                    OR (backdrop_image IS NOT NULL AND backdrop_image <> '')
                  ORDER BY id DESC
                  LIMIT {$limit}"
             );
 
             foreach ($rows as $row) {
                 $result['scanned']++;
-                $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
-                $seasonNumber = (int) ($row['season_number'] ?? 0);
+                $type = (string) ($row['type'] ?? 'movie');
+                $folder = $type === 'tv_show' ? 'tv' : 'movies';
+                $tmdbId = (int) ($row['tmdb_id'] ?? 0);
                 $id = (int) ($row['id'] ?? 0);
-                $url = (string) ($row['poster_url'] ?? '');
+                $key = (string) ($tmdbId ?: $id);
+                $changed = false;
 
-                $poster = $this->downloadImageAsWebp($url, 'tv-seasons', 'poster-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber));
-                $backdrop = $this->downloadImageAsWebp($url, 'tv-seasons', 'backdrop-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber));
-
-                $updates = [];
-                if ($poster !== null) {
-                    $updates['poster_image'] = $poster;
+                $posterPath = trim((string) ($row['poster_image'] ?? ''));
+                if ($posterPath !== '' && MediaImage::needsVariantRegeneration($posterPath, MediaImage::posterWidths())) {
+                    $regenerated = $this->regenerateVariantsFromLocal(
+                        $posterPath,
+                        trim((string) ($row['poster_url'] ?? '')),
+                        $folder,
+                        'poster-' . $key,
+                        MediaImage::ROLE_POSTER
+                    );
+                    if ($regenerated !== null) {
+                        $this->db->updateById('media_items', $id, ['poster_image' => $regenerated]);
+                        $changed = true;
+                    }
                 }
-                if ($backdrop !== null) {
-                    $updates['backdrop_image'] = $backdrop;
+
+                $backdropPath = trim((string) ($row['backdrop_image'] ?? ''));
+                if ($backdropPath !== '' && MediaImage::needsVariantRegeneration($backdropPath, MediaImage::backdropWidths())) {
+                    $backdropUrl = $this->resolveBackdropUrlForItem($type, $tmdbId, trim((string) ($row['poster_url'] ?? '')));
+                    $regenerated = $this->regenerateVariantsFromLocal(
+                        $backdropPath,
+                        $backdropUrl ?? '',
+                        $folder,
+                        'backdrop-' . $key,
+                        MediaImage::ROLE_BACKDROP
+                    );
+                    if ($regenerated !== null) {
+                        $this->db->updateById('media_items', $id, ['backdrop_image' => $regenerated]);
+                        $changed = true;
+                    }
                 }
 
-                if ($updates !== []) {
-                    $this->db->updateById('media_seasons', $id, $updates);
-                    $result['hydrated']++;
+                if ($changed) {
+                    $result['variants_regenerated']++;
                 } else {
                     $result['failed']++;
                 }
             }
         }
 
+        if ($scope === 'all' || $scope === 'seasons') {
+            $this->regenerateSeasonVariants($limit, $result);
+        }
+
         if ($scope === 'all' || $scope === 'episodes') {
-            $rows = $this->db->select(
-                "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url
-                 FROM media_episodes
-                 WHERE poster_url IS NOT NULL AND poster_url <> ''
-                 AND (
-                    poster_image IS NULL OR poster_image = ''
-                    OR backdrop_image IS NULL OR backdrop_image = ''
-                 )
-                 ORDER BY id DESC
-                 LIMIT {$limit}"
-            );
-
-            foreach ($rows as $row) {
-                $result['scanned']++;
-                $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
-                $seasonNumber = (int) ($row['season_number'] ?? 0);
-                $episodeNumber = (int) ($row['episode_number'] ?? 0);
-                $id = (int) ($row['id'] ?? 0);
-                $url = (string) ($row['poster_url'] ?? '');
-
-                $poster = $this->downloadImageAsWebp($url, 'tv-episodes', 'poster-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber) . 'e' . max(1, $episodeNumber));
-                $backdrop = $this->downloadImageAsWebp($url, 'tv-episodes', 'backdrop-' . ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber) . 'e' . max(1, $episodeNumber));
-
-                $updates = [];
-                if ($poster !== null) {
-                    $updates['poster_image'] = $poster;
-                }
-                if ($backdrop !== null) {
-                    $updates['backdrop_image'] = $backdrop;
-                }
-
-                if ($updates !== []) {
-                    $this->db->updateById('media_episodes', $id, $updates);
-                    $result['hydrated']++;
-                } else {
-                    $result['failed']++;
-                }
-            }
+            $this->regenerateEpisodeVariants($limit, $result);
         }
 
         return $result;
@@ -769,8 +805,8 @@ class TmdbImporterService
             'episode_name'   => $episodeTitle,
             'synopsis'       => (string) ($episode['overview'] ?? $show['overview'] ?? ''),
             'poster_url'     => $posterUrl,
-            'poster_image'   => $downloadImages ? $this->downloadImageAsWebp($posterUrl, 'tv-episodes', 'poster-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber) : null,
-            'backdrop_image' => $downloadImages ? $this->downloadImageAsWebp($backdropUrl, 'tv-episodes', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber) : null,
+            'poster_image'   => $downloadImages ? $this->downloadImageVariants($posterUrl, 'tv-episodes', 'poster-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber, MediaImage::ROLE_POSTER) : null,
+            'backdrop_image' => $downloadImages ? $this->downloadImageVariants($backdropUrl, 'tv-episodes', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber . 'e' . $episodeNumber, MediaImage::ROLE_BACKDROP) : null,
             'stream_link'    => null,
             'release_year'   => $this->yearFromDate($episode['air_date'] ?? $show['first_air_date'] ?? null),
             'air_date'       => $airDate,
@@ -826,8 +862,8 @@ class TmdbImporterService
             'serie'          => $showTitle,
             'synopsis'       => (string) ($season['overview'] ?? $show['overview'] ?? ''),
             'poster_url'     => $posterUrl,
-            'poster_image'   => $downloadImages ? $this->downloadImageAsWebp($posterUrl, 'tv-seasons', 'poster-' . $tmdbTvId . '-s' . $seasonNumber) : null,
-            'backdrop_image' => $downloadImages ? $this->downloadImageAsWebp($backdropUrl, 'tv-seasons', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber) : null,
+            'poster_image'   => $downloadImages ? $this->downloadImageVariants($posterUrl, 'tv-seasons', 'poster-' . $tmdbTvId . '-s' . $seasonNumber, MediaImage::ROLE_POSTER) : null,
+            'backdrop_image' => $downloadImages ? $this->downloadImageVariants($backdropUrl, 'tv-seasons', 'backdrop-' . $tmdbTvId . '-s' . $seasonNumber, MediaImage::ROLE_BACKDROP) : null,
             'release_year'   => $this->yearFromDate($season['air_date'] ?? $show['first_air_date'] ?? null),
             'air_date'       => $this->dateOrNull($season['air_date'] ?? null),
             'season_number'  => $seasonNumber,
@@ -1195,12 +1231,113 @@ class TmdbImporterService
         return isset($data['popularity']) ? round((float) $data['popularity'], 3) : null;
     }
 
-    private function downloadImageAsWebp(?string $url, string $folder, string $name): ?string
+    private function downloadImageVariants(?string $url, string $folder, string $name, string $role): ?string
     {
-        if ($url === null) {
+        $url = trim((string) $url);
+        if ($url === '') {
             return null;
         }
 
+        $image = $this->fetchImageResource($url);
+        if ($image === null) {
+            return null;
+        }
+
+        try {
+            return $this->saveImageVariants($image, $folder, $name, $role);
+        } finally {
+            imagedestroy($image);
+        }
+    }
+
+    private function regenerateVariantsFromLocal(
+        string $localPath,
+        string $remoteUrl,
+        string $folder,
+        string $name,
+        string $role
+    ): ?string {
+        $absolute = MediaImage::publicRoot() . str_replace('/', DIRECTORY_SEPARATOR, $localPath);
+        $image = is_file($absolute) ? @imagecreatefromstring((string) file_get_contents($absolute)) : null;
+
+        if (!$image && trim($remoteUrl) !== '') {
+            return $this->downloadImageVariants($remoteUrl, $folder, $name, $role);
+        }
+
+        if (!$image) {
+            return null;
+        }
+
+        try {
+            return $this->saveImageVariants($image, $folder, $name, $role);
+        } finally {
+            imagedestroy($image);
+        }
+    }
+
+    /**
+     * @param resource|\GdImage $image
+     */
+    private function saveImageVariants($image, string $folder, string $name, string $role): ?string
+    {
+        if (!function_exists('imagewebp')) {
+            return null;
+        }
+
+        imagepalettetotruecolor($image);
+        imagealphablending($image, true);
+        imagesavealpha($image, true);
+
+        $widths = $role === MediaImage::ROLE_BACKDROP ? MediaImage::backdropWidths() : MediaImage::posterWidths();
+        $primaryWidth = $role === MediaImage::ROLE_BACKDROP
+            ? MediaImage::backdropPrimaryWidth()
+            : MediaImage::posterPrimaryWidth();
+
+        $relativeDir = '/uploads/tmdb/' . trim($folder, '/');
+        $directory = $this->publicPath . str_replace('/', DIRECTORY_SEPARATOR, $relativeDir);
+
+        if (!is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+
+        $safeName = preg_replace('/[^a-zA-Z0-9_-]+/', '-', strtolower($name)) ?: bin2hex(random_bytes(8));
+        $primaryPath = null;
+
+        foreach ($widths as $targetWidth) {
+            $resized = $this->resizeToWidth($image, $targetWidth);
+            $relativePath = $relativeDir . '/' . $safeName . '-w' . $targetWidth . '.webp';
+            $absolutePath = $this->publicPath . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+            $quality = MediaImage::qualityForWidth($targetWidth, $role);
+
+            if (!imagewebp($resized, $absolutePath, $quality)) {
+                if ($resized !== $image) {
+                    imagedestroy($resized);
+                }
+                continue;
+            }
+
+            if ($resized !== $image) {
+                imagedestroy($resized);
+            }
+
+            if ($targetWidth === $primaryWidth) {
+                $primaryPath = $relativePath;
+            }
+        }
+
+        if ($primaryPath === null && $widths !== []) {
+            $fallbackWidth = $widths[array_key_last($widths)];
+            $primaryPath = $relativeDir . '/' . $safeName . '-w' . $fallbackWidth . '.webp';
+        }
+
+        return $primaryPath;
+    }
+
+    /**
+     * @return \GdImage|null
+     */
+    private function fetchImageResource(string $url): ?\GdImage
+    {
         try {
             $response = $this->assetHttp->get($url);
         } catch (GuzzleException) {
@@ -1213,30 +1350,265 @@ class TmdbImporterService
 
         $image = @imagecreatefromstring((string) $response->getBody());
 
-        if (!$image) {
-            return null;
+        return $image instanceof \GdImage ? $image : null;
+    }
+
+    /**
+     * @param \GdImage $source
+     * @return \GdImage
+     */
+    private function resizeToWidth(\GdImage $source, int $targetWidth): \GdImage
+    {
+        $srcW = imagesx($source);
+        $srcH = imagesy($source);
+
+        if ($srcW <= 0 || $srcH <= 0) {
+            return $source;
         }
 
-        $relativeDir = '/uploads/tmdb/' . trim($folder, '/');
-        $directory = $this->publicPath . str_replace('/', DIRECTORY_SEPARATOR, $relativeDir);
-
-        if (!is_dir($directory)) {
-            mkdir($directory, 0775, true);
+        if ($srcW <= $targetWidth) {
+            return $source;
         }
 
-        $safeName = preg_replace('/[^a-zA-Z0-9_-]+/', '-', strtolower($name)) ?: bin2hex(random_bytes(8));
-        $relativePath = $relativeDir . '/' . $safeName . '.webp';
-        $absolutePath = $this->publicPath . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        $targetHeight = max(1, (int) round($srcH * ($targetWidth / $srcW)));
+        $resized = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        imagecopyresampled($resized, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $srcW, $srcH);
 
-        imagepalettetotruecolor($image);
-        imagealphablending($image, true);
-        imagesavealpha($image, true);
-        $quality = (int) ($_ENV['TMDB_WEBP_QUALITY'] ?? 82);
-        $quality = max(40, min(92, $quality));
-        imagewebp($image, $absolutePath, $quality);
-        imagedestroy($image);
+        return $resized;
+    }
 
-        return $relativePath;
+    private function resolveBackdropUrlForItem(string $type, int $tmdbId, string $posterUrl): ?string
+    {
+        if ($tmdbId < 1) {
+            return $posterUrl !== '' ? $posterUrl : null;
+        }
+
+        try {
+            if ($type === 'tv_show') {
+                $details = $this->tvShowDetails($tmdbId);
+
+                return $this->backdropUrl($details['backdrop_path'] ?? null) ?? ($posterUrl !== '' ? $posterUrl : null);
+            }
+
+            $details = $this->movieDetails($tmdbId);
+
+            return $this->backdropUrl($details['backdrop_path'] ?? null) ?? ($posterUrl !== '' ? $posterUrl : null);
+        } catch (Throwable) {
+            return $posterUrl !== '' ? $posterUrl : null;
+        }
+    }
+
+    /**
+     * @param array<string, int> $result
+     */
+    private function hydrateSeasonImages(int $limit, array &$result): void
+    {
+        $rows = $this->db->select(
+            "SELECT id, tmdb_parent_id, season_number, poster_url, poster_image, backdrop_image
+             FROM media_seasons
+             WHERE poster_url IS NOT NULL AND poster_url <> ''
+             AND (
+                poster_image IS NULL OR poster_image = ''
+                OR backdrop_image IS NULL OR backdrop_image = ''
+             )
+             ORDER BY id DESC
+             LIMIT {$limit}"
+        );
+
+        foreach ($rows as $row) {
+            $result['scanned']++;
+            $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
+            $seasonNumber = (int) ($row['season_number'] ?? 0);
+            $id = (int) ($row['id'] ?? 0);
+            $posterUrl = (string) ($row['poster_url'] ?? '');
+            $key = ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber);
+
+            $updates = [];
+            if (trim((string) ($row['poster_image'] ?? '')) === '') {
+                $poster = $this->downloadImageVariants($posterUrl, 'tv-seasons', 'poster-' . $key, MediaImage::ROLE_POSTER);
+                if ($poster !== null) {
+                    $updates['poster_image'] = $poster;
+                    $result['posters_hydrated']++;
+                }
+            }
+
+            if (trim((string) ($row['backdrop_image'] ?? '')) === '') {
+                $backdropUrl = $this->resolveBackdropUrlForItem('tv_show', $showTmdbId, $posterUrl);
+                if ($backdropUrl !== null) {
+                    $backdrop = $this->downloadImageVariants($backdropUrl, 'tv-seasons', 'backdrop-' . $key, MediaImage::ROLE_BACKDROP);
+                    if ($backdrop !== null) {
+                        $updates['backdrop_image'] = $backdrop;
+                        $result['backdrops_hydrated']++;
+                    }
+                }
+            }
+
+            if ($updates !== []) {
+                $this->db->updateById('media_seasons', $id, $updates);
+                $result['hydrated']++;
+            } else {
+                $result['failed']++;
+            }
+        }
+    }
+
+    /**
+     * @param array<string, int> $result
+     */
+    private function hydrateEpisodeImages(int $limit, array &$result): void
+    {
+        $rows = $this->db->select(
+            "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url, poster_image, backdrop_image
+             FROM media_episodes
+             WHERE poster_url IS NOT NULL AND poster_url <> ''
+             AND (
+                poster_image IS NULL OR poster_image = ''
+                OR backdrop_image IS NULL OR backdrop_image = ''
+             )
+             ORDER BY id DESC
+             LIMIT {$limit}"
+        );
+
+        foreach ($rows as $row) {
+            $result['scanned']++;
+            $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
+            $seasonNumber = (int) ($row['season_number'] ?? 0);
+            $episodeNumber = (int) ($row['episode_number'] ?? 0);
+            $id = (int) ($row['id'] ?? 0);
+            $posterUrl = (string) ($row['poster_url'] ?? '');
+            $key = ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber) . 'e' . max(1, $episodeNumber);
+
+            $updates = [];
+            if (trim((string) ($row['poster_image'] ?? '')) === '') {
+                $poster = $this->downloadImageVariants($posterUrl, 'tv-episodes', 'poster-' . $key, MediaImage::ROLE_POSTER);
+                if ($poster !== null) {
+                    $updates['poster_image'] = $poster;
+                    $result['posters_hydrated']++;
+                }
+            }
+
+            if (trim((string) ($row['backdrop_image'] ?? '')) === '') {
+                $backdropUrl = $this->resolveBackdropUrlForItem('tv_show', $showTmdbId, $posterUrl);
+                if ($backdropUrl !== null) {
+                    $backdrop = $this->downloadImageVariants($backdropUrl, 'tv-episodes', 'backdrop-' . $key, MediaImage::ROLE_BACKDROP);
+                    if ($backdrop !== null) {
+                        $updates['backdrop_image'] = $backdrop;
+                        $result['backdrops_hydrated']++;
+                    }
+                }
+            }
+
+            if ($updates !== []) {
+                $this->db->updateById('media_episodes', $id, $updates);
+                $result['hydrated']++;
+            } else {
+                $result['failed']++;
+            }
+        }
+    }
+
+    /**
+     * @param array<string, int> $result
+     */
+    private function regenerateSeasonVariants(int $limit, array &$result): void
+    {
+        $rows = $this->db->select(
+            "SELECT id, tmdb_parent_id, season_number, poster_url, poster_image, backdrop_image
+             FROM media_seasons
+             WHERE (poster_image IS NOT NULL AND poster_image <> '')
+                OR (backdrop_image IS NOT NULL AND backdrop_image <> '')
+             ORDER BY id DESC
+             LIMIT {$limit}"
+        );
+
+        foreach ($rows as $row) {
+            $result['scanned']++;
+            $this->regenerateRowVariants($row, 'tv-seasons', 'tv_show', $result);
+        }
+    }
+
+    /**
+     * @param array<string, int> $result
+     */
+    private function regenerateEpisodeVariants(int $limit, array &$result): void
+    {
+        $rows = $this->db->select(
+            "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url, poster_image, backdrop_image
+             FROM media_episodes
+             WHERE (poster_image IS NOT NULL AND poster_image <> '')
+                OR (backdrop_image IS NOT NULL AND backdrop_image <> '')
+             ORDER BY id DESC
+             LIMIT {$limit}"
+        );
+
+        foreach ($rows as $row) {
+            $result['scanned']++;
+            $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
+            $seasonNumber = (int) ($row['season_number'] ?? 0);
+            $episodeNumber = (int) ($row['episode_number'] ?? 0);
+            $id = (int) ($row['id'] ?? 0);
+            $key = ($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber) . 'e' . max(1, $episodeNumber);
+            $this->regenerateRowVariants($row, 'tv-episodes', 'tv_show', $result, $key);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<string, int> $result
+     */
+    private function regenerateRowVariants(
+        array $row,
+        string $folder,
+        string $type,
+        array &$result,
+        ?string $nameKey = null
+    ): void {
+        $showTmdbId = (int) ($row['tmdb_parent_id'] ?? 0);
+        $seasonNumber = (int) ($row['season_number'] ?? 0);
+        $id = (int) ($row['id'] ?? 0);
+        $key = $nameKey ?? (($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber));
+        $changed = false;
+
+        $posterPath = trim((string) ($row['poster_image'] ?? ''));
+        if ($posterPath !== '' && MediaImage::needsVariantRegeneration($posterPath, MediaImage::posterWidths())) {
+            $regenerated = $this->regenerateVariantsFromLocal(
+                $posterPath,
+                trim((string) ($row['poster_url'] ?? '')),
+                $folder,
+                'poster-' . $key,
+                MediaImage::ROLE_POSTER
+            );
+            if ($regenerated !== null) {
+                $table = str_contains($folder, 'episode') ? 'media_episodes' : 'media_seasons';
+                $this->db->updateById($table, $id, ['poster_image' => $regenerated]);
+                $changed = true;
+            }
+        }
+
+        $backdropPath = trim((string) ($row['backdrop_image'] ?? ''));
+        if ($backdropPath !== '' && MediaImage::needsVariantRegeneration($backdropPath, MediaImage::backdropWidths())) {
+            $backdropUrl = $this->resolveBackdropUrlForItem($type, $showTmdbId, trim((string) ($row['poster_url'] ?? '')));
+            $regenerated = $this->regenerateVariantsFromLocal(
+                $backdropPath,
+                $backdropUrl ?? '',
+                $folder,
+                'backdrop-' . $key,
+                MediaImage::ROLE_BACKDROP
+            );
+            if ($regenerated !== null) {
+                $table = str_contains($folder, 'episode') ? 'media_episodes' : 'media_seasons';
+                $this->db->updateById($table, $id, ['backdrop_image' => $regenerated]);
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $result['variants_regenerated']++;
+        } else {
+            $result['failed']++;
+        }
     }
 
     private function bulkDownloadsImages(): bool

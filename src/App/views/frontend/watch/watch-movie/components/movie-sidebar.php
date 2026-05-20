@@ -1,3 +1,4 @@
+<?php use App\Support\MediaImage; ?>
 <!-- SIDEBAR -->
     <div class="watch-sidebar">
 
@@ -16,7 +17,7 @@
         <?php if (!empty($relatedItems)): ?>
           <?php foreach ($relatedItems as $idx => $rel): ?>
             <?php
-            $relBackdrop = $rel['backdrop_image'] ?? '';
+            $relPosterMedia = MediaImage::posterFromRow($rel, 'thumb');
             $relTitle = $rel['title'] ?? 'Unknown';
             $relYear = $rel['release_year'] ?? 'N/A';
             $relRating = $rel['tmdb_rating'] ?? 'N/A';
@@ -25,8 +26,13 @@
             ?>
             <a href="<?= escape($relWatchUrl) ?>" class="up-next-card" onclick="return true;">
               <div class="unc-thumb c<?= ($idx % 8) + 1 ?>">
-                <?php if ($relBackdrop): ?>
-                  <img src="<?= escape($relBackdrop) ?>" alt="<?= escape($relTitle) ?>" style="width:100%;height:100%;object-fit:cover;">
+                <?php if (MediaImage::srcOnly($relPosterMedia) !== ''): ?>
+                  <?php echo $this->includePartial('/frontend/partials/media-image', [
+                      'media' => $relPosterMedia,
+                      'alt' => $relTitle,
+                      'loading' => 'lazy',
+                      'class' => 'unc-thumb-img',
+                  ]); ?>
                 <?php else: ?>
                   <div class="unc-ph"><?= strtoupper(substr($relTitle, 0, 12)) ?></div>
                 <?php endif; ?>

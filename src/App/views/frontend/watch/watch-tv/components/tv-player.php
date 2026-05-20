@@ -1,9 +1,13 @@
 <?php
+use App\Support\MediaImage;
+
 $showTitle = (string) ($show['title'] ?? 'TV Show');
 $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
 $episodeTitle = (string) (($episode['episode_name'] ?? '') ?: ($episode['title'] ?? 'Episode ' . $currentEpisode));
-$backdrop = (string) (($episode['backdrop_image'] ?? '') ?: (($show['backdrop_image'] ?? '') ?: (($show['poster_image'] ?? '') ?: ($show['poster_url'] ?? ''))));
+$playerBackdrop = MediaImage::backdropFromRow(array_merge($show, [
+    'backdrop_image' => ($episode['backdrop_image'] ?? '') ?: ($show['backdrop_image'] ?? ''),
+]), 'player');
 $runtime = (int) ($show['runtime_minutes'] ?? 0);
 $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
 $prevEpisode = null;
@@ -34,15 +38,22 @@ $embedUrl = (string) ($episode['embedUrl'] ?? $episode['embed_url'] ?? '');
     ></iframe>
   <?php endif; ?>
   <div class="player-bg">
-    <div class="player-backdrop" style="background-image:url('<?= escape($backdrop) ?>');background-size:cover;background-position:center;"></div>
+    <div class="player-backdrop">
+      <?php echo $this->includePartial('/frontend/partials/media-image', [
+          'media' => $playerBackdrop,
+          'alt' => '',
+          'loading' => 'lazy',
+          'class' => 'player-backdrop-img',
+      ]); ?>
+    </div>
     <div class="player-grid-overlay"></div>
     <div class="player-particles" id="particles"></div>
     <div class="player-center">
-      <div class="play-ring" onclick="initPlay()">
+      <button class="play-ring" type="button" aria-label="Play episode" onclick="initPlay()">
         <div class="play-ring-inner">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         </div>
-      </div>
+      </button>
       <div class="player-ep-badge"><div class="ep-dot"></div>S<?= $currentSeason ?> &middot; E<?= $currentEpisode ?></div>
       <div class="player-title-overlay"><?= escape($showTitle) ?></div>
       <div class="player-subtitle"><?= escape($episodeTitle) ?> &middot; <?= escape($runtimeLabel) ?></div>

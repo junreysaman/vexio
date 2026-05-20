@@ -14,6 +14,8 @@ try {
     match ($command) {
         'install' => installDatabase($root),
         'publish-scheduled' => publishScheduledEpisodes($root),
+        'hydrate-images' => hydrateImages($root, $arguments),
+        'regenerate-image-variants' => regenerateImageVariants($root, $arguments),
         'create-controller' => createController($root, $arguments),
         'create-middleware' => createMiddleware($root, $arguments),
         'create-service' => createService($root, $arguments),
@@ -33,6 +35,10 @@ function showHelp(): void
     echo "Usage:\n";
     echo "  php cli.php install                                      Create the database and import database.sql\n";
     echo "  php cli.php publish-scheduled                            Publish episodes whose air date has passed\n";
+    echo "  php cli.php hydrate-images [--scope=all] [--limit=50] [--loop]\n";
+    echo "      Backfill missing local WebP poster/backdrop variants from TMDB URLs\n";
+    echo "  php cli.php regenerate-image-variants [--scope=all] [--limit=50] [--loop]\n";
+    echo "      Regenerate width variants for existing local poster/backdrop files\n";
     echo "  php cli.php create-controller --UserController           Create and register UserController/UserController.php\n";
     echo "  php cli.php create-controller --UserController --ProfileController\n";
     echo "      Create and register UserController/ProfileController.php\n";
@@ -2229,6 +2235,96 @@ function viewStub(string $viewTitle): string
 <?= \$this->end() ?>
 
 PHP;
+}
+
+function hydrateImages(string $root, array $arguments): void
+{
+    require_once $root . '/src/App/functions.php';
+
+    $options = cliImageCommandOptions($arguments);
+    $db = cliDatabase($root);
+    $importer = new App\Services\TMDB\TmdbImporterService($db);
+
+    $iterations = 0;
+    do {
+        $iterations++;
+        $result = $importer->hydrateMissingImages($options['scope'], $options['limit']);
+        echo sprintf(
+            "Hydrate batch %d: scanned=%d hydrated=%d posters=%d backdrops=%d failed=%d\n",
+            $iterations,
+            (int) ($result['scanned'] ?? 0),
+            (int) ($result['hydrated'] ?? 0),
+            (int) ($result['posters_hydrated'] ?? 0),
+            (int) ($result['backdrops_hydrated'] ?? 0),
+            (int) ($result['failed'] ?? 0)
+        );
+    } while ($options['loop'] && (int) ($result['hydrated'] ?? 0) > 0 && $iterations < $options['max_iterations']);
+}
+
+function regenerateImageVariants(string $root, array $arguments): void
+{
+    require_once $root . '/src/App/functions.php';
+
+    $options = cliImageCommandOptions($arguments);
+    $db = cliDatabase($root);
+    $importer = new App\Services\TMDB\TmdbImporterService($db);
+
+    $iterations = 0;
+    do {
+        $iterations++;
+        $result = $importer->regenerateImageVariants($options['scope'], $options['limit']);
+        echo sprintf(
+            "Regenerate batch %d: scanned=%d regenerated=%d failed=%d\n",
+            $iterations,
+            (int) ($result['scanned'] ?? 0),
+            (int) ($result['variants_regenerated'] ?? 0),
+            (int) ($result['failed'] ?? 0)
+        );
+    } while ($options['loop'] && (int) ($result['variants_regenerated'] ?? 0) > 0 && $iterations < $options['max_iterations']);
+}
+
+/**
+ * @return array{scope: string, limit: int, loop: bool, max_iterations: int}
+ */
+function cliImageCommandOptions(array $arguments): array
+{
+    $scope = 'all';
+    $limit = 50;
+    $loop = false;
+    $maxIterations = 200;
+
+    foreach ($arguments as $argument) {
+        if (str_starts_with($argument, '--scope=')) {
+            $scope = substr($argument, 8);
+        } elseif (str_starts_with($argument, '--limit=')) {
+            $limit = max(1, (int) substr($argument, 8));
+        } elseif ($argument === '--loop') {
+            $loop = true;
+        } elseif (str_starts_with($argument, '--max-iterations=')) {
+            $maxIterations = max(1, (int) substr($argument, 17));
+        }
+    }
+
+    return [
+        'scope' => $scope,
+        'limit' => $limit,
+        'loop' => $loop,
+        'max_iterations' => $maxIterations,
+    ];
+}
+
+function cliDatabase(string $root): Framework\Database
+{
+    return new Framework\Database(
+        envValue('DB_DRIVER', 'mysql'),
+        [
+            'host'   => envValue('DB_HOST', 'localhost'),
+            'port'   => envValue('DB_PORT', '3306'),
+            'dbname' => envValue('DB_NAME', 'paper_phpframework'),
+        ],
+        envValue('DB_USER', 'root'),
+        envValue('DB_PASSWORD', '')
+    );
 }
 
 function publishScheduledEpisodes(string $root): void

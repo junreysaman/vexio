@@ -24,6 +24,7 @@
 
             echo $this->includePartial('/frontend/partials/card', [
               'cardTitle'      => (string) ($item['title'] ?? 'Untitled'),
+              'cardPosterMedia'=> is_array($item['poster_media'] ?? null) ? $item['poster_media'] : null,
               'cardPoster'     => (string) ($item['poster'] ?? ''),
               'cardWatchUrl'   => (string) ($item['watchUrl'] ?? '#'),
               'cardLabel'      => $typeLabel,

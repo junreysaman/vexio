@@ -3,6 +3,8 @@
 <?= $this->end() ?>
 
 <?php
+use App\Support\MediaImage;
+
 $items = is_array($items ?? null) ? $items : [];
 $spotlight = is_array($spotlight ?? null) ? $spotlight : null;
 $spotlightSidebar = is_array($spotlight_sidebar ?? null) ? $spotlight_sidebar : [];
@@ -64,7 +66,14 @@ $genres = is_array($genres ?? null) ? $genres : [];
 
         <div class="spotlight-wrap">
           <a class="spotlight-card trend-link-card" href="<?= escape((string) $spotlight['watch_url']) ?>" data-trending-item data-type="<?= escape((string) $spotlight['type']) ?>" data-category="<?= escape((string) $spotlight['primary_category']) ?>" data-secondary="<?= escape((string) $spotlight['secondary_category']) ?>" data-day-score="<?= (int) $spotlight['scores']['day'] ?>" data-week-score="<?= (int) $spotlight['scores']['week'] ?>" data-month-score="<?= (int) $spotlight['scores']['month'] ?>">
-            <div class="sp-bg" style="background-image:url('<?= escape((string) $spotlight['backdrop']) ?>');"></div>
+            <div class="sp-bg">
+              <?php
+                $spBackdrop = is_array($spotlight['backdrop_media'] ?? null)
+                    ? $spotlight['backdrop_media']
+                    : MediaImage::fromString((string) ($spotlight['backdrop'] ?? ''), 'spotlight');
+                echo $this->includePartial('/frontend/partials/media-image', ['media' => $spBackdrop, 'alt' => '', 'loading' => 'eager']);
+              ?>
+            </div>
             <div class="sp-gradient"></div>
             <div class="sp-rank">#1</div>
             <div class="sp-content">
@@ -97,7 +106,14 @@ $genres = is_array($genres ?? null) ? $genres : [];
           <div class="spotlight-sidebar">
             <?php foreach ($spotlightSidebar as $item): ?>
               <a class="sidebar-card trend-link-card" href="<?= escape((string) $item['watch_url']) ?>" data-trending-item data-type="<?= escape((string) $item['type']) ?>" data-category="<?= escape((string) $item['primary_category']) ?>" data-secondary="<?= escape((string) $item['secondary_category']) ?>" data-day-score="<?= (int) $item['scores']['day'] ?>" data-week-score="<?= (int) $item['scores']['week'] ?>" data-month-score="<?= (int) $item['scores']['month'] ?>">
-                <div class="sc-bg" style="background-image:url('<?= escape((string) $item['backdrop']) ?>');"></div>
+                <div class="sc-bg">
+                  <?php
+                    $scBackdrop = is_array($item['backdrop_media'] ?? null)
+                        ? $item['backdrop_media']
+                        : MediaImage::fromString((string) ($item['backdrop'] ?? ''), 'spotlight');
+                    echo $this->includePartial('/frontend/partials/media-image', ['media' => $scBackdrop, 'alt' => '', 'loading' => 'lazy']);
+                  ?>
+                </div>
                 <div class="sc-grad"></div>
                 <div class="sc-accent"></div>
                 <div class="sc-rank-num">#<?= (int) $item['rank'] ?></div>
@@ -122,7 +138,18 @@ $genres = is_array($genres ?? null) ? $genres : [];
         <div class="trend-grid" id="trendGrid">
           <?php foreach ($items as $item): ?>
             <a class="trend-card trend-link-card" href="<?= escape((string) $item['watch_url']) ?>" data-trending-item data-type="<?= escape((string) $item['type']) ?>" data-category="<?= escape((string) $item['primary_category']) ?>" data-secondary="<?= escape((string) $item['secondary_category']) ?>" data-day-score="<?= (int) $item['scores']['day'] ?>" data-week-score="<?= (int) $item['scores']['week'] ?>" data-month-score="<?= (int) $item['scores']['month'] ?>">
-              <div class="tc-bg" style="background-image:url('<?= escape((string) $item['poster']) ?>');"></div>
+              <div class="tc-media">
+                <?php
+                  $tcPoster = is_array($item['poster_media'] ?? null)
+                      ? $item['poster_media']
+                      : MediaImage::fromString((string) ($item['poster'] ?? ''), 'card');
+                  echo $this->includePartial('/frontend/partials/media-image', [
+                      'media' => $tcPoster,
+                      'alt' => (string) ($item['title'] ?? 'Untitled') . ' poster',
+                      'loading' => 'lazy',
+                  ]);
+                ?>
+              </div>
               <div class="tc-gradient"></div>
               <div class="tc-rank">#<?= (int) $item['rank'] ?></div>
               <div class="tc-badge <?= escape((string) ($item['secondary_category'] === 'new' ? 'new' : ($item['secondary_category'] === 'top' ? 'top' : 'hot'))) ?>"><?= escape((string) ($item['secondary_category'] === 'new' ? 'NEW' : ($item['secondary_category'] === 'top' ? 'TOP' : 'HOT'))) ?></div>
@@ -153,7 +180,18 @@ $genres = is_array($genres ?? null) ? $genres : [];
             <?php foreach ($topChart as $index => $item): ?>
               <a class="rank-row trend-link-card" href="<?= escape((string) $item['watch_url']) ?>" data-trending-item data-type="<?= escape((string) $item['type']) ?>" data-category="<?= escape((string) $item['primary_category']) ?>" data-secondary="<?= escape((string) $item['secondary_category']) ?>" data-day-score="<?= (int) $item['scores']['day'] ?>" data-week-score="<?= (int) $item['scores']['week'] ?>" data-month-score="<?= (int) $item['scores']['month'] ?>">
                 <div class="rr-num <?= $index < 3 ? 'top3' : '' ?>"><?= $index + 1 ?></div>
-                <div class="rr-thumb" style="background-image:url('<?= escape((string) $item['poster']) ?>');"></div>
+                <div class="rr-thumb">
+                  <?php
+                    $rrPoster = is_array($item['poster_media'] ?? null)
+                        ? $item['poster_media']
+                        : MediaImage::fromString((string) ($item['poster'] ?? ''), 'thumb');
+                    echo $this->includePartial('/frontend/partials/media-image', [
+                        'media' => $rrPoster,
+                        'alt' => (string) ($item['title'] ?? 'Untitled') . ' poster',
+                        'loading' => 'lazy',
+                    ]);
+                  ?>
+                </div>
                 <div class="rr-info">
                   <div class="rr-title"><?= escape((string) $item['title']) ?></div>
                   <div class="rr-sub">
@@ -180,7 +218,14 @@ $genres = is_array($genres ?? null) ? $genres : [];
             <div class="hscroll-row" id="trendTodayRow">
               <?php foreach ($watchedToday as $index => $item): ?>
                 <a class="hscroll-card trend-link-card" href="<?= escape((string) $item['watch_url']) ?>" data-trending-item data-type="<?= escape((string) $item['type']) ?>" data-category="<?= escape((string) $item['primary_category']) ?>" data-secondary="<?= escape((string) $item['secondary_category']) ?>" data-day-score="<?= (int) $item['scores']['day'] ?>" data-week-score="<?= (int) $item['scores']['week'] ?>" data-month-score="<?= (int) $item['scores']['month'] ?>">
-                  <div class="hc-bg" style="background-image:url('<?= escape((string) $item['backdrop']) ?>');"></div>
+                  <div class="hc-bg">
+                    <?php
+                      $hcBackdrop = is_array($item['backdrop_media'] ?? null)
+                          ? $item['backdrop_media']
+                          : MediaImage::fromString((string) ($item['backdrop'] ?? ''), 'spotlight');
+                      echo $this->includePartial('/frontend/partials/media-image', ['media' => $hcBackdrop, 'alt' => '', 'loading' => 'lazy']);
+                    ?>
+                  </div>
                   <div class="hc-grad"></div>
                   <div class="hc-content">
                     <div class="hc-rank-tag">#<?= $index + 1 ?> TODAY</div>

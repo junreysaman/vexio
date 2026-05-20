@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Search;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Framework\Database;
 
@@ -89,7 +90,8 @@ class SearchService
         return [
             'title' => (string) ($item['title'] ?? 'Untitled'),
             'year' => is_numeric($item['release_year'] ?? null) ? (string) $item['release_year'] : '',
-            'image' => (string) (($item['poster_url'] ?? '') ?: ($item['poster_image'] ?? '') ?: ($item['backdrop_image'] ?? '')),
+            'image' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'thumb')),
+            'image_media' => MediaImage::posterFromRow($item, 'thumb'),
             'watchUrl' => $watchUrl,
         ];
     }

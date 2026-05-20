@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/frontend/css/paper.css">
     <link rel="stylesheet" href="/assets/frontend/css/page-loader.css">
+    <link rel="stylesheet" href="/assets/frontend/css/global-views.css?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/css/global-views.css') ?>">
     <?= $this->section('styles') ?>
 </head>
 
