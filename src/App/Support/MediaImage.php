@@ -103,7 +103,28 @@ final class MediaImage
             $remote = trim((string) ($row['poster_url'] ?? ''));
         }
 
-        if ($local !== '') {
+        if (!self::downloadsImagesEnabled()) {
+            if ($remote !== '') {
+                return self::fromRemoteUrl($remote, $widths, $primary, $sizes, $role);
+            }
+
+            if ($local !== '' && self::isRemoteUrl($local)) {
+                return self::fromRemoteUrl($local, $widths, $primary, $sizes, $role);
+            }
+
+            if ($role === self::ROLE_BACKDROP) {
+                $posterRemote = trim((string) ($row['poster_url'] ?? ''));
+                if ($posterRemote !== '') {
+                    return self::fromRemoteUrl($posterRemote, $widths, $primary, $sizes, self::ROLE_POSTER);
+                }
+            }
+        }
+
+        if ($local !== '' && self::isRemoteUrl($local)) {
+            return self::fromRemoteUrl($local, $widths, $primary, $sizes, $role);
+        }
+
+        if ($local !== '' && self::isLocalWebPath($local)) {
             $descriptor = self::fromLocalPath($local, $widths, $primary, $sizes);
 
             if ($descriptor['src'] !== '') {
@@ -112,12 +133,15 @@ final class MediaImage
         }
 
         if ($remote !== '') {
-            return self::fromRemoteUrl($remote, $widths, $primary, $sizes);
+            return self::fromRemoteUrl($remote, $widths, $primary, $sizes, $role);
         }
 
         if ($role === self::ROLE_BACKDROP && $local === '') {
             $posterLocal = trim((string) ($row['poster_image'] ?? ''));
-            if ($posterLocal !== '') {
+            if ($posterLocal !== '' && self::isRemoteUrl($posterLocal)) {
+                return self::fromRemoteUrl($posterLocal, $widths, $primary, $sizes, self::ROLE_POSTER);
+            }
+            if ($posterLocal !== '' && self::isLocalWebPath($posterLocal)) {
                 return self::fromLocalPath($posterLocal, $widths, $primary, $sizes);
             }
         }
@@ -169,17 +193,36 @@ final class MediaImage
      * @param list<int> $widths
      * @return array{src: string, srcset: string, sizes: string, width: int, height: int}
      */
-    public static function fromRemoteUrl(string $url, array $widths, int $primaryWidth, string $sizes): array
-    {
+    public static function fromRemoteUrl(
+        string $url,
+        array $widths,
+        int $primaryWidth,
+        string $sizes,
+        string $role = self::ROLE_POSTER
+    ): array {
+        $canonical = self::canonicalTmdbUrl($url, $role);
+        $envSize = self::envSizeToken($role);
+        $src = self::tmdbSizedUrl($canonical, $envSize, $role);
+
         $entries = [];
-        foreach ($widths as $width) {
-            $entries[$width] = self::tmdbSizedUrl($url, 'w' . $width);
+        if ($envSize !== 'original') {
+            foreach ($widths as $width) {
+                $token = 'w' . $width;
+                $sized = self::tmdbSizedUrl($canonical, $token, $role);
+                if ($sized !== '' && $sized !== $src) {
+                    $entries[$width] = $sized;
+                }
+            }
+
+            if (!isset($entries[$primaryWidth])) {
+                $entries[$primaryWidth] = $src;
+            }
         }
 
-        $src = $entries[$primaryWidth] ?? reset($entries) ?: $url;
+        ksort($entries);
 
         return [
-            'src' => $src,
+            'src' => $src !== '' ? $src : $canonical,
             'srcset' => self::buildSrcset($entries),
             'sizes' => $sizes,
             'width' => $primaryWidth,
@@ -199,11 +242,13 @@ final class MediaImage
             return self::emptyDescriptor((int) $preset['primary'], (string) $preset['sizes']);
         }
 
-        if (str_starts_with($url, '/uploads/')) {
+        $role = (string) ($preset['role'] ?? self::ROLE_POSTER);
+
+        if (self::isLocalWebPath($url)) {
             return self::fromLocalPath($url, $preset['widths'], (int) $preset['primary'], (string) $preset['sizes']);
         }
 
-        return self::fromRemoteUrl($url, $preset['widths'], (int) $preset['primary'], (string) $preset['sizes']);
+        return self::fromRemoteUrl($url, $preset['widths'], (int) $preset['primary'], (string) $preset['sizes'], $role);
     }
 
     public static function srcOnly(array $descriptor): string
@@ -211,9 +256,89 @@ final class MediaImage
         return (string) ($descriptor['src'] ?? '');
     }
 
-    public static function tmdbSizedUrl(string $url, string $size): string
+    /**
+     * Best share/OG image URL for a catalogue row (poster, then backdrop).
+     */
+    public static function ogImageFromRow(array $row): string
+    {
+        $poster = self::srcOnly(self::posterFromRow($row, 'detail'));
+        if ($poster !== '') {
+            return $poster;
+        }
+
+        return self::srcOnly(self::backdropFromRow($row, 'heroBackdrop'));
+    }
+
+    /**
+     * Build a TMDB asset URL from an API path (e.g. /abc.jpg) using env base URLs.
+     */
+    public static function buildTmdbAssetUrl(?string $path, string $role = self::ROLE_POSTER): ?string
+    {
+        $path = trim((string) $path);
+        if ($path === '') {
+            return null;
+        }
+
+        if (self::isRemoteUrl($path)) {
+            return self::canonicalTmdbUrl($path, $role);
+        }
+
+        $base = $role === self::ROLE_BACKDROP ? self::backdropBaseUrl() : self::posterBaseUrl();
+
+        return $base . '/' . ltrim($path, '/');
+    }
+
+    public static function posterBaseUrl(): string
+    {
+        return rtrim((string) ($_ENV['TMDB_IMAGE_BASE_URL'] ?? 'https://image.tmdb.org/t/p/original'), '/');
+    }
+
+    public static function backdropBaseUrl(): string
+    {
+        return rtrim((string) ($_ENV['TMDB_BACKDROP_BASE_URL'] ?? 'https://image.tmdb.org/t/p/original'), '/');
+    }
+
+    /** Size segment from env base URL: original, w500, w1280, etc. */
+    public static function envSizeToken(string $role = self::ROLE_POSTER): string
+    {
+        $base = $role === self::ROLE_BACKDROP ? self::backdropBaseUrl() : self::posterBaseUrl();
+
+        if (preg_match('#/t/p/(w\d+|original)$#', $base, $matches)) {
+            return (string) $matches[1];
+        }
+
+        return 'original';
+    }
+
+    /**
+     * Normalize a stored TMDB URL or file path to the configured env base for the role.
+     */
+    public static function canonicalTmdbUrl(string $url, string $role = self::ROLE_POSTER): string
     {
         $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        if (!self::isRemoteUrl($url)) {
+            return (string) (self::buildTmdbAssetUrl($url, $role) ?? '');
+        }
+
+        if (!preg_match('#/t/p/(w\d+|original)/(.+)$#', $url, $matches)) {
+            return $url;
+        }
+
+        $base = $role === self::ROLE_BACKDROP ? self::backdropBaseUrl() : self::posterBaseUrl();
+        if (!preg_match('#/t/p/(w\d+|original)$#', $base)) {
+            return $url;
+        }
+
+        return $base . '/' . $matches[2];
+    }
+
+    public static function tmdbSizedUrl(string $url, string $size, string $role = self::ROLE_POSTER): string
+    {
+        $url = trim(self::canonicalTmdbUrl($url, $role));
         if ($url === '') {
             return '';
         }
@@ -431,11 +556,31 @@ final class MediaImage
         ];
     }
 
+    public static function downloadsImagesEnabled(): bool
+    {
+        return filter_var($_ENV['TMDB_DOWNLOAD_IMAGES'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public static function isRemoteUrl(string $value): bool
+    {
+        $value = trim($value);
+
+        return $value !== ''
+            && (str_starts_with($value, 'https://') || str_starts_with($value, 'http://'));
+    }
+
+    public static function isLocalWebPath(string $path): bool
+    {
+        $path = trim($path);
+
+        return $path !== '' && str_starts_with($path, '/') && !self::isRemoteUrl($path);
+    }
+
     private static function normalizeWebPath(string $path): string
     {
         $path = trim($path);
 
-        return $path !== '' && str_starts_with($path, '/') ? $path : '';
+        return self::isLocalWebPath($path) ? $path : '';
     }
 
     private static function fileExists(string $webPath): bool

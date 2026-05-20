@@ -95,7 +95,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             <label for="dbmvs-hydrate-limit" class="sr-only">Batch size</label>
             <input id="dbmvs-hydrate-limit" name="limit" type="number" min="1" max="200" value="50" aria-label="Hydrate batch size">
             <button type="submit" id="dbmvs-btn-hydrate" class="paper-btn">
-                <i class="icon-image"></i> Hydrate Missing Images
+                <i class="icon-image"></i> Sync TMDB Image URLs
             </button>
         </form>
 

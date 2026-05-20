@@ -21,7 +21,7 @@
 <?= $this->includePartial('/frontend/partials/share-modal', [
   'pageUrl' => $_SERVER['REQUEST_URI'] ?? '/',
   'pageTitle' => $show['title'] ?? 'Watch TV Show',
-  'pageImage' => $show['poster_image'] ?? $show['backdrop_image'] ?? '/favicon.png',
+  'pageImage' => \App\Support\MediaImage::ogImageFromRow($show) ?: '/favicon.png',
 ]) ?>
 
 <?= $this->end() ?>

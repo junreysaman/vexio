@@ -1,5 +1,60 @@
 /* Vexio global view styles — extracted from PHP templates. */
 
+/* ===== TMDB / catalogue image lazy skeleton ===== */
+.media-img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.media-img__skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: media-img-shimmer 1.2s ease-in-out infinite;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.media-img__img {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.media-img.is-loaded .media-img__skeleton {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.media-img.is-loaded .media-img__img {
+  opacity: 1;
+}
+
+.media-img.is-error .media-img__img {
+  opacity: 0;
+}
+
+@keyframes media-img-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ===== Skeleton loader ===== */
 .skeleton-loader {
   position: fixed;

@@ -6,6 +6,7 @@ namespace App\Controllers\Watch;
 
 use App\Services\Watch\WatchService;
 use App\Services\Watch\CommentService;
+use App\Support\MediaImage;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use Framework\TemplateEngine;
@@ -37,7 +38,7 @@ class WatchMovieController
                 'body_class' => 'paper-watch-watch-movie',
                 'meta_description' => $this->truncate((string) ($item['synopsis'] ?? ''), 160),
                 'meta_keywords' => (string) ($item['genres'] ?? ''),
-                'meta_image' => $item['poster_image'] ?? $item['backdrop_image'] ?? null,
+                'meta_image' => MediaImage::ogImageFromRow($item) ?: null,
                 'item' => $item,
                 'related' => $data['related'] ?? [],
                 'comments' => $this->comments->forItem((int) ($item['id'] ?? 0)),

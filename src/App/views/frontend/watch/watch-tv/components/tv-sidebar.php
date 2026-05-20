@@ -1,4 +1,6 @@
 <?php
+use App\Support\MediaImage;
+
 $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
 $rating = $show['tmdb_rating'] ?? 'N/A';
@@ -31,14 +33,23 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
       $rowEpisode = (int) ($row['episode_number'] ?? ($idx + 1));
       $isCurrent = $rowSeason === $currentSeason && $rowEpisode === $currentEpisode;
       $rowTitle = (string) (($row['episode_name'] ?? '') ?: ($row['title'] ?? 'Episode ' . $rowEpisode));
-      $rowPoster = (string) (($row['backdrop_image'] ?? '') ?: (($row['poster_image'] ?? '') ?: ($row['poster_url'] ?? '')));
+      $rowPosterMedia = MediaImage::posterFromRow($row, 'thumb');
       $classes = ['ep-sidebar-card'];
       if ($rowEpisode < $currentEpisode) $classes[] = 'watched';
       if ($isCurrent) $classes[] = 'current';
       ?>
       <a class="<?= escape(implode(' ', $classes)) ?>" href="<?= escape((string) ($row['watchUrl'] ?? $row['watch_url'] ?? '#')) ?>" data-sidebar-episode="<?= $idx ?>" <?= $isCurrent ? 'data-current-episode="1"' : '' ?>>
         <div class="esc-thumb c<?= ($idx % 8) + 1 ?>">
-          <?php if ($rowPoster !== ''): ?><img src="<?= escape($rowPoster) ?>" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;"><?php else: ?><div class="esc-ph">S<?= $rowSeason ?> E<?= $rowEpisode ?></div><?php endif; ?>
+          <?php if (MediaImage::srcOnly($rowPosterMedia) !== ''): ?>
+            <?php echo $this->includePartial('/frontend/partials/media-image', [
+                'media' => $rowPosterMedia,
+                'alt' => $rowTitle,
+                'loading' => 'lazy',
+                'class' => 'esc-thumb-img',
+            ]); ?>
+          <?php else: ?>
+            <div class="esc-ph">S<?= $rowSeason ?> E<?= $rowEpisode ?></div>
+          <?php endif; ?>
           <div class="esc-play-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
           <span class="esc-duration"><?= escape($runtimeLabel) ?></span>
           <?php if ($isCurrent): ?><div class="esc-ep-progress"><div class="esc-ep-progress-fill" style="width:12%"></div></div><?php endif; ?>

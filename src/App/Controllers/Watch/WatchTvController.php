@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Watch;
 
 use App\Services\Watch\WatchService;
+use App\Support\MediaImage;
 use App\Services\Watch\CommentService;
 use Framework\Http\Request;
 use Framework\Http\Response;
@@ -74,7 +75,7 @@ class WatchTvController
                 'body_class' => 'paper-watch-watch-tv',
                 'meta_description' => $this->truncate((string) ($episode['synopsis'] ?? $show['synopsis'] ?? ''), 160),
                 'meta_keywords' => (string) ($show['genres'] ?? ''),
-                'meta_image' => $episode['poster_image'] ?? $episode['backdrop_image'] ?? $show['poster_image'] ?? $show['backdrop_image'] ?? null,
+                'meta_image' => MediaImage::ogImageFromRow($episode) ?: MediaImage::ogImageFromRow($show) ?: null,
                 'show' => $show,
                 'episode' => $episode,
                 'seasons' => $data['seasons'] ?? [],
