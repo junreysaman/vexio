@@ -426,11 +426,14 @@ class TmdbImporterService
                  OR (
                      status = 'draft'
                      AND air_date IS NOT NULL
-                     AND air_date <= :today
+                     AND air_date <= :draft_today
                  )
              )
              ORDER BY tmdb_parent_id ASC, season_number ASC, episode_number ASC",
-            ['today' => $today->format('Y-m-d')]
+            [
+                'today' => $today->format('Y-m-d'),
+                'draft_today' => $today->format('Y-m-d'),
+            ]
         );
 
         $result = ['published' => 0, 'scheduled' => 0, 'draft' => 0, 'errors' => []];
