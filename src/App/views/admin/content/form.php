@@ -332,6 +332,12 @@ $episodes = $hierarchy['episodes'] ?? [];
                 <?php
                 $episodeId = (int) $episode['id'];
                 $episodePoster = ($episode['poster_image'] ?? '') ?: (($episode['poster_url'] ?? '') ?: null);
+                $episodeAirDate = trim((string) ($episode['air_date'] ?? ''));
+                $episodeAirTimestamp = $episodeAirDate !== '' ? strtotime(substr($episodeAirDate, 0, 10)) : false;
+                $canRefreshEpisode = !empty($formData['tmdb_id'])
+                    && ($episode['status'] ?? '') === 'published'
+                    && $episodeAirTimestamp !== false
+                    && $episodeAirTimestamp <= strtotime('today');
                 ?>
                 <form class="hierarchy-edit-card is-episode" action="/admin/content/<?= $contentId ?>/episodes/<?= $episodeId ?>/edit" method="POST">
                     <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
@@ -367,11 +373,21 @@ $episodes = $hierarchy['episodes'] ?? [];
                     </div>
                     <div class="hierarchy-actions">
                         <button class="btn btn-primary btn-sm" type="submit"><i class="icon-save mr-1"></i>Save</button>
+                        <?php if ($canRefreshEpisode): ?>
+                            <button class="btn btn-light btn-sm" type="submit" form="refresh-episode-<?= $episodeId ?>" onclick="return confirm('Refresh this already released episode from TMDB?');">
+                                <i class="icon-refresh mr-1"></i>Refresh
+                            </button>
+                        <?php endif; ?>
                         <button class="btn btn-outline-danger btn-sm" type="submit" form="delete-episode-<?= $episodeId ?>" onclick="return confirm('Delete this episode?');">
                             <i class="icon-trash mr-1"></i>Delete
                         </button>
                     </div>
                 </form>
+                <?php if ($canRefreshEpisode): ?>
+                    <form id="refresh-episode-<?= $episodeId ?>" action="/admin/content/<?= $contentId ?>/episodes/<?= $episodeId ?>/refresh" method="POST">
+                        <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
+                    </form>
+                <?php endif; ?>
                 <form id="delete-episode-<?= $episodeId ?>" action="/admin/content/<?= $contentId ?>/episodes/<?= $episodeId ?>/delete" method="POST">
                     <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
                 </form>

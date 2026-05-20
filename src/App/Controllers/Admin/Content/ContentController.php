@@ -252,6 +252,53 @@ class ContentController
         redirectTo('/admin/content/' . $contentId . '/edit#episodes');
     }
 
+    public function refreshEpisode(Request $request, Response $response, string $id, string $episodeId): void
+    {
+        $contentId = (int) $id;
+        $episodeId = (int) $episodeId;
+        $item = $this->findOrRedirect($contentId);
+        $episode = $this->content->findEpisode($contentId, $episodeId);
+
+        if (!$episode || (string) ($item['type'] ?? '') !== 'tv_show' || empty($item['tmdb_id'])) {
+            setFlash('content', 'Episode refresh is only available for imported TV show episodes.', 'danger');
+            redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+        }
+
+        if ((string) ($episode['status'] ?? '') !== 'published' || !$this->episodeHasReleased($episode)) {
+            setFlash('content', 'Only published episodes that have already aired can be refreshed.', 'danger');
+            redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+        }
+
+        try {
+            $refreshed = $this->tmdb->importTvEpisode(
+                (int) $item['tmdb_id'],
+                (int) ($episode['season_number'] ?? 1),
+                (int) ($episode['episode_number'] ?? 1),
+                (int) ($episode['views'] ?? 0),
+                'published'
+            );
+
+            if (!$refreshed) {
+                throw new RuntimeException('TMDB did not return refreshed episode data.');
+            }
+
+            $streamLink = trim((string) ($episode['stream_link'] ?? ''));
+            if ($streamLink !== '' && !empty($refreshed['id'])) {
+                $this->content->updateEpisode($contentId, (int) $refreshed['id'], [
+                    ...$refreshed,
+                    'stream_link' => $streamLink,
+                    'status' => 'published',
+                ]);
+            }
+
+            setFlash('content', 'Episode refreshed from TMDB.', 'success');
+        } catch (RuntimeException $exception) {
+            setFlash('content', 'Episode refresh failed: ' . $exception->getMessage(), 'danger');
+        }
+
+        redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+    }
+
     public function storeEpisode(Request $request, Response $response, string $id): void
     {
         $contentId = (int) $id;
@@ -294,6 +341,21 @@ class ContentController
         }
 
         redirectTo('/admin/content/' . $contentId . '/edit#episodes');
+    }
+
+    private function episodeHasReleased(array $episode): bool
+    {
+        $airDate = trim((string) ($episode['air_date'] ?? ''));
+        if ($airDate === '') {
+            return false;
+        }
+
+        $timestamp = strtotime(substr($airDate, 0, 10));
+        if ($timestamp === false) {
+            return false;
+        }
+
+        return $timestamp <= strtotime('today');
     }
 
     private function contentData(Request $request): array

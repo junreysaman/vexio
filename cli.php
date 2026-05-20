@@ -34,7 +34,7 @@ function showHelp(): void
     echo "Paper-PHPFramework CLI\n";
     echo "Usage:\n";
     echo "  php cli.php install                                      Create the database and import database.sql\n";
-    echo "  php cli.php publish-scheduled                            Publish episodes whose air date has passed\n";
+    echo "  php cli.php publish-scheduled                            Publish scheduled/draft episodes whose air date has passed\n";
     echo "  php cli.php hydrate-images [--scope=all] [--limit=50] [--loop]\n";
     echo "      Backfill missing local WebP poster/backdrop variants from TMDB URLs\n";
     echo "  php cli.php regenerate-image-variants [--scope=all] [--limit=50] [--loop]\n";
@@ -2346,8 +2346,12 @@ function publishScheduledEpisodes(string $root): void
     $importer = new App\Services\TMDB\TmdbImporterService($db);
     $result   = $importer->publishScheduled();
 
-    $total = $result['published'];
+    $total = (int) ($result['published'] ?? 0);
+    $scheduled = (int) ($result['scheduled'] ?? 0);
+    $draft = (int) ($result['draft'] ?? 0);
     echo "Published {$total} episode(s) with fresh TMDB metadata.\n";
+    echo "  Scheduled: {$scheduled}\n";
+    echo "  Draft already released: {$draft}\n";
 
     if (!empty($result['errors'])) {
         echo "Errors (" . count($result['errors']) . "):\n";

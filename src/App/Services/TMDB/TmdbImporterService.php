@@ -398,7 +398,7 @@ class TmdbImporterService
     }
 
     /**
-     * Finds all episodes with status='scheduled' whose air_date has arrived,
+     * Finds all episodes with status='scheduled' or status='draft' whose air_date has arrived,
      * reimports them from TMDB to get the latest metadata (backdrop, synopsis, etc.),
      * then sets their status to 'published'.
      *
@@ -411,38 +411,58 @@ class TmdbImporterService
     {
         $today = new \DateTimeImmutable('today', new \DateTimeZone('UTC'));
 
-        // Fetch all scheduled episodes that have a TMDB parent ID (needed for reimport)
+        // Fetch releasable episodes that have a TMDB parent ID (needed for reimport).
+        // Scheduled episodes without an air date are also released so they do not stay hidden forever.
         $due = $this->db->select(
-            "SELECT id, tmdb_parent_id, season_number, episode_number, air_date
+            "SELECT id, tmdb_parent_id, season_number, episode_number, air_date, status, views
              FROM media_episodes
-             WHERE status = 'scheduled'
-             AND tmdb_parent_id IS NOT NULL
+             WHERE tmdb_parent_id IS NOT NULL
              AND tmdb_parent_id > 0
              AND (
-                 air_date IS NULL
-                 OR air_date <= :today
+                 (
+                     status = 'scheduled'
+                     AND (air_date IS NULL OR air_date <= :today)
+                 )
+                 OR (
+                     status = 'draft'
+                     AND air_date IS NOT NULL
+                     AND air_date <= :today
+                 )
              )
              ORDER BY tmdb_parent_id ASC, season_number ASC, episode_number ASC",
             ['today' => $today->format('Y-m-d')]
         );
 
-        $result = ['published' => 0, 'errors' => []];
+        $result = ['published' => 0, 'scheduled' => 0, 'draft' => 0, 'errors' => []];
 
         foreach ($due as $row) {
             $tmdbTvId      = (int) $row['tmdb_parent_id'];
             $seasonNumber  = (int) $row['season_number'];
             $episodeNumber = (int) $row['episode_number'];
+            $previousStatus = (string) ($row['status'] ?? '');
 
             try {
-                // Full reimport — fetches fresh metadata from TMDB and upserts the row.
+                // Full reimport fetches fresh metadata from TMDB and upserts the row.
                 // episodeStatus() will resolve to 'published' since air_date <= today.
-                $this->importTvEpisode($tmdbTvId, $seasonNumber, $episodeNumber, 0, 'published');
+                $this->importTvEpisode(
+                    $tmdbTvId,
+                    $seasonNumber,
+                    $episodeNumber,
+                    (int) ($row['views'] ?? 0),
+                    'published'
+                );
                 $result['published']++;
+                if (isset($result[$previousStatus])) {
+                    $result[$previousStatus]++;
+                }
             } catch (\Throwable $e) {
                 // Fall back to a status-only update so the episode isn't stuck forever.
                 try {
                     $this->db->updateById('media_episodes', (int) $row['id'], ['status' => 'published']);
                     $result['published']++;
+                    if (isset($result[$previousStatus])) {
+                        $result[$previousStatus]++;
+                    }
                 } catch (\Throwable) {
                     // ignore secondary failure
                 }
