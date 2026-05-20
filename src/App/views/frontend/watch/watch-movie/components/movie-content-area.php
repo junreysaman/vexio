@@ -9,6 +9,7 @@ $genres = $item['genres'] ?? '';
 $genreNames = is_array($item['genre_names'] ?? null)
   ? array_filter(array_map('trim', $item['genre_names']))
   : array_filter(array_map('trim', explode(',', (string) $genres)));
+$genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : [];
 $year = $item['release_year'] ?? 'N/A';
 $rating = $item['tmdb_rating'] ?? 'N/A';
 $votes = number_format((int) ($item['tmdb_vote_count'] ?? 0));
@@ -92,9 +93,6 @@ $revenue = $item['revenue'] ?? null;
                 <button class="btn-icon" onclick="openShareModal('<?= escape(url($_SERVER['REQUEST_URI'] ?? '/')) ?>', '<?= escape($title) ?>', '<?= escape($poster) ?>')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                 </button>
-                <button class="btn-icon" onclick="showToast('Download started!')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                </button>
               </div>
             </div>
           </div>
@@ -137,9 +135,13 @@ $revenue = $item['revenue'] ?? null;
 
           <!-- GENRES -->
           <div class="genres-row">
-            <?php if ($genreNames !== []): ?>
+            <?php if ($genreLinks !== []): ?>
+              <?php foreach (array_slice($genreLinks, 0, 6) as $genre): ?>
+                <a class="genre-pill" href="<?= escape((string) ($genre['url'] ?? '#')) ?>"><?= escape((string) ($genre['name'] ?? 'Genre')) ?></a>
+              <?php endforeach; ?>
+            <?php elseif ($genreNames !== []): ?>
               <?php foreach (array_slice($genreNames, 0, 6) as $g): ?>
-                <span class="genre-pill"><?= escape($g) ?></span>
+                <a class="genre-pill" href="/genre/<?= rawurlencode(\App\Support\MediaUrl::slugify((string) $g)) ?>"><?= escape($g) ?></a>
               <?php endforeach; ?>
             <?php else: ?>
               <span class="genre-pill">No genres</span>

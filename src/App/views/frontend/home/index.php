@@ -6,6 +6,8 @@
 
 <?= $this->includePartial('/frontend/home/components/recently-added-section') ?>
 
+<?= $this->includePartial('/frontend/home/components/new-episodes-section') ?>
+
 <?= $this->includePartial('/frontend/home/components/trending-section') ?>
 
 <?= $this->includePartial('/frontend/home/ads/ad-midpage') ?>

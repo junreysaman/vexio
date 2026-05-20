@@ -36,7 +36,8 @@ final class PublicSeoController
 
     public function robots(Request $request, Response $response): Response
     {
-        $sitemapLine = 'Sitemap: ' . \url('sitemap.xml');
+        $origin = $this->canonicalOrigin($request);
+        $sitemapLine = 'Sitemap: ' . $this->absoluteUrl($origin, 'sitemap.xml');
 
         $lines = [
             'User-agent: *',
@@ -90,7 +91,7 @@ final class PublicSeoController
             $unique[] = $entry;
         }
 
-        $body = $this->buildSitemapXml($unique);
+        $body = $this->buildSitemapXml($unique, $this->canonicalOrigin($request));
 
         return $response
             ->status(200)
@@ -139,7 +140,7 @@ final class PublicSeoController
     /**
      * @param list<array{path: string, lastmod: ?string}> $entries
      */
-    private function buildSitemapXml(array $entries): string
+    private function buildSitemapXml(array $entries, string $origin): string
     {
         $parts = [
             '<?xml version="1.0" encoding="UTF-8"?>',
@@ -152,7 +153,7 @@ final class PublicSeoController
                 continue;
             }
 
-            $loc = $this->escapeXml(\url($path));
+            $loc = $this->escapeXml($this->absoluteUrl($origin, $path));
             $parts[] = '  <url>';
             $parts[] = '    <loc>' . $loc . '</loc>';
 
@@ -172,5 +173,55 @@ final class PublicSeoController
     private function escapeXml(string $value): string
     {
         return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    private function absoluteUrl(string $origin, string $path): string
+    {
+        return rtrim($origin, '/') . '/' . ltrim($path, '/');
+    }
+
+    private function canonicalOrigin(Request $request): string
+    {
+        $appUrl = trim((string) ($_ENV['APP_URL'] ?? ''));
+        $appHost = strtolower((string) parse_url($appUrl, PHP_URL_HOST));
+
+        if ($appUrl !== '' && $appHost !== '' && !$this->isLocalOrPrivateHost($appHost)) {
+            return rtrim($appUrl, '/');
+        }
+
+        $host = trim((string) $request->header('Host', $request->server('HTTP_HOST', '')));
+        if ($host === '' || preg_match('/[\r\n]/', $host)) {
+            return rtrim($appUrl !== '' ? $appUrl : 'http://localhost', '/');
+        }
+
+        $proto = strtolower((string) $request->header('X-Forwarded-Proto', ''));
+        if (!in_array($proto, ['http', 'https'], true)) {
+            $proto = ((string) $request->server('HTTPS', '') !== '' && (string) $request->server('HTTPS', '') !== 'off')
+                ? 'https'
+                : 'http';
+        }
+
+        return $proto . '://' . $host;
+    }
+
+    private function isLocalOrPrivateHost(string $host): bool
+    {
+        $host = strtolower(trim($host, '[]'));
+
+        if ($host === 'localhost' || $host === '127.0.0.1' || $host === '::1') {
+            return true;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            return false;
+        }
+
+        $private = filter_var(
+            $host,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+
+        return $private === false;
     }
 }

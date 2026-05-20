@@ -450,8 +450,10 @@ ul{list-style:none;}
 ═══════════════════════════════════════════════════════ */
 .genres-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;}
 .genre-pill{
+  display:inline-flex;align-items:center;
   padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;
   border:1px solid var(--border);background:var(--bg3);color:var(--muted2);
+  text-decoration:none;
   cursor:pointer;transition:all .2s;
 }
 .genre-pill:hover{border-color:var(--cyan);color:var(--cyan);}

@@ -17,12 +17,12 @@ return [
     'faq' => [
         'title' => 'FAQ',
         'eyebrow' => 'Support',
-        'summary' => 'Answers to common questions about finding titles, watching, reporting problems, and how VEXIO works day to day.',
+        'summary' => 'Answers to common questions about free watching, third-party playback, finding titles, and reporting problems on VEXIO.',
         'badge' => 'Help Center',
         'meta' => ['last_updated' => 'May 20, 2026'],
         'sidebar' => [
             'heading' => 'Still stuck?',
-            'body' => 'If your answer is not here, use Contact for general questions or Report Issue for playback and bugs. Title gaps are tracked through Request Title.',
+            'body' => 'If your answer is not here, use Contact for general questions or Report Issue for playback and bugs. Missing movies or TV shows are tracked through Request Title.',
             'actions' => [
                 ['label' => 'Contact us', 'href' => '/contact'],
                 ['label' => 'Report an issue', 'href' => '/report-issue'],
@@ -34,17 +34,21 @@ return [
                 'items' => [
                     [
                         'title' => 'Do I need an account?',
-                        'body' => 'No. You can browse the catalogue and start watching without registering. Some community features may require an account if we enable them in the future.',
+                        'body' => 'No. VEXIO is built for open access: you can browse the catalogue and watch movies or TV shows without creating an account. Registration, if available, is only for optional features.',
                     ],
                     [
                         'title' => 'Is VEXIO free?',
-                        'body' => 'The site is supported by advertising. You may see display or video ads on browse and watch pages depending on your region and campaign load.',
+                        'body' => 'Yes. VEXIO is a free streaming website. We do not charge subscription fees for watching; the site may be supported by advertising and third-party provider availability.',
+                    ],
+                    [
+                        'title' => 'Does VEXIO host movies or TV shows?',
+                        'body' => 'No. VEXIO does not host, upload, or store movie or TV-show video files. Watch pages use embedded players or links supplied by independent third-party streaming platform providers.',
                     ],
                     [
                         'title' => 'Which browsers work best?',
                         'bullets' => [
                             'Current versions of Chrome, Firefox, Safari, and Edge on desktop.',
-                            'Mobile: recent iOS Safari and Android Chrome. Enable JavaScript; disable aggressive blockers if streams fail to start.',
+                            'Mobile: recent iOS Safari and Android Chrome. Enable JavaScript; disable aggressive blockers if third-party players fail to start.',
                         ],
                     ],
                 ],
@@ -55,8 +59,8 @@ return [
                     [
                         'title' => 'The player buffers or stops',
                         'paragraphs' => [
-                            'Try another server or quality option when available. Close other heavy tabs, pause downloads on the same connection, and switch from cellular to Wi‑Fi when possible.',
-                            'If only one title fails, use Report Issue with the exact URL, server name, and device so we can trace a pattern.',
+                            'Try another third-party server or quality option when available. Close other heavy tabs, pause downloads on the same connection, and switch from cellular to Wi-Fi when possible.',
+                            'If only one title fails, use Report Issue with the exact URL, provider or server name, and device so we can trace a pattern.',
                         ],
                     ],
                     [
@@ -65,7 +69,7 @@ return [
                     ],
                     [
                         'title' => 'Downloads and offline viewing',
-                        'body' => 'VEXIO is built for streaming in the browser. We do not provide official offline download files; respect the terms that apply in your country.',
+                        'body' => 'VEXIO is built for free browser streaming through third-party providers. We do not provide official offline download files and we do not store video files for download.',
                     ],
                 ],
             ],
@@ -74,7 +78,7 @@ return [
                 'items' => [
                     [
                         'title' => 'Why is a show or movie missing?',
-                        'body' => 'Licensing, source availability, and quality checks all affect what appears. You can submit Request Title with the official name and year—we use requests to prioritize imports and fixes.',
+                        'body' => 'Catalogue data, source availability, third-party provider coverage, and quality checks all affect what appears. You can submit Request Title with the official name and year; we use requests to prioritize catalogue updates and provider checks.',
                     ],
                     [
                         'title' => 'How does Trending work?',
@@ -109,12 +113,12 @@ return [
     'contact' => [
         'title' => 'Contact',
         'eyebrow' => 'Support',
-        'summary' => 'How to reach VEXIO for help, feedback, press, and partnerships. The more detail you send, the faster we can route your message.',
+        'summary' => 'How to reach VEXIO for help, feedback, playback reports, and partnerships. The more detail you send, the faster we can route your message.',
         'badge' => 'Response desk',
         'meta' => ['last_updated' => 'May 20, 2026'],
         'sidebar' => [
             'heading' => 'Quick links',
-            'body' => 'Playback and broken pages: Report Issue. Missing films or series: Request Title. Legal and copyright: DMCA.',
+            'body' => 'Playback from third-party providers and broken pages: Report Issue. Missing movies or TV shows: Request Title. Legal and copyright: DMCA.',
             'actions' => [
                 ['label' => 'Report Issue', 'href' => '/report-issue'],
                 ['label' => 'DMCA', 'href' => '/dmca'],
@@ -128,7 +132,7 @@ return [
                         'title' => 'Support & general questions',
                         'paragraphs' => [
                             'Use the address published on this page once your administrator sets APP_SUPPORT_EMAIL in the server environment. That keeps a single inbox for triage.',
-                            'Subject line tips: include one keyword like "Playback", "Wrong metadata", "Ad bug", or "Account" plus the title name if relevant.',
+                            'Subject line tips: include one keyword like "Playback", "Provider down", "Wrong metadata", "Ad bug", or "Account" plus the title name if relevant.',
                         ],
                         'bullets' => [
                             'Paste the full page URL (not only the site name).',
@@ -151,7 +155,11 @@ return [
                     ],
                     [
                         'title' => 'No account recovery by email alone',
-                        'body' => 'If you did not register an account, there is no password to reset. If we add accounts later, recovery will be documented in the FAQ.',
+                        'body' => 'You do not need an account to watch. If you did not register, there is no password to reset. Optional account features, if enabled, are separate from free viewing.',
+                    ],
+                    [
+                        'title' => 'Playback provider limits',
+                        'body' => 'Because VEXIO does not host or store video files, we cannot directly repair a third-party player. We can update catalogue links, switch available providers, or remove broken options when reports identify a pattern.',
                     ],
                     [
                         'title' => 'Advertising and partnerships',
@@ -165,11 +173,11 @@ return [
     'report-issue' => [
         'title' => 'Report Issue',
         'eyebrow' => 'Support',
-        'summary' => 'Use this checklist when playback fails, metadata is wrong, the layout breaks, or you need to flag abusive or dangerous content.',
+        'summary' => 'Use this checklist when a third-party stream fails, metadata is wrong, the layout breaks, or you need to flag abusive or dangerous content.',
         'badge' => 'Issue queue',
         'sidebar' => [
             'heading' => 'Prefer email?',
-            'body' => 'You can send the same information to your configured support address. Include "Report" in the subject so it lands in the right queue.',
+            'body' => 'You can send the same information to your configured support address. Include "Report" and the provider or title name in the subject so it lands in the right queue.',
             'actions' => [
                 ['label' => 'Request a title', 'href' => '/request-title'],
                 ['label' => 'Back to FAQ', 'href' => '/faq'],
@@ -184,7 +192,7 @@ return [
                         'bullets' => [
                             'Hard refresh the page (Ctrl+F5 or Cmd+Shift+R).',
                             'Try another browser or private window to rule out extensions.',
-                            'Toggle another server or player option when the UI offers it.',
+                            'Toggle another third-party server or player option when the UI offers it.',
                         ],
                     ],
                     [
@@ -200,7 +208,8 @@ return [
                         'title' => 'Broken playback',
                         'bullets' => [
                             'Exact watch page URL.',
-                            'Movie vs episode (season and episode number for series).',
+                            'Movie vs TV episode (season and episode number for series).',
+                            'Third-party provider or server name shown in the player, if available.',
                             'Browser + version, OS, phone model if mobile.',
                             'Error text on screen, if any; approximate local time (with timezone).',
                         ],
@@ -213,7 +222,7 @@ return [
                     ],
                     [
                         'title' => 'Site or layout bug',
-                        'body' => 'Describe the expected vs actual behavior. Note viewport width or attach a screenshot. Tell us if it happens only when logged in (if applicable).',
+                        'body' => 'Describe the expected vs actual behavior. Note viewport width or attach a screenshot. Watching should work without registration, so tell us if a page incorrectly asks you to log in before playback.',
                     ],
                     [
                         'title' => 'Safety, harassment, or illegal content',
@@ -226,7 +235,7 @@ return [
                 'items' => [
                     [
                         'title' => 'What happens next',
-                        'body' => 'Reports are grouped by type. Critical outages and widespread player failures are prioritized. We may fix the catalogue silently without replying to every sender.',
+                        'body' => 'Reports are grouped by type. Widespread third-party provider failures and broken watch pages are prioritized. We may update links, change provider options, or fix catalogue data silently without replying to every sender.',
                     ],
                 ],
             ],
@@ -236,7 +245,7 @@ return [
     'request-title' => [
         'title' => 'Request Title',
         'eyebrow' => 'Catalogue',
-        'summary' => 'Ask us to add or prioritize a movie, series, or special. Accurate titles and years help us match the right work and avoid duplicates.',
+        'summary' => 'Ask us to add or prioritize a movie, TV show, series, or special. Accurate titles and years help us match the right work and avoid duplicates.',
         'badge' => 'Catalogue',
         'sidebar' => [
             'heading' => 'Check first',
@@ -255,7 +264,7 @@ return [
                         'bullets' => [
                             'Official title as shown on posters or the primary database entry.',
                             'Release year (for film) or first air year (for series).',
-                            'Type: movie, TV series, anime, special, or documentary.',
+                            'Type: movie, TV show, anime, special, or documentary.',
                             'Language or country of origin if ambiguous.',
                         ],
                     ],
@@ -274,7 +283,7 @@ return [
                 'items' => [
                     [
                         'title' => 'We cannot promise every title',
-                        'body' => 'Availability depends on sources, technical matching, and policy. Requesting does not create an entitlement; it informs our backlog.',
+                        'body' => 'Availability depends on catalogue data, technical matching, policy, and whether third-party streaming providers have a working option. Requesting does not guarantee availability; it informs our backlog.',
                     ],
                     [
                         'title' => 'Duplicates',
@@ -282,7 +291,7 @@ return [
                     ],
                     [
                         'title' => 'Exclusive or unreleased content',
-                        'body' => 'We do not solicit or host material that is not generally available through legitimate publication. Do not ask for leaked or stolen uploads.',
+                        'body' => 'We do not solicit, host, upload, or store video files, and we do not want leaked or stolen uploads. Do not send media files; send only title details so we can review catalogue and provider availability.',
                     ],
                 ],
             ],
@@ -310,7 +319,8 @@ return [
                     [
                         'title' => 'Service',
                         'paragraphs' => [
-                            'VEXIO operates a streaming discovery and playback website (the "Service"). The operator is whoever publishes the site at the domain you are visiting. Contact details should be supplied by that operator via the environment configuration for support and legal email.',
+                            'VEXIO operates a free streaming discovery and playback website (the "Service"). The Service does not host, upload, or store movie or TV-show video files; playback is supplied through embedded players or links from independent third-party streaming platform providers.',
+                            'The operator is whoever publishes the site at the domain you are visiting. Contact details should be supplied by that operator via the environment configuration for support and legal email.',
                             'This policy is meant for a general, international audience. Local laws where you live may give you additional rights.',
                         ],
                     ],
@@ -323,7 +333,7 @@ return [
                         'title' => 'Technical and usage data',
                         'bullets' => [
                             'Server and CDN logs: IP address, approximate location, user agent, timestamps, requested URL, and HTTP status.',
-                            'In-application events: pages visited, search queries, player interactions, and errors—often in aggregated or pseudonymous form.',
+                            'In-application events: pages visited, search queries, third-party player interactions, selected provider options, and errors, often in aggregated or pseudonymous form.',
                             'Security signals: rate limits, abuse patterns, and basic device fingerprints needed to block bots.',
                         ],
                     ],
@@ -335,7 +345,7 @@ return [
                         'title' => 'Cookies and similar storage',
                         'paragraphs' => [
                             'We or partners may set cookies, local storage, or similar technologies to remember preferences, measure ad delivery, cap frequency, and reduce fraud.',
-                            'You can delete or block cookies through browser settings. Blocking some cookies may break login, personalization, or ad measurement features.',
+                            'You can delete or block cookies through browser settings. Blocking some cookies may break preferences, third-party playback, optional login, personalization, or ad measurement features.',
                         ],
                     ],
                 ],
@@ -344,8 +354,8 @@ return [
                 'heading' => 'Advertising',
                 'items' => [
                     [
-                        'title' => 'Third-party ad partners',
-                        'body' => 'Ads may be served by networks that operate their own privacy policies. They may collect or receive information as described in their policies and industry frameworks (for example IAB TCF where applicable). We choose partners that fit entertainment inventory, but we do not control their data practices.',
+                        'title' => 'Third-party ad and streaming partners',
+                        'body' => 'Ads and embedded playback may be supplied by third parties that operate their own privacy policies. They may collect or receive information as described in their policies and industry frameworks. We do not control the data practices of independent providers.',
                     ],
                 ],
             ],
@@ -416,7 +426,7 @@ return [
                 'items' => [
                     [
                         'title' => 'Agreement',
-                        'body' => 'These Terms of Use ("Terms") govern your access to VEXIO ("we", "us", "our") and the streaming and related features we provide. If you do not agree, do not use the Service.',
+                        'body' => 'These Terms of Use ("Terms") govern your access to VEXIO ("we", "us", "our"), a free streaming discovery and playback website that uses third-party streaming platform providers. If you do not agree, do not use the Service.',
                     ],
                     [
                         'title' => 'Changes',
@@ -429,17 +439,17 @@ return [
                 'items' => [
                     [
                         'title' => 'License to you',
-                        'body' => 'We grant you a personal, non-exclusive, non-transferable, revocable license to access the Service for private, non-commercial viewing in line with these Terms and with the law that applies to you.',
+                        'body' => 'We grant you a personal, non-exclusive, non-transferable, revocable license to access the Service for private, non-commercial viewing in line with these Terms and with the law that applies to you. Watching does not require registration unless a separate optional feature says otherwise.',
                     ],
                     [
                         'title' => 'Accounts',
-                        'body' => 'Where registration exists, you must provide accurate information and protect your credentials. You are responsible for activity under your account until you notify us of compromise.',
+                        'body' => 'Registration is not required to watch movies or TV shows on VEXIO. Where optional account features exist, you must provide accurate information and protect your credentials. You are responsible for activity under your account until you notify us of compromise.',
                     ],
                     [
                         'title' => 'Restrictions',
                         'bullets' => [
                             'No scraping, automated harvesting, or attempts to bypass rate limits unless we give written permission.',
-                            'No interference with servers, players, ads, security, or other users.',
+                            'No interference with VEXIO systems, third-party players, ads, security, or other users.',
                             'No uploading malware, unlawful material, or content intended to harass or defraud.',
                             'No use of the Service to infringe intellectual property or to violate export or sanctions rules.',
                         ],
@@ -451,7 +461,7 @@ return [
                 'items' => [
                     [
                         'title' => 'Third-party content',
-                        'body' => 'We do not host or store video files on our infrastructure. Playback is supplied by independent third-party streaming platforms or embedded players; we provide discovery, links, and navigation only. Videos, artwork, descriptions, and metadata may also be sourced from public databases. We do not claim ownership of third-party works and will respond to valid rights-holder notices as described on the DMCA page.',
+                        'body' => 'We do not host, upload, or store movie or TV-show video files on our infrastructure. Playback is supplied by independent third-party streaming platforms or embedded players; we provide catalogue discovery, links, and navigation only. Videos, artwork, descriptions, and metadata may also be sourced from public databases or third parties. We do not claim ownership of third-party works and will respond to valid rights-holder notices as described on the DMCA page.',
                     ],
                     [
                         'title' => 'Our brand',
@@ -468,7 +478,7 @@ return [
                     ],
                     [
                         'title' => 'Availability',
-                        'body' => 'We do not guarantee uninterrupted access, error-free streaming, or that any title will remain on the Service. Features may change or retire without notice.',
+                        'body' => 'We do not guarantee uninterrupted access, error-free third-party streaming, or that any title or provider option will remain available. Features may change or retire without notice.',
                     ],
                 ],
             ],
@@ -477,7 +487,7 @@ return [
                 'items' => [
                     [
                         'title' => 'Cap',
-                        'body' => 'To the maximum extent permitted by law, we and our affiliates are not liable for indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, or goodwill. Our aggregate liability for any claim arising from the Service is limited to the greater of fifty US dollars or what you paid us in the last twelve months for the Service (which may be zero for ad-supported access).',
+                        'body' => 'To the maximum extent permitted by law, we and our affiliates are not liable for indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, or goodwill. Our aggregate liability for any claim arising from the Service is limited to the greater of fifty US dollars or what you paid us in the last twelve months for the Service, which is normally zero because watching is free.',
                     ],
                 ],
             ],
@@ -509,7 +519,7 @@ return [
     'dmca' => [
         'title' => 'DMCA',
         'eyebrow' => 'Legal',
-        'summary' => 'Procedure for copyright owners and agents to submit takedown notices regarding material accessible through VEXIO. Include complete information so we can act promptly.',
+        'summary' => 'Procedure for copyright owners and agents to submit notices regarding material linked or embedded through VEXIO. Include complete information so we can act promptly.',
         'badge' => 'Rights',
         'meta' => ['last_updated' => 'May 20, 2026'],
         'sidebar' => [
@@ -521,6 +531,15 @@ return [
             ],
         ],
         'sections' => [
+            [
+                'heading' => 'No video hosting',
+                'items' => [
+                    [
+                        'title' => 'Third-party playback',
+                        'body' => 'VEXIO does not host, upload, or store movie or TV-show video files. Watch pages may embed or link to independent third-party streaming platform providers. If your request concerns a video file itself, you may also need to contact the provider that hosts or controls that stream.',
+                    ],
+                ],
+            ],
             [
                 'heading' => 'Designated agent',
                 'items' => [
@@ -542,7 +561,7 @@ return [
                     ],
                     [
                         'title' => 'Identification of the material',
-                        'body' => 'Provide information reasonably sufficient to locate the material on our Service—ideally the full VEXIO URL and a description of where it appears.',
+                        'body' => 'Provide information reasonably sufficient to locate the material on our Service: the full VEXIO URL, title name, season and episode if applicable, and the third-party provider or server option if visible.',
                     ],
                     [
                         'title' => 'Contact information',
@@ -566,7 +585,7 @@ return [
                 'items' => [
                     [
                         'title' => 'Policy',
-                        'body' => 'We may terminate accounts or technical access for users who are repeat infringers in appropriate circumstances, where account systems exist.',
+                        'body' => 'Because watching does not require registration, repeat-infringer action may involve technical access controls, link removal, provider-option removal, or account action where optional account systems exist.',
                     ],
                 ],
             ],
@@ -585,7 +604,7 @@ return [
     'advertise' => [
         'title' => 'Advertise',
         'eyebrow' => 'Partners',
-        'summary' => 'Reach streaming and anime audiences across mobile and desktop. Tell us your KPIs, flight dates, and markets so we can recommend placements.',
+        'summary' => 'Reach free-streaming audiences across mobile and desktop. Tell us your KPIs, flight dates, and markets so we can recommend placements.',
         'badge' => 'Media',
         'meta' => ['last_updated' => 'May 20, 2026'],
         'sidebar' => [
@@ -603,7 +622,7 @@ return [
                     [
                         'title' => 'Who visits VEXIO',
                         'paragraphs' => [
-                            'Viewers come for movies, series, and genre browsing. Traffic mixes mobile and desktop with spikes around new season drops and weekend viewing.',
+                            'Viewers come for free movies, TV shows, series, and genre browsing. Watching is available without registration, so traffic mixes casual visitors with repeat users across mobile and desktop.',
                             'We do not sell guaranteed demographic bundles unless disclosed in an insertion order. Use third-party verification where your policy requires it.',
                         ],
                     ],
@@ -625,7 +644,7 @@ return [
                     ],
                     [
                         'title' => 'Video',
-                        'body' => 'Pre-roll or mid-roll on supported players depends on inventory and partner tags. VAST/VPAID compatibility varies by integration—ask for the current spec sheet.',
+                        'body' => 'Pre-roll, mid-roll, or player-ad inventory depends on third-party provider support, campaign inventory, and partner tags. VAST/VPAID compatibility varies by integration; ask for the current spec sheet.',
                     ],
                 ],
             ],

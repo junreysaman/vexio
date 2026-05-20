@@ -3,6 +3,7 @@
 $poster = ($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '');
 $backdrop = ($item['backdrop_image'] ?? '') ?: $poster;
 $rating = $item['tmdb_rating'] ?? null;
+$genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : [];
 ?>
 <main class="watch-shell">
   <div class="watch-layout">
@@ -30,6 +31,9 @@ $rating = $item['tmdb_rating'] ?? null;
               <span class="watch-pill">Rating <?= escape((string) ($rating ?: 'N/A')) ?></span>
               <span class="watch-pill"><?= number_format((int) ($item['tmdb_vote_count'] ?? 0)) ?> votes</span>
               <span class="watch-pill"><?= number_format((int) ($item['views'] ?? 0)) ?> views</span>
+              <?php foreach (array_slice($genreLinks, 0, 4) as $genre): ?>
+                <a class="watch-pill" href="<?= escape((string) ($genre['url'] ?? '#')) ?>"><?= escape((string) ($genre['name'] ?? 'Genre')) ?></a>
+              <?php endforeach; ?>
             </div>
             <p class="watch-desc"><?= escape($item['synopsis'] ?: 'No synopsis available.') ?></p>
             <div class="watch-actions">

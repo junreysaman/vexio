@@ -31,7 +31,7 @@ class HomeService
      */
     public function pageData(): array
     {
-        $cacheKey = 'home:pageData:v2';
+        $cacheKey = 'home:pageData:v3';
         $useCache = filter_var($_ENV['HOME_PAGE_CACHE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
         $ttl = (int) ($_ENV['HOME_PAGE_CACHE_TTL'] ?? 120);
         $ttl = max(15, min(3600, $ttl));
@@ -48,6 +48,7 @@ class HomeService
             'featured' => $this->getFeatured(),
             'trending' => $this->getTrending(),
             'recentlyAdded' => $this->recentlyAdded(),
+            'newEpisodes' => $this->newEpisodes(),
             'topByTmdb' => $this->getTopByTmdb(),
             'genres' => $this->getAllGenre(),
         ];
@@ -254,6 +255,48 @@ class HomeService
     }
 
     /**
+     * Returns the latest published TV episodes for the homepage.
+     *
+     * @param int $limit Number of episodes to return.
+     * @return array<int, array<string, mixed>>
+     */
+    public function newEpisodes(int $limit = 18): array
+    {
+        $limit = max(1, min(40, $limit));
+
+        $episodes = $this->db->select(
+            'SELECT
+                media_episodes.*,
+                media_items.id AS show_id,
+                media_items.title AS show_title,
+                media_items.slug AS show_slug,
+                media_items.type AS show_type,
+                media_items.tmdb_id AS show_tmdb_id,
+                media_items.tmdb_rating AS show_tmdb_rating,
+                media_items.poster_url AS show_poster_url,
+                media_items.poster_image AS show_poster_image,
+                media_items.backdrop_image AS show_backdrop_image,
+                media_items.release_year AS show_release_year
+             FROM media_episodes
+             INNER JOIN media_items ON media_items.id = media_episodes.media_item_id
+             WHERE media_episodes.status = :episode_status
+             AND media_items.status = :item_status
+             AND media_items.type = :type
+             ORDER BY media_episodes.air_date DESC, media_episodes.created_at DESC, media_episodes.updated_at DESC, media_episodes.id DESC
+             LIMIT ' . $limit,
+            [
+                'episode_status' => 'published',
+                'item_status' => 'published',
+                'type' => 'tv_show',
+            ]
+        );
+
+        return array_map(function (array $episode): array {
+            return $this->episodePayload($episode);
+        }, $episodes);
+    }
+
+    /**
      * Formats a media item for homepage hero rendering.
      *
      * @param array<string, mixed> $item Raw media item row.
@@ -319,6 +362,51 @@ class HomeService
             'watch_url' => $watchUrl,
             'synopsis' => (string) ($item['synopsis'] ?: ''),
             'is_featured' => !empty($item['is_featured']),
+        ];
+    }
+
+    /**
+     * Formats a TV episode for the homepage new episodes row.
+     *
+     * @param array<string, mixed> $episode Raw joined episode/show row.
+     * @return array<string, mixed>
+     */
+    private function episodePayload(array $episode): array
+    {
+        $show = [
+            'id' => (int) ($episode['show_id'] ?? 0),
+            'title' => (string) ($episode['show_title'] ?? 'TV Show'),
+            'slug' => (string) ($episode['show_slug'] ?? ''),
+            'type' => (string) ($episode['show_type'] ?? 'tv_show'),
+            'tmdb_id' => (int) ($episode['show_tmdb_id'] ?? 0),
+        ];
+
+        $imageRow = [
+            'poster_url' => (string) (($episode['poster_url'] ?? '') ?: ($episode['show_poster_url'] ?? '')),
+            'poster_image' => (string) (($episode['poster_image'] ?? '') ?: ($episode['show_poster_image'] ?? '')),
+            'backdrop_image' => (string) (($episode['backdrop_image'] ?? '') ?: ($episode['show_backdrop_image'] ?? '')),
+        ];
+
+        $watchUrl = MediaUrl::watchUrlForItem($show, $episode);
+        $season = (int) ($episode['season_number'] ?? 1);
+        $episodeNumber = (int) ($episode['episode_number'] ?? 1);
+        $episodeName = trim((string) (($episode['episode_name'] ?? '') ?: ($episode['title'] ?? '')));
+
+        return [
+            'id' => (int) ($episode['id'] ?? 0),
+            'show_id' => (int) ($episode['show_id'] ?? 0),
+            'show_title' => (string) ($episode['show_title'] ?? 'TV Show'),
+            'title' => $episodeName !== '' ? $episodeName : 'Episode ' . $episodeNumber,
+            'season_number' => $season,
+            'episode_number' => $episodeNumber,
+            'label' => 'S' . $season . ' E' . $episodeNumber,
+            'air_date' => (string) ($episode['air_date'] ?? ''),
+            'year' => (string) (($episode['release_year'] ?? '') ?: ($episode['show_release_year'] ?? '')),
+            'score' => (string) (($episode['show_tmdb_rating'] ?? '') ?: 'N/A'),
+            'backdrop' => MediaImage::srcOnly(MediaImage::backdropFromRow($imageRow, 'spotlight')),
+            'backdrop_media' => MediaImage::backdropFromRow($imageRow, 'spotlight'),
+            'watchUrl' => $watchUrl,
+            'watch_url' => $watchUrl,
         ];
     }
 

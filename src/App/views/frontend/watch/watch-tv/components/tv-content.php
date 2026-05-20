@@ -11,6 +11,7 @@ $genres = (string) ($show['genres'] ?? '');
 $genreNames = is_array($show['genre_names'] ?? null)
   ? array_filter(array_map('trim', $show['genre_names']))
   : array_filter(array_map('trim', explode(',', $genres)));
+$genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : [];
 $rating = $show['tmdb_rating'] ?? 'N/A';
 $votes = number_format((int) ($show['tmdb_vote_count'] ?? 0));
 $views = number_format((int) ($show['views'] ?? 0));
@@ -98,10 +99,16 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
     </div>
 
     <div class="genres-row">
-      <?php foreach (array_slice($genreNames, 0, 7) as $genre): ?>
-        <span class="genre-pill"><?= escape($genre) ?></span>
-      <?php endforeach; ?>
-      <?php if ($genreNames === []): ?><span class="genre-pill">No genres</span><?php endif; ?>
+      <?php if ($genreLinks !== []): ?>
+        <?php foreach (array_slice($genreLinks, 0, 7) as $genre): ?>
+          <a class="genre-pill" href="<?= escape((string) ($genre['url'] ?? '#')) ?>"><?= escape((string) ($genre['name'] ?? 'Genre')) ?></a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <?php foreach (array_slice($genreNames, 0, 7) as $genre): ?>
+          <a class="genre-pill" href="/genre/<?= rawurlencode(\App\Support\MediaUrl::slugify((string) $genre)) ?>"><?= escape($genre) ?></a>
+        <?php endforeach; ?>
+      <?php endif; ?>
+      <?php if ($genreLinks === [] && $genreNames === []): ?><span class="genre-pill">No genres</span><?php endif; ?>
     </div>
 
         <?= $this->includePartial('frontend/watch/watch-tv/ad/tv-midpage-ad') ?>

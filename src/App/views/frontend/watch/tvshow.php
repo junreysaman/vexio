@@ -4,6 +4,7 @@ $poster = ($show['poster_image'] ?? '') ?: ($show['poster_url'] ?? '');
 $backdrop = ($episode['backdrop_image'] ?? '') ?: (($show['backdrop_image'] ?? '') ?: $poster);
 $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
+$genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : [];
 ?>
 <main class="watch-shell">
   <div class="watch-layout">
@@ -31,6 +32,9 @@ $currentEpisode = (int) ($episode['episode_number'] ?? 1);
               <span class="watch-pill">★ <?= escape((string) ($show['tmdb_rating'] ?? 'N/A')) ?></span>
               <span class="watch-pill"><?= number_format(count($episodes ?? [])) ?> episodes in season</span>
               <span class="watch-pill"><?= number_format((int) ($episode['views'] ?? 0)) ?> views</span>
+              <?php foreach (array_slice($genreLinks, 0, 4) as $genre): ?>
+                <a class="watch-pill" href="<?= escape((string) ($genre['url'] ?? '#')) ?>"><?= escape((string) ($genre['name'] ?? 'Genre')) ?></a>
+              <?php endforeach; ?>
             </div>
             <p class="watch-desc"><strong><?= escape($episode['title']) ?></strong><br><?= escape($episode['synopsis'] ?: ($show['synopsis'] ?: 'No synopsis available.')) ?></p>
           </div>

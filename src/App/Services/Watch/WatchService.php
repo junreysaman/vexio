@@ -198,7 +198,8 @@ class WatchService
     private function withWatchUrls(array $item): array
     {
         $watchUrl = MediaUrl::watchUrlForItem($item);
-        $genreNames = $this->genreNames((int) ($item['id'] ?? 0));
+        $genreLinks = $this->genreLinks((int) ($item['id'] ?? 0));
+        $genreNames = array_map(static fn(array $genre): string => $genre['name'], $genreLinks);
 
         $embedServers = $this->movieEmbedServers($item);
         $embedUrl = $embedServers[0]['url'] ?? null;
@@ -208,6 +209,7 @@ class WatchService
             'slug' => MediaUrl::itemSlug($item),
             'genres' => implode(', ', $genreNames),
             'genre_names' => $genreNames,
+            'genre_links' => $genreLinks,
             'embed_servers' => $embedServers,
             'embedServers' => $embedServers,
             'embed_url' => $embedUrl,
@@ -218,16 +220,16 @@ class WatchService
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, array{name: string, slug: string, url: string}>
      */
-    private function genreNames(int $itemId): array
+    private function genreLinks(int $itemId): array
     {
         if ($itemId < 1) {
             return [];
         }
 
         $rows = $this->db->select(
-            "SELECT content_terms.name
+            "SELECT content_terms.name, content_terms.slug
              FROM content_term_links
              INNER JOIN content_terms ON content_terms.id = content_term_links.term_id
              WHERE content_term_links.owner_type = :owner_type
@@ -241,16 +243,22 @@ class WatchService
             ]
         );
 
-        $names = [];
+        $links = [];
         foreach ($rows as $row) {
             $name = trim((string) ($row['name'] ?? ''));
+            $slug = trim((string) ($row['slug'] ?? ''));
 
             if ($name !== '') {
-                $names[] = $name;
+                $slug = $slug !== '' ? $slug : MediaUrl::slugify($name);
+                $links[] = [
+                    'name' => $name,
+                    'slug' => $slug,
+                    'url' => '/genre/' . rawurlencode($slug),
+                ];
             }
         }
 
-        return $names;
+        return $links;
     }
 
     private function withEpisodeWatchUrl(array $show, array $episode): array
