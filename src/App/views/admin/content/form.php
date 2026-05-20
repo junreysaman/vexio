@@ -1,12 +1,15 @@
 <?= $this->start('content') ?>
 
 <?php
+use App\Support\MediaImage;
+
 $formData = array_merge($item ?? [], $oldFormData ?? []);
 $contentId = (int) ($item['id'] ?? 0);
 $type = (string) ($formData['type'] ?? 'movie');
 $status = (string) ($formData['status'] ?? 'draft');
-$poster = ($formData['poster_image'] ?? '') ?: (($formData['poster_url'] ?? '') ?: null);
-$backdrop = ($formData['backdrop_image'] ?? '') ?: null;
+$poster = MediaImage::adminPosterSrc($formData) ?: null;
+$backdrop = MediaImage::adminBackdropSrc($formData) ?: null;
+$remoteOnly = !MediaImage::downloadsImagesEnabled();
 $canImportSeasons = $type === 'tv_show' && !empty($formData['tmdb_id']);
 $seasons = $hierarchy['seasons'] ?? [];
 $episodes = $hierarchy['episodes'] ?? [];
@@ -62,20 +65,10 @@ $episodes = $hierarchy['episodes'] ?? [];
 
                 <div class="card-body">
                     <h5 class="card-title">Artwork</h5>
-                    <div class="form-group">
-                        <label class="col-form-label s-12" for="poster_url">REMOTE POSTER URL</label>
-                        <input class="form-control r-0 light s-12" id="poster_url" name="poster_url" type="url" value="<?= escape($formData['poster_url'] ?? '') ?>">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label class="col-form-label s-12" for="poster_image">LOCAL POSTER IMAGE</label>
-                            <input class="form-control r-0 light s-12" id="poster_image" name="poster_image" type="text" value="<?= escape($formData['poster_image'] ?? '') ?>" placeholder="/uploads/tmdb/movies/poster-id.webp">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label class="col-form-label s-12" for="backdrop_image">LOCAL BACKDROP IMAGE</label>
-                            <input class="form-control r-0 light s-12" id="backdrop_image" name="backdrop_image" type="text" value="<?= escape($formData['backdrop_image'] ?? '') ?>" placeholder="/uploads/tmdb/movies/backdrop-id.webp">
-                        </div>
-                    </div>
+                    <?php if ($remoteOnly): ?>
+                        <p class="text-muted small mb-3">Images are loaded from TMDB using your <code>.env</code> base URLs (no local storage).</p>
+                    <?php endif; ?>
+                    <?= $this->includePartial('admin/partials/artwork-fields', ['artworkRow' => $formData]) ?>
                 </div>
 
                 <hr>
@@ -214,7 +207,7 @@ $episodes = $hierarchy['episodes'] ?? [];
             <?php foreach ($seasons as $season): ?>
                 <?php
                 $seasonId = (int) $season['id'];
-                $seasonPoster = ($season['poster_image'] ?? '') ?: (($season['poster_url'] ?? '') ?: null);
+                $seasonPoster = MediaImage::adminPosterSrc($season) ?: null;
                 ?>
                 <form class="hierarchy-edit-card" action="/admin/content/<?= $contentId ?>/seasons/<?= $seasonId ?>/edit" method="POST">
                     <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
@@ -240,9 +233,7 @@ $episodes = $hierarchy['episodes'] ?? [];
                                 <option value="<?= escape($value) ?>" <?= ($season['status'] ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <input class="form-control r-0 light s-12" name="poster_url" value="<?= escape($season['poster_url'] ?? '') ?>" placeholder="Remote poster URL">
-                        <input class="form-control r-0 light s-12" name="poster_image" value="<?= escape($season['poster_image'] ?? '') ?>" placeholder="Local poster path">
-                        <input class="form-control r-0 light s-12" name="backdrop_image" value="<?= escape($season['backdrop_image'] ?? '') ?>" placeholder="Local backdrop path">
+                        <?= $this->includePartial('admin/partials/artwork-fields', ['artworkRow' => $season, 'compact' => true]) ?>
                         <textarea class="form-control r-0 light s-12" name="synopsis" rows="2" placeholder="Synopsis"><?= escape($season['synopsis'] ?? '') ?></textarea>
                     </div>
                     <div class="hierarchy-actions">
@@ -311,9 +302,7 @@ $episodes = $hierarchy['episodes'] ?? [];
                     </select>
                     <input class="form-control r-0 light s-12" name="episode_name" placeholder="Display episode name">
                     <input class="form-control r-0 light s-12" name="stream_link" placeholder="Stream link">
-                    <input class="form-control r-0 light s-12" name="poster_url" placeholder="Remote poster URL">
-                    <input class="form-control r-0 light s-12" name="poster_image" placeholder="Local poster path">
-                    <input class="form-control r-0 light s-12" name="backdrop_image" placeholder="Local backdrop path">
+                    <?= $this->includePartial('admin/partials/artwork-fields', ['artworkRow' => [], 'compact' => true]) ?>
                     <textarea class="form-control r-0 light s-12" name="synopsis" rows="2" placeholder="Synopsis"></textarea>
                 </div>
                 <div class="hierarchy-actions">
@@ -331,7 +320,7 @@ $episodes = $hierarchy['episodes'] ?? [];
             <?php foreach ($episodes as $episode): ?>
                 <?php
                 $episodeId = (int) $episode['id'];
-                $episodePoster = ($episode['poster_image'] ?? '') ?: (($episode['poster_url'] ?? '') ?: null);
+                $episodePoster = MediaImage::adminPosterSrc($episode) ?: null;
                 $episodeAirDate = trim((string) ($episode['air_date'] ?? ''));
                 $episodeAirTimestamp = $episodeAirDate !== '' ? strtotime(substr($episodeAirDate, 0, 10)) : false;
                 $canRefreshEpisode = !empty($formData['tmdb_id'])
@@ -366,9 +355,7 @@ $episodes = $hierarchy['episodes'] ?? [];
                             <?php endforeach; ?>
                         </select>
                         <input class="form-control r-0 light s-12" name="stream_link" value="<?= escape($episode['stream_link'] ?? '') ?>" placeholder="Stream link">
-                        <input class="form-control r-0 light s-12" name="poster_url" value="<?= escape($episode['poster_url'] ?? '') ?>" placeholder="Remote poster URL">
-                        <input class="form-control r-0 light s-12" name="poster_image" value="<?= escape($episode['poster_image'] ?? '') ?>" placeholder="Local poster path">
-                        <input class="form-control r-0 light s-12" name="backdrop_image" value="<?= escape($episode['backdrop_image'] ?? '') ?>" placeholder="Local backdrop path">
+                        <?= $this->includePartial('admin/partials/artwork-fields', ['artworkRow' => $episode, 'compact' => true]) ?>
                         <textarea class="form-control r-0 light s-12" name="synopsis" rows="2" placeholder="Synopsis"><?= escape($episode['synopsis'] ?? '') ?></textarea>
                     </div>
                     <div class="hierarchy-actions">

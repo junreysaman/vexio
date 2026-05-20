@@ -1,6 +1,8 @@
 <?= $this->start('content') ?>
 
 <?php
+use App\Support\MediaImage;
+
 $typeLabels = $types ?? [];
 $activeType = $activeType ?? 'all';
 $activeStatus = $activeStatus ?? 'all';
@@ -98,7 +100,7 @@ $queryBase = '/admin/content?type=' . urlencode((string) $activeType)
                 <?php foreach (($items ?? []) as $item): ?>
                     <?php
                     $type = (string) ($item['type'] ?? 'movie');
-                    $poster = $item['poster_image'] ?: $item['poster_url'] ?: null;
+                    $poster = MediaImage::adminPosterSrc($item) ?: null;
                     ?>
                     <tr>
                         <td class="select-col">

@@ -269,6 +269,86 @@ final class MediaImage
         return self::srcOnly(self::backdropFromRow($row, 'heroBackdrop'));
     }
 
+    public static function adminPosterSrc(array $row): string
+    {
+        return self::srcOnly(self::posterFromRow($row, 'thumb'));
+    }
+
+    public static function adminBackdropSrc(array $row): string
+    {
+        return self::srcOnly(self::backdropFromRow($row, 'thumb'));
+    }
+
+    public static function displayPosterUrl(array $row): string
+    {
+        $url = trim((string) ($row['poster_url'] ?? ''));
+        if ($url !== '') {
+            return self::canonicalTmdbUrl($url, self::ROLE_POSTER);
+        }
+
+        $legacy = trim((string) ($row['poster_image'] ?? ''));
+        if ($legacy !== '' && self::isRemoteUrl($legacy)) {
+            return self::canonicalTmdbUrl($legacy, self::ROLE_POSTER);
+        }
+
+        return '';
+    }
+
+    public static function displayBackdropUrl(array $row): string
+    {
+        $stored = trim((string) ($row['backdrop_image'] ?? ''));
+        if ($stored === '') {
+            return '';
+        }
+
+        if (self::isLocalWebPath($stored) && self::downloadsImagesEnabled()) {
+            return $stored;
+        }
+
+        if (self::isRemoteUrl($stored)) {
+            return self::canonicalTmdbUrl($stored, self::ROLE_BACKDROP);
+        }
+
+        return (string) (self::buildTmdbAssetUrl($stored, self::ROLE_BACKDROP) ?? $stored);
+    }
+
+    /**
+     * @param array{poster_url?: string, poster_image?: string, backdrop_image?: string} $fields
+     * @return array{poster_url: ?string, poster_image: ?string, backdrop_image: ?string}
+     */
+    public static function normalizeStoredImages(array $fields): array
+    {
+        $posterUrl = trim((string) ($fields['poster_url'] ?? ''));
+        $posterImage = trim((string) ($fields['poster_image'] ?? ''));
+        $backdrop = trim((string) ($fields['backdrop_image'] ?? ''));
+
+        if ($posterUrl !== '') {
+            $posterUrl = self::canonicalTmdbUrl($posterUrl, self::ROLE_POSTER)
+                ?: (string) (self::buildTmdbAssetUrl($posterUrl, self::ROLE_POSTER) ?? $posterUrl);
+        } elseif ($posterImage !== '' && self::isRemoteUrl($posterImage)) {
+            $posterUrl = self::canonicalTmdbUrl($posterImage, self::ROLE_POSTER);
+        }
+
+        if ($backdrop !== '') {
+            if (self::isLocalWebPath($backdrop) && self::downloadsImagesEnabled()) {
+                // keep local WebP path
+            } elseif (self::isRemoteUrl($backdrop) || !self::isLocalWebPath($backdrop)) {
+                $backdrop = self::canonicalTmdbUrl($backdrop, self::ROLE_BACKDROP)
+                    ?: (string) (self::buildTmdbAssetUrl($backdrop, self::ROLE_BACKDROP) ?? $backdrop);
+            }
+        }
+
+        if (!self::downloadsImagesEnabled()) {
+            $posterImage = self::isLocalWebPath($posterImage) ? null : null;
+        }
+
+        return [
+            'poster_url' => $posterUrl !== '' ? $posterUrl : null,
+            'poster_image' => $posterImage !== '' ? $posterImage : null,
+            'backdrop_image' => $backdrop !== '' ? $backdrop : null,
+        ];
+    }
+
     /**
      * Build a TMDB asset URL from an API path (e.g. /abc.jpg) using env base URLs.
      */

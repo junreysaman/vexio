@@ -49,7 +49,7 @@
             <article class="trending-row">
                 <div class="rank"><?= (int) $index + 1 ?></div>
                 <div class="poster" aria-hidden="true">
-                    <?php $poster = ($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? ''); ?>
+                    <?php $poster = \App\Support\MediaImage::adminPosterSrc($item); ?>
                     <?php if (!empty($poster)): ?>
                         <img src="<?= escape($poster) ?>" alt="">
                     <?php else: ?>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin\Content;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Framework\Database;
 
@@ -114,14 +115,16 @@ class ContentService
      */
     public function update(int $id, array $data): void
     {
+        $images = $this->normalizedImageFields($data);
+
         $this->db->updateById('media_items', $id, [
             'title' => trim((string) $data['title']),
             'slug' => $this->normalizeSlug((string) ($data['slug'] ?? ''), (string) $data['title']),
             'type' => (string) $data['type'],
             'synopsis' => trim((string) $data['synopsis']),
-            'poster_url' => trim((string) ($data['poster_url'] ?? '')) ?: null,
-            'poster_image' => trim((string) ($data['poster_image'] ?? '')) ?: null,
-            'backdrop_image' => trim((string) ($data['backdrop_image'] ?? '')) ?: null,
+            'poster_url' => $images['poster_url'],
+            'poster_image' => $images['poster_image'],
+            'backdrop_image' => $images['backdrop_image'],
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'release_year' => $this->nullableInt($data['release_year'] ?? null),
             'is_featured' => !empty($data['is_featured']) ? 1 : 0,
@@ -281,12 +284,14 @@ class ContentService
 
     public function updateSeason(int $mediaItemId, int $seasonId, array $data): void
     {
+        $images = $this->normalizedImageFields($data);
+
         $this->db->update('media_seasons', [
             'title' => trim((string) $data['title']),
             'synopsis' => trim((string) ($data['synopsis'] ?? '')),
-            'poster_url' => trim((string) ($data['poster_url'] ?? '')) ?: null,
-            'poster_image' => trim((string) ($data['poster_image'] ?? '')) ?: null,
-            'backdrop_image' => trim((string) ($data['backdrop_image'] ?? '')) ?: null,
+            'poster_url' => $images['poster_url'],
+            'poster_image' => $images['poster_image'],
+            'backdrop_image' => $images['backdrop_image'],
             'season_number' => max(1, (int) ($data['season_number'] ?? 1)),
             'release_year' => $this->nullableInt($data['release_year'] ?? null),
             'status' => (string) $data['status'],
@@ -298,12 +303,14 @@ class ContentService
 
     public function updateEpisode(int $mediaItemId, int $episodeId, array $data): void
     {
+        $images = $this->normalizedImageFields($data);
+
         $this->db->update('media_episodes', [
             'title' => trim((string) $data['title']),
             'synopsis' => trim((string) ($data['synopsis'] ?? '')),
-            'poster_url' => trim((string) ($data['poster_url'] ?? '')) ?: null,
-            'poster_image' => trim((string) ($data['poster_image'] ?? '')) ?: null,
-            'backdrop_image' => trim((string) ($data['backdrop_image'] ?? '')) ?: null,
+            'poster_url' => $images['poster_url'],
+            'poster_image' => $images['poster_image'],
+            'backdrop_image' => $images['backdrop_image'],
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'season_number' => max(1, (int) ($data['season_number'] ?? 1)),
             'episode_number' => max(1, (int) ($data['episode_number'] ?? 1)),
@@ -326,6 +333,8 @@ class ContentService
             ['media_item_id' => $mediaItemId, 'season_number' => $seasonNumber]
         );
 
+        $images = $this->normalizedImageFields($data);
+
         return (int) $this->db->insert('media_episodes', [
             'media_item_id' => $mediaItemId,
             'media_season_id' => $season ? (int) $season['id'] : null,
@@ -333,9 +342,9 @@ class ContentService
             'serie' => trim((string) ($item['title'] ?? '')) ?: null,
             'episode_name' => trim((string) $data['episode_name']) ?: trim((string) $data['title']),
             'synopsis' => trim((string) ($data['synopsis'] ?? '')),
-            'poster_url' => trim((string) ($data['poster_url'] ?? '')) ?: null,
-            'poster_image' => trim((string) ($data['poster_image'] ?? '')) ?: null,
-            'backdrop_image' => trim((string) ($data['backdrop_image'] ?? '')) ?: null,
+            'poster_url' => $images['poster_url'],
+            'poster_image' => $images['poster_image'],
+            'backdrop_image' => $images['backdrop_image'],
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'season_number' => $seasonNumber,
             'episode_number' => $episodeNumber,
@@ -487,6 +496,18 @@ class ContentService
             "DELETE FROM `{$table}` WHERE `{$extraCol}` = :extra AND `{$column}` IN ({$placeholders})",
             $params
         );
+    }
+
+    /**
+     * @return array{poster_url: ?string, poster_image: ?string, backdrop_image: ?string}
+     */
+    private function normalizedImageFields(array $data): array
+    {
+        return MediaImage::normalizeStoredImages([
+            'poster_url' => $data['poster_url'] ?? null,
+            'poster_image' => $data['poster_image'] ?? null,
+            'backdrop_image' => $data['backdrop_image'] ?? null,
+        ]);
     }
 
     private function withWatchUrls(array $item): array
