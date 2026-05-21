@@ -72,6 +72,28 @@ This creates the database and imports `database.sql`. Default admin login:
 
 ---
 
+## Vexio Streaming Scraper
+
+Vexio can use the scraper in `public/core` as the default watch-page server named **Vexio**. Run it beside the PHP app:
+
+```bash
+cd public/core
+npm install
+npm run dev
+```
+
+The bridge is configured with these `.env` values:
+
+```env
+CINEPRO_CORE_ENABLED=true
+CINEPRO_CORE_URL=http://127.0.0.1:3000
+CINEPRO_CORE_PUBLIC_URL=http://127.0.0.1:3000
+CINEPRO_CORE_CONNECT_TIMEOUT=5
+CINEPRO_CORE_TIMEOUT=180
+```
+
+---
+
 ## Scheduled Episode Publishing
 
 When episodes are imported before their air date, they are stored with `status = scheduled` and hidden from the frontend. Once the air date arrives, the `publish-scheduled` command reimports each episode from TMDB (picking up the latest synopsis, backdrop, and metadata) and sets it to `published`.

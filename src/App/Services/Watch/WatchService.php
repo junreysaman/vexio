@@ -410,7 +410,19 @@ class WatchService
             return [];
         }
 
+        $servers = [];
+
+        if ($this->cineProCoreEnabled()) {
+            $servers[] = [
+                'key' => 'vexio-core',
+                'name' => 'Vexio',
+                'url' => $this->cineProMoviePlayerUrl($item),
+                'default' => true,
+            ];
+        }
+
         $servers = [
+            ...$servers,
             [
                 'key' => 'vidfast',
                 'name' => 'VidFast',
@@ -418,7 +430,6 @@ class WatchService
                     'autoPlay' => 'false',
                     'theme' => '#e8173f',
                 ]),
-                'default' => true,
             ],
             [
                 'key' => 'vidsrc',
@@ -462,7 +473,19 @@ class WatchService
             return [];
         }
 
+        $servers = [];
+
+        if ($this->cineProCoreEnabled()) {
+            $servers[] = [
+                'key' => 'vexio-core',
+                'name' => 'Vexio',
+                'url' => $this->cineProTvPlayerUrl($show, $episode),
+                'default' => true,
+            ];
+        }
+
         $servers = [
+            ...$servers,
             [
                 'key' => 'vidfast',
                 'name' => 'VidFast',
@@ -472,7 +495,6 @@ class WatchService
                     'autoNext' => 'false',
                     'theme' => '#00c8f0',
                 ]),
-                'default' => true,
             ],
             [
                 'key' => 'vidsrc',
@@ -501,5 +523,26 @@ class WatchService
         }
 
         return $servers;
+    }
+
+    private function cineProCoreEnabled(): bool
+    {
+        return filter_var($_ENV['CINEPRO_CORE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function cineProMoviePlayerUrl(array $item): string
+    {
+        return '/core-player/movie/' . (int) ($item['tmdb_id'] ?? 0) . '?' . http_build_query([
+            'title' => (string) ($item['title'] ?? 'Movie'),
+        ]);
+    }
+
+    private function cineProTvPlayerUrl(array $show, array $episode): string
+    {
+        return '/core-player/tv/' . (int) ($show['tmdb_id'] ?? 0) . '?' . http_build_query([
+            'season' => max(1, (int) ($episode['season_number'] ?? 1)),
+            'episode' => max(1, (int) ($episode['episode_number'] ?? 1)),
+            'title' => (string) ($show['title'] ?? 'TV Show'),
+        ]);
     }
 }

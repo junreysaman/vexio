@@ -1,0 +1,266 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers\Watch;
+
+use Framework\Http\Request;
+use Framework\Http\Response;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+
+class CoreStreamController
+{
+    public function player(Request $request, Response $response, string $type, string $tmdbId): Response
+    {
+        $type = $type === 'tv' ? 'tv' : 'movie';
+        $season = max(1, (int) $request->query('season', 1));
+        $episode = max(1, (int) $request->query('episode', 1));
+        $title = trim((string) $request->query('title', 'Vexio'));
+
+        return $response->html($this->playerHtml($type, (int) $tmdbId, $season, $episode, $title));
+    }
+
+    public function sources(Request $request, Response $response): Response
+    {
+        if (!$this->enabled()) {
+            return $response->error('Vexio streaming integration is disabled.', 503);
+        }
+
+        $type = (string) $request->query('type', 'movie');
+        $tmdbId = (int) $request->query('tmdbId', 0);
+        $season = max(1, (int) $request->query('season', 1));
+        $episode = max(1, (int) $request->query('episode', 1));
+
+        if (!in_array($type, ['movie', 'tv'], true) || $tmdbId < 1) {
+            return $response->error('Invalid Core source request.', 422);
+        }
+
+        $coreBaseUrl = $this->coreBaseUrl();
+        $path = $type === 'tv'
+            ? "/v1/tv/{$tmdbId}/seasons/{$season}/episodes/{$episode}"
+            : "/v1/movies/{$tmdbId}";
+
+        try {
+            $client = new Client([
+                'base_uri' => $coreBaseUrl,
+                'connect_timeout' => (float) ($_ENV['CINEPRO_CORE_CONNECT_TIMEOUT'] ?? 5),
+                'timeout' => (float) ($_ENV['CINEPRO_CORE_TIMEOUT'] ?? 180),
+                'http_errors' => false,
+            ]);
+
+            $coreResponse = $client->get($path, [
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+            ]);
+
+            $status = $coreResponse->getStatusCode();
+            $payload = json_decode((string) $coreResponse->getBody(), true);
+
+            if ($status < 200 || $status >= 300 || !is_array($payload)) {
+                return $response->json([
+                    'error' => [
+                        'message' => 'Vexio streaming did not return a usable response.',
+                        'status' => $status,
+                    ],
+                ], 502);
+            }
+
+            return $response->json($this->normalizeSourcePayload($payload, $this->corePublicUrl($coreBaseUrl)));
+        } catch (GuzzleException $exception) {
+            return $response->json([
+                'error' => [
+                    'message' => 'Unable to reach Vexio streaming.',
+                    'detail' => $exception->getMessage(),
+                ],
+            ], 503);
+        }
+    }
+
+    private function enabled(): bool
+    {
+        return filter_var($_ENV['CINEPRO_CORE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function coreBaseUrl(): string
+    {
+        return rtrim((string) ($_ENV['CINEPRO_CORE_URL'] ?? 'http://127.0.0.1:3000'), '/');
+    }
+
+    private function corePublicUrl(string $fallback): string
+    {
+        return rtrim((string) ($_ENV['CINEPRO_CORE_PUBLIC_URL'] ?? $fallback), '/');
+    }
+
+    private function normalizeSourcePayload(array $payload, string $coreBaseUrl): array
+    {
+        $sources = [];
+        foreach (($payload['sources'] ?? []) as $source) {
+            if (!is_array($source)) {
+                continue;
+            }
+
+            $url = trim((string) ($source['url'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+
+            if (str_starts_with($url, '/')) {
+                $url = $coreBaseUrl . $url;
+            }
+
+            $source['url'] = $url;
+            $sources[] = $source;
+        }
+
+        $payload['sources'] = $sources;
+
+        return $payload;
+    }
+
+    private function playerHtml(string $type, int $tmdbId, int $season, int $episode, string $title): string
+    {
+        $title = htmlspecialchars($title !== '' ? $title : 'Vexio', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $sourceUrl = '/api/core/sources?' . http_build_query([
+            'type' => $type,
+            'tmdbId' => $tmdbId,
+            'season' => $season,
+            'episode' => $episode,
+        ]);
+
+        return <<<HTML
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{$title}</title>
+  <style>
+    :root { color-scheme: dark; --bg: #06080d; --panel: #111827; --text: #f7fbff; --muted: #98a2b3; --accent: #00c8f0; --danger: #ff5e7d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+    .shell { position: fixed; inset: 0; display: grid; grid-template-rows: 1fr auto; }
+    video { width: 100%; height: 100%; background: #000; display: block; }
+    .state { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; background: radial-gradient(circle at center, rgba(0, 200, 240, .12), transparent 40%), #06080d; }
+    .state-card { width: min(520px, 100%); }
+    .spinner { width: 42px; height: 42px; border: 3px solid rgba(255,255,255,.15); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 18px; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { margin: 0 0 8px; font-size: 20px; line-height: 1.25; font-weight: 800; }
+    p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+    .bar { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(6,8,13,.92); border-top: 1px solid rgba(255,255,255,.08); overflow-x: auto; }
+    .source-btn { border: 1px solid rgba(255,255,255,.12); background: var(--panel); color: var(--text); border-radius: 6px; padding: 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .source-btn.active { border-color: var(--accent); color: var(--accent); }
+    .badge { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <video id="video" controls playsinline preload="metadata"></video>
+    <div class="state" id="state">
+      <div class="state-card">
+        <div class="spinner" id="spinner"></div>
+        <h1 id="stateTitle">Finding streams</h1>
+        <p id="stateText">Asking Vexio for available sources. Cold scrapes can take a minute or two.</p>
+      </div>
+    </div>
+    <div class="bar" id="sourceBar">
+      <span class="badge" id="sourceCount">Vexio</span>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script>
+    const endpoint = {$this->jsonForScript($sourceUrl)};
+    const video = document.getElementById('video');
+    const state = document.getElementById('state');
+    const stateTitle = document.getElementById('stateTitle');
+    const stateText = document.getElementById('stateText');
+    const spinner = document.getElementById('spinner');
+    const sourceBar = document.getElementById('sourceBar');
+    const sourceCount = document.getElementById('sourceCount');
+    let hls;
+
+    function setState(title, text, loading = false) {
+      stateTitle.textContent = title;
+      stateText.textContent = text;
+      spinner.classList.toggle('hidden', !loading);
+      state.classList.remove('hidden');
+    }
+
+    function hideState() {
+      state.classList.add('hidden');
+    }
+
+    function sourceLabel(source, index) {
+      const provider = source.provider?.name || source.provider?.id || 'Source';
+      const quality = source.quality || source.type || '';
+      return provider + (quality ? ' ' + quality : '') + ' #' + (index + 1);
+    }
+
+    function playSource(source) {
+      if (!source?.url) return;
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+
+      if (source.type === 'hls' && window.Hls && Hls.isSupported()) {
+        hls = new Hls({ enableWorker: true });
+        hls.loadSource(source.url);
+        hls.attachMedia(video);
+      } else {
+        video.src = source.url;
+      }
+
+      hideState();
+      video.play().catch(() => {});
+    }
+
+    async function boot() {
+      setState('Finding streams', 'Asking Vexio for available sources. Cold scrapes can take a minute or two.', true);
+      try {
+        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error?.message || 'Vexio stream request failed');
+        }
+
+        const sources = Array.isArray(data.sources) ? data.sources.filter(source => source.url) : [];
+        if (!sources.length) {
+          setState('No streams found', 'Vexio responded, but no playable sources were available.');
+          return;
+        }
+
+        sourceCount.textContent = sources.length + ' source' + (sources.length === 1 ? '' : 's');
+        sources.forEach((source, index) => {
+          const button = document.createElement('button');
+          button.className = 'source-btn' + (index === 0 ? ' active' : '');
+          button.type = 'button';
+          button.textContent = sourceLabel(source, index);
+          button.addEventListener('click', () => {
+            document.querySelectorAll('.source-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            playSource(source);
+          });
+          sourceBar.insertBefore(button, sourceCount);
+        });
+
+        playSource(sources[0]);
+      } catch (error) {
+        setState('Vexio is unavailable', error.message || 'Unable to load streams from Vexio.');
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
+HTML;
+    }
+
+    private function jsonForScript(string $value): string
+    {
+        return json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '""';
+    }
+}
