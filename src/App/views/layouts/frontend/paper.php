@@ -30,7 +30,7 @@
 
 <body class="<?= escape($body_class ?? 'paper-frontend') ?>">
 
-    <?= $this->includePartial('frontend/partials/page-loader') ?>
+    <!-- $this->includePartial('frontend/partials/page-loader') -->
     <div id="app" class="vexio-app-shell">
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
