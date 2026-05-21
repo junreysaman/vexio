@@ -155,10 +155,146 @@ class CoreStreamController
             $sources[] = $source;
         }
 
-        $payload['sources'] = $sources;
-        $payload['subtitles'] = $this->normalizeUrlList($payload['subtitles'] ?? [], $coreBaseUrl, $proxyBaseUrl);
+        $bestSource = $this->bestPlayableSource($sources);
+
+        $payload['sources'] = $bestSource ? [$bestSource] : [];
+        $payload['subtitles'] = $this->selectSubtitles(
+            $this->normalizeUrlList($payload['subtitles'] ?? [], $coreBaseUrl, $proxyBaseUrl)
+        );
 
         return $payload;
+    }
+
+    private function bestPlayableSource(array $sources): ?array
+    {
+        $playable = array_values(array_filter($sources, fn (array $source): bool => $this->isBrowserPlayableSource($source)));
+
+        if ($playable === []) {
+            return null;
+        }
+
+        usort($playable, fn (array $a, array $b): int => $this->sourceScore($b) <=> $this->sourceScore($a));
+
+        $preferred = array_values(array_filter(
+            $playable,
+            fn (array $source): bool => $this->qualityScore((string) ($source['quality'] ?? '')) >= 1080
+        ));
+
+        return $preferred[0] ?? $playable[0];
+    }
+
+    private function isBrowserPlayableSource(array $source): bool
+    {
+        $url = trim((string) ($source['url'] ?? ''));
+        $type = strtolower(trim((string) ($source['type'] ?? '')));
+
+        if ($url === '') {
+            return false;
+        }
+
+        if (in_array($type, ['hls', 'mp4'], true)) {
+            return true;
+        }
+
+        $path = strtolower((string) parse_url($url, PHP_URL_PATH));
+
+        return str_ends_with($path, '.m3u8') || str_ends_with($path, '.mp4');
+    }
+
+    private function sourceScore(array $source): int
+    {
+        $type = strtolower(trim((string) ($source['type'] ?? '')));
+        $quality = $this->qualityScore((string) ($source['quality'] ?? ''));
+        $typeScore = match ($type) {
+            'hls' => 40,
+            'mp4' => 30,
+            default => 0,
+        };
+        $englishAudioScore = $this->hasEnglishAudio($source) ? 20 : 0;
+
+        return ($quality * 100) + $typeScore + $englishAudioScore;
+    }
+
+    private function qualityScore(string $quality): int
+    {
+        $quality = strtolower(trim($quality));
+
+        if ($quality === '') {
+            return 0;
+        }
+
+        if (str_contains($quality, '4k') || str_contains($quality, '2160')) {
+            return 2160;
+        }
+
+        if (str_contains($quality, '2k') || str_contains($quality, '1440')) {
+            return 1440;
+        }
+
+        if (preg_match('/(\d{3,4})\s*p?/', $quality, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return 0;
+    }
+
+    private function hasEnglishAudio(array $source): bool
+    {
+        foreach (($source['audioTracks'] ?? []) as $track) {
+            if (!is_array($track)) {
+                continue;
+            }
+
+            $language = strtolower((string) ($track['language'] ?? ''));
+            $label = strtolower((string) ($track['label'] ?? ''));
+
+            if (in_array($language, ['en', 'eng', 'english'], true) || str_contains($label, 'english')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function selectSubtitles(array $subtitles): array
+    {
+        $deduped = [];
+        foreach ($subtitles as $subtitle) {
+            $url = trim((string) ($subtitle['url'] ?? ''));
+            if ($url === '' || isset($deduped[$url])) {
+                continue;
+            }
+
+            $format = strtolower(trim((string) ($subtitle['format'] ?? pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION))));
+            $subtitle['format'] = $format ?: 'vtt';
+            $deduped[$url] = $subtitle;
+        }
+
+        $selected = array_values($deduped);
+        usort($selected, fn (array $a, array $b): int => $this->subtitleScore($b) <=> $this->subtitleScore($a));
+
+        return array_slice($selected, 0, 30);
+    }
+
+    private function subtitleScore(array $subtitle): int
+    {
+        $label = strtolower((string) ($subtitle['label'] ?? ''));
+        $format = strtolower((string) ($subtitle['format'] ?? ''));
+        $score = 0;
+
+        if ($format === 'vtt') {
+            $score += 100;
+        }
+
+        if (str_contains($label, 'english') || $label === 'eng') {
+            $score += 50;
+        }
+
+        if (str_contains($label, 'cc')) {
+            $score += 10;
+        }
+
+        return $score;
     }
 
     private function normalizeUrlList(mixed $items, string $coreBaseUrl, string $proxyBaseUrl): array
@@ -329,8 +465,8 @@ class CoreStreamController
     <div class="state" id="state">
       <div class="state-card">
         <div class="spinner" id="spinner"></div>
-        <h1 id="stateTitle">Finding streams</h1>
-        <p id="stateText">Asking Vexio for available sources. Cold scrapes can take a minute or two.</p>
+        <h1 id="stateTitle">Finding best stream</h1>
+        <p id="stateText">Asking Vexio for one high quality playable source.</p>
       </div>
     </div>
     <div class="bar" id="sourceBar">
@@ -360,10 +496,28 @@ class CoreStreamController
       state.classList.add('hidden');
     }
 
-    function sourceLabel(source, index) {
+    function sourceLabel(source) {
       const provider = source.provider?.name || source.provider?.id || 'Source';
       const quality = source.quality || source.type || '';
-      return provider + (quality ? ' ' + quality : '') + ' #' + (index + 1);
+      return provider + (quality ? ' ' + quality : '');
+    }
+
+    function addSubtitles(subtitles) {
+      video.querySelectorAll('track').forEach(track => track.remove());
+      subtitles
+        .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
+        .slice(0, 12)
+        .forEach((subtitle, index) => {
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.src = subtitle.url;
+          track.label = subtitle.label || 'Subtitle';
+          track.srclang = (subtitle.language || subtitle.label || 'sub').toString().slice(0, 12).toLowerCase();
+          if (index === 0 && /english|eng/i.test(track.label)) {
+            track.default = true;
+          }
+          video.appendChild(track);
+        });
     }
 
     function playSource(source) {
@@ -386,7 +540,7 @@ class CoreStreamController
     }
 
     async function boot() {
-      setState('Finding streams', 'Asking Vexio for available sources. Cold scrapes can take a minute or two.', true);
+      setState('Finding best stream', 'Asking Vexio for one high quality playable source.', true);
       try {
         const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
         const data = await response.json();
@@ -396,24 +550,12 @@ class CoreStreamController
 
         const sources = Array.isArray(data.sources) ? data.sources.filter(source => source.url) : [];
         if (!sources.length) {
-          setState('No streams found', 'Vexio responded, but no playable sources were available.');
+          setState('No playable stream found', 'Vexio responded, but no browser-playable source was available.');
           return;
         }
 
-        sourceCount.textContent = sources.length + ' source' + (sources.length === 1 ? '' : 's');
-        sources.forEach((source, index) => {
-          const button = document.createElement('button');
-          button.className = 'source-btn' + (index === 0 ? ' active' : '');
-          button.type = 'button';
-          button.textContent = sourceLabel(source, index);
-          button.addEventListener('click', () => {
-            document.querySelectorAll('.source-btn').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            playSource(source);
-          });
-          sourceBar.insertBefore(button, sourceCount);
-        });
-
+        addSubtitles(Array.isArray(data.subtitles) ? data.subtitles : []);
+        sourceCount.textContent = sourceLabel(sources[0]);
         playSource(sources[0]);
       } catch (error) {
         setState('Vexio is unavailable', error.message || 'Unable to load streams from Vexio.');
