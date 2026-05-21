@@ -8,6 +8,7 @@ use Framework\Http\Request;
 use Framework\Http\Response;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Message\ResponseInterface;
 
 class CoreStreamController
 {
@@ -67,11 +68,50 @@ class CoreStreamController
                 ], 502);
             }
 
-            return $response->json($this->normalizeSourcePayload($payload, $this->corePublicUrl($coreBaseUrl)));
+            return $response->json($this->normalizeSourcePayload($payload, $coreBaseUrl, $this->vexioProxyBaseUrl()));
         } catch (GuzzleException $exception) {
             return $response->json([
                 'error' => [
                     'message' => 'Unable to reach Vexio streaming.',
+                    'detail' => $exception->getMessage(),
+                ],
+            ], 503);
+        }
+    }
+
+    public function proxy(Request $request, Response $response): Response
+    {
+        if (!$this->enabled()) {
+            return $response->error('Vexio streaming integration is disabled.', 503);
+        }
+
+        $data = trim((string) $request->query('data', ''));
+        if ($data === '') {
+            return $response->error('Missing proxy data.', 422);
+        }
+
+        try {
+            $client = new Client([
+                'base_uri' => $this->coreBaseUrl(),
+                'connect_timeout' => (float) ($_ENV['CINEPRO_CORE_CONNECT_TIMEOUT'] ?? 5),
+                'timeout' => (float) ($_ENV['CINEPRO_CORE_PROXY_TIMEOUT'] ?? 0),
+                'http_errors' => false,
+            ]);
+
+            $coreResponse = $client->get('/v1/proxy', [
+                'query' => ['data' => $data],
+                'stream' => true,
+                'headers' => array_filter([
+                    'Accept' => (string) $request->header('Accept', '*/*'),
+                    'Range' => (string) $request->header('Range', ''),
+                ]),
+            ]);
+
+            return $this->proxyResponse($response, $coreResponse);
+        } catch (GuzzleException $exception) {
+            return $response->json([
+                'error' => [
+                    'message' => 'Unable to proxy Vexio stream.',
                     'detail' => $exception->getMessage(),
                 ],
             ], 503);
@@ -93,7 +133,12 @@ class CoreStreamController
         return rtrim((string) ($_ENV['CINEPRO_CORE_PUBLIC_URL'] ?? $fallback), '/');
     }
 
-    private function normalizeSourcePayload(array $payload, string $coreBaseUrl): array
+    private function vexioProxyBaseUrl(): string
+    {
+        return rtrim((string) ($_ENV['APP_URL'] ?? ''), '/') . '/api/core/proxy';
+    }
+
+    private function normalizeSourcePayload(array $payload, string $coreBaseUrl, string $proxyBaseUrl): array
     {
         $sources = [];
         foreach (($payload['sources'] ?? []) as $source) {
@@ -106,17 +151,140 @@ class CoreStreamController
                 continue;
             }
 
-            if (str_starts_with($url, '/')) {
-                $url = $coreBaseUrl . $url;
-            }
-
-            $source['url'] = $url;
+            $source['url'] = $this->rewriteCoreProxyUrl($url, $coreBaseUrl, $proxyBaseUrl);
             $sources[] = $source;
         }
 
         $payload['sources'] = $sources;
+        $payload['subtitles'] = $this->normalizeUrlList($payload['subtitles'] ?? [], $coreBaseUrl, $proxyBaseUrl);
 
         return $payload;
+    }
+
+    private function normalizeUrlList(mixed $items, string $coreBaseUrl, string $proxyBaseUrl): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $url = trim((string) ($item['url'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+
+            $item['url'] = $this->rewriteCoreProxyUrl($url, $coreBaseUrl, $proxyBaseUrl);
+
+            $normalized[] = $item;
+        }
+
+        return $normalized;
+    }
+
+    private function rewriteCoreProxyUrl(string $url, string $coreBaseUrl, string $proxyBaseUrl): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        if ($path !== '/v1/proxy') {
+            return $url;
+        }
+
+        $urlHost = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $coreHost = strtolower((string) parse_url($coreBaseUrl, PHP_URL_HOST));
+        $corePublicHost = strtolower((string) parse_url($this->corePublicUrl($coreBaseUrl), PHP_URL_HOST));
+        $appHost = strtolower((string) parse_url((string) ($_ENV['APP_URL'] ?? ''), PHP_URL_HOST));
+        $knownHosts = array_filter(array_unique([$coreHost, $corePublicHost, $appHost, 'localhost', '127.0.0.1']));
+
+        if ($urlHost !== '' && !in_array($urlHost, $knownHosts, true)) {
+            return $url;
+        }
+
+        $query = (string) parse_url($url, PHP_URL_QUERY);
+
+        return $proxyBaseUrl . ($query !== '' ? '?' . $query : '');
+    }
+
+    private function proxyResponse(Response $response, ResponseInterface $coreResponse): Response
+    {
+        $contentType = $coreResponse->getHeaderLine('Content-Type') ?: 'application/octet-stream';
+
+        if (!$this->isTextResponse($contentType)) {
+            $this->streamBinaryResponse($coreResponse, $contentType);
+            exit;
+        }
+
+        $body = (string) $coreResponse->getBody();
+        $body = $this->rewriteProxyText($body);
+
+        $response->status($coreResponse->getStatusCode())
+            ->header('Content-Type', $contentType)
+            ->body($body);
+
+        foreach (['Accept-Ranges', 'Content-Range', 'ETag', 'Last-Modified'] as $header) {
+            $value = $coreResponse->getHeaderLine($header);
+            if ($value !== '') {
+                $response->header($header, $value);
+            }
+        }
+
+        return $response;
+    }
+
+    private function streamBinaryResponse(ResponseInterface $coreResponse, string $contentType): void
+    {
+        if (!headers_sent()) {
+            http_response_code($coreResponse->getStatusCode());
+            header('Content-Type: ' . $contentType, true);
+
+            foreach (['Content-Length', 'Accept-Ranges', 'Content-Range', 'ETag', 'Last-Modified', 'Cache-Control'] as $header) {
+                $value = $coreResponse->getHeaderLine($header);
+                if ($value !== '') {
+                    header($header . ': ' . $value, true);
+                }
+            }
+        }
+
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
+
+        $stream = $coreResponse->getBody();
+        while (!$stream->eof()) {
+            echo $stream->read(8192);
+            flush();
+        }
+    }
+
+    private function isTextResponse(string $contentType): bool
+    {
+        $contentType = strtolower($contentType);
+
+        return str_contains($contentType, 'mpegurl')
+            || str_contains($contentType, 'text/')
+            || str_contains($contentType, 'json')
+            || str_contains($contentType, 'javascript');
+    }
+
+    private function rewriteProxyText(string $body): string
+    {
+        $proxyBaseUrl = $this->vexioProxyBaseUrl();
+        $coreBaseUrl = $this->coreBaseUrl();
+        $corePublicUrl = $this->corePublicUrl($coreBaseUrl);
+        $appUrl = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
+
+        $needles = array_filter(array_unique([
+            rtrim($coreBaseUrl, '/') . '/v1/proxy',
+            rtrim($corePublicUrl, '/') . '/v1/proxy',
+            rtrim($appUrl, '/') . '/v1/proxy',
+            '/v1/proxy',
+        ]));
+
+        return str_replace($needles, $proxyBaseUrl, $body);
     }
 
     private function playerHtml(string $type, int $tmdbId, int $season, int $episode, string $title): string

@@ -92,6 +92,7 @@ function registerRoutes(App $app): void
         // API Routes
         ['GET', '/api/search', [SearchController::class, 'index']],
         ['GET', '/api/core/sources', [CoreStreamController::class, 'sources']],
+        ['GET', '/api/core/proxy', [CoreStreamController::class, 'proxy']],
         ['POST', '/api/comments', [CommentController::class, 'store']],
         // Vexio stream player
         ['GET', '/core-player/{type}/{tmdbId}', [CoreStreamController::class, 'player']],
