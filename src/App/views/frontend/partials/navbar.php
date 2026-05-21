@@ -78,6 +78,20 @@ $mobileNavItems = array_values(array_filter(
     $navItems,
     static fn (array $item): bool => in_array($item['key'], ['home', 'browse', 'genre', 'networks', 'trending', 'watching'], true)
 ));
+
+$mobileNavItems[] = $currentUser ? [
+    'key' => 'account',
+    'label' => (($currentUser['role'] ?? null) === 'superuser') ? 'Admin' : 'Account',
+    'href' => (($currentUser['role'] ?? null) === 'superuser') ? '/admin/dashboard' : '/',
+    'active' => str_starts_with($currentPath, 'admin/'),
+    'icon' => '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
+] : [
+    'key' => 'signin',
+    'label' => 'Sign In',
+    'href' => '/login',
+    'active' => $currentPath === 'login',
+    'icon' => '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
+];
 ?>
 
 <!-- ===================================================== -->

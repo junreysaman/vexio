@@ -17,6 +17,7 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
             id="embeddedPlayerFrame"
             title="<?= escape((string) ($item['title'] ?? 'Movie')) ?> player"
             loading="lazy"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowfullscreen
             referrerpolicy="origin"
