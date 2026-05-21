@@ -1,0 +1,17 @@
+{
+  "appId": "com.vexio.app",
+  "appName": "Vexio",
+  "webDir": "public",
+  "server": {
+    "url": "https://vexio.asia",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#05070d",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
+  }
+}

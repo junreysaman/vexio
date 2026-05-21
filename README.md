@@ -157,6 +157,55 @@ Access the admin panel at `/admin/dashboard` after logging in.
 
 ---
 
+## Mobile App Wrapper
+
+This project includes a Capacitor wrapper for Android and iOS. The mobile app loads the production Vexio website inside a native app shell, so the PHP app stays as the main backend and frontend.
+
+The source mobile artwork is kept in `assets/icon.png` and `assets/splash.png`, generated from the brand files under `public/brand`. Native Android/iOS resources are already generated from those source images.
+
+### Requirements
+
+- Node.js and npm
+- Android Studio for Android builds
+- macOS, Xcode, CocoaPods, and an Apple Developer account for iOS builds
+- A live HTTPS Vexio domain
+
+### Configure the app URL
+
+Before building for stores, edit `capacitor.config.json` and replace:
+
+```json
+"url": "https://your-vexio-domain.com"
+```
+
+with your real production domain.
+
+### Sync native projects
+
+Run this after changing `capacitor.config.json` or frontend assets:
+
+```bash
+npm run mobile:sync
+```
+
+### Android
+
+```bash
+npm run mobile:android
+```
+
+This opens the generated `android` project in Android Studio, where you can build, test, sign, and publish the app.
+
+### iOS
+
+```bash
+npm run mobile:ios
+```
+
+Run this on macOS. After opening the generated `ios` project in Xcode, set your signing team, run `pod install` if needed, then build/archive for TestFlight or the App Store.
+
+---
+
 ## TMDB Importer
 
 The importer fetches metadata from TMDB and stores it locally.

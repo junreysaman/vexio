@@ -30,6 +30,8 @@
 
 <body class="<?= escape($body_class ?? 'paper-frontend') ?>">
 
+    <?= $this->includePartial('frontend/partials/page-loader') ?>
+    <div id="app" class="vexio-app-shell">
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
      <!-- $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial')
@@ -38,6 +40,7 @@
         <?= $this->section('content') ?>
 
         <?= $this->includePartial('frontend/partials/footer') ?>
+    </div>
     <script src="/assets/frontend/js/app.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/app.js') ?>"></script>
     <script src="/assets/frontend/js/search.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/search.js') ?>"></script>
     <script src="/assets/frontend/js/page-loader.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/page-loader.js') ?>"></script>

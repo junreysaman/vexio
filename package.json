@@ -1,0 +1,19 @@
+{
+  "name": "vexio-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor mobile wrapper for the Vexio web app.",
+  "scripts": {
+    "mobile:sync": "cap sync",
+    "mobile:android": "cap open android",
+    "mobile:ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.4"
+  }
+}

@@ -9,6 +9,78 @@
 }
 #loader.hidden{opacity:0;visibility:hidden;pointer-events:none;}
 
+.vexio-app-shell{opacity:0;transition:opacity .35s ease;}
+.vexio-app-shell.visible,
+body.loaded .vexio-app-shell{opacity:1;}
+
+.vexio-splash-loader{
+  background:#050b14;
+}
+
+.vexio-splash-loader .splash{
+  position:absolute;
+  inset:0;
+  min-height:100vh;
+  border-radius:0;
+}
+
+.vexio-splash-loader .mobile-loader-progress{
+  position:absolute;
+  left:50%;
+  bottom:max(42px, env(safe-area-inset-bottom));
+  width:min(280px, 72vw);
+  transform:translateX(-50%);
+  z-index:20;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:10px;
+  color:rgba(255,255,255,.42);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+}
+
+.vexio-splash-loader .mobile-loader-progress::before{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  top:-8px;
+  height:2px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+}
+
+.vexio-splash-loader #lfill{
+  position:absolute;
+  left:0;
+  top:-8px;
+  height:2px;
+  width:0;
+  border-radius:999px;
+  background:linear-gradient(90deg,#e8405a,#00d4ff);
+}
+
+.vexio-splash-loader #lpct{
+  color:#e8405a;
+  min-width:34px;
+}
+
+.vexio-splash-loader #lmsg{
+  justify-self:end;
+  color:rgba(255,255,255,.28);
+}
+
+.vexio-splash-fallback{
+  font-size:clamp(56px,14vw,108px);
+  font-weight:900;
+  letter-spacing:.12em;
+  color:#e8405a;
+}
+
 .bg-radial{
   position:absolute;inset:0;pointer-events:none;
   background:
