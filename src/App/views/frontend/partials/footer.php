@@ -14,12 +14,13 @@
       <div>
         <div class="foot-col-h">Explore</div>
         <div class="foot-links">
-          <a href="/#recent">New Releases</a>
+          <a href="/#recently-added">New Releases</a>
           <a href="/#trending">Trending</a>
           <a href="/#movies">Movies</a>
           <a href="/#schedule">Schedule</a>
           <a href="/#top10">Top Rated</a>
-          <a href="/#now-airing">Completed</a>
+          <a href="/#now-airing">Now Airing</a>
+          <a href="/archive/networks">Networks</a>
         </div>
       </div>
       <div>

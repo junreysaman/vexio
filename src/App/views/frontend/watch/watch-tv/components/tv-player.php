@@ -6,7 +6,7 @@ $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
 $episodeTitle = (string) (($episode['episode_name'] ?? '') ?: ($episode['title'] ?? 'Episode ' . $currentEpisode));
 $playerBackdrop = MediaImage::backdropFromRow(array_merge($show, [
-    'backdrop_image' => ($episode['backdrop_image'] ?? '') ?: ($show['backdrop_image'] ?? ''),
+    'backdrop_url' => ($episode['backdrop_url'] ?? '') ?: ($show['backdrop_url'] ?? ''),
 ]), 'player');
 $runtime = (int) ($show['runtime_minutes'] ?? 0);
 $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';

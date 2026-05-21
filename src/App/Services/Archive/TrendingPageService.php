@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Archive;
 
+use App\Cache\CacheInterface;
 use App\Database\TmdbMetadataSchema;
 use App\Support\MediaImage;
 use App\Support\MediaUrl;
@@ -11,7 +12,10 @@ use Closure;
 
 class TrendingPageService
 {
-    public function __construct(private Closure $databaseFactory)
+    public function __construct(
+        private Closure $databaseFactory,
+        private CacheInterface $cache
+    )
     {
     }
 
@@ -20,9 +24,15 @@ class TrendingPageService
      */
     public function pageData(): array
     {
+        $cacheKey = 'archive:trending:pageData:v1';
+        $cached = $this->cache->get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $items = $this->getTrendingItems();
 
-        return [
+        $data = [
             'title' => 'Trending',
             'body_class' => 'paper-archive-trending-page',
             'items' => $items,
@@ -43,6 +53,10 @@ class TrendingPageService
                 ['label' => 'Top Rated', 'value' => 'top'],
             ],
         ];
+
+        $this->cache->set($cacheKey, $data, $this->publicCacheTtl());
+
+        return $data;
     }
 
     /**
@@ -62,9 +76,8 @@ class TrendingPageService
                     media_items.slug,
                     media_items.type,
                     media_items.synopsis,
-                    media_items.poster_image,
                     media_items.poster_url,
-                    media_items.backdrop_image,
+                    media_items.backdrop_url,
                     media_items.release_year,
                     media_items.tmdb_id,
                     media_items.tmdb_rating,
@@ -89,9 +102,8 @@ class TrendingPageService
                       media_items.slug,
                       media_items.type,
                       media_items.synopsis,
-                      media_items.poster_image,
                       media_items.poster_url,
-                      media_items.backdrop_image,
+                      media_items.backdrop_url,
                       media_items.release_year,
                       media_items.tmdb_id,
                       media_items.tmdb_rating,
@@ -343,5 +355,10 @@ class TrendingPageService
         }
 
         return (string) $value;
+    }
+
+    private function publicCacheTtl(): int
+    {
+        return max(60, min(3600, (int) ($_ENV['PUBLIC_PAGE_CACHE_TTL'] ?? 600)));
     }
 }

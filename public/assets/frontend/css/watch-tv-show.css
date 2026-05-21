@@ -444,6 +444,20 @@ ul{list-style:none;}
 .detail-val.cyan{color:var(--cyan);}
 .detail-val.accent{color:var(--accent2);}
 .detail-val.purple{color:var(--purple);}
+.network-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:14px;margin-bottom:20px;
+}
+.network-list{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.network-chip{
+  min-width:92px;height:44px;padding:8px 12px;border-radius:8px;
+  background:#fff;border:1px solid rgba(255,255,255,.12);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#111827;text-decoration:none;font-size:12px;font-weight:800;
+  transition:transform .2s,border-color .2s;
+}
+.network-chip:hover{transform:translateY(-2px);border-color:var(--cyan);}
+.network-chip img{max-width:96px;max-height:28px;object-fit:contain;display:block;}
 
 /* ═══════════════════════════════════════════════════════
    GENRE PILLS

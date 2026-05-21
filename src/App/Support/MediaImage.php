@@ -20,8 +20,14 @@ final class MediaImage
         'thumb' => [
             'role' => self::ROLE_POSTER,
             'widths' => [185, 342],
-            'primary' => 342,
+            'primary' => 185,
             'sizes' => '62px',
+        ],
+        'schedulePoster' => [
+            'role' => self::ROLE_POSTER,
+            'widths' => [185, 342],
+            'primary' => 185,
+            'sizes' => '56px',
         ],
         'heroPoster' => [
             'role' => self::ROLE_POSTER,
@@ -55,8 +61,8 @@ final class MediaImage
         ],
         'genre' => [
             'role' => self::ROLE_BACKDROP,
-            'widths' => [780, 1280],
-            'primary' => 780,
+            'widths' => [300, 780],
+            'primary' => 300,
             'sizes' => '160px',
         ],
     ];
@@ -93,71 +99,31 @@ final class MediaImage
         $primary = (int) $preset['primary'];
         $sizes = (string) $preset['sizes'];
 
-        $localKey = $role === self::ROLE_BACKDROP ? 'backdrop_image' : 'poster_image';
         $remoteKey = $role === self::ROLE_BACKDROP ? 'backdrop_url' : 'poster_url';
 
-        $local = trim((string) ($row[$localKey] ?? ''));
         $remote = trim((string) ($row[$remoteKey] ?? ''));
-
-        if ($role === self::ROLE_BACKDROP && $remote === '') {
-            $remote = trim((string) ($row['poster_url'] ?? ''));
-        }
-
-        if (!self::downloadsImagesEnabled()) {
-            if ($remote !== '') {
-                return self::fromRemoteUrl($remote, $widths, $primary, $sizes, $role);
-            }
-
-            if ($local !== '' && self::isRemoteUrl($local)) {
-                return self::fromRemoteUrl($local, $widths, $primary, $sizes, $role);
-            }
-
-            if ($role === self::ROLE_BACKDROP) {
-                $posterRemote = trim((string) ($row['poster_url'] ?? ''));
-                if ($posterRemote !== '') {
-                    return self::fromRemoteUrl($posterRemote, $widths, $primary, $sizes, self::ROLE_POSTER);
-                }
-            }
-        }
-
-        if ($local !== '' && self::isRemoteUrl($local)) {
-            return self::fromRemoteUrl($local, $widths, $primary, $sizes, $role);
-        }
-
-        if ($local !== '' && self::isLocalWebPath($local)) {
-            $descriptor = self::fromLocalPath($local, $widths, $primary, $sizes);
-
-            if ($descriptor['src'] !== '') {
-                return $descriptor;
-            }
-        }
 
         if ($remote !== '') {
             return self::fromRemoteUrl($remote, $widths, $primary, $sizes, $role);
         }
 
-        if ($role === self::ROLE_BACKDROP && $local === '') {
-            $posterLocal = trim((string) ($row['poster_image'] ?? ''));
-            if ($posterLocal !== '' && self::isRemoteUrl($posterLocal)) {
-                return self::fromRemoteUrl($posterLocal, $widths, $primary, $sizes, self::ROLE_POSTER);
-            }
-            if ($posterLocal !== '' && self::isLocalWebPath($posterLocal)) {
-                return self::fromLocalPath($posterLocal, $widths, $primary, $sizes);
-            }
-        }
-
-        return self::emptyDescriptor($primary, $sizes);
+        return self::emptyDescriptor($primary, $sizes, $role);
     }
 
     /**
      * @param list<int> $widths
      * @return array{src: string, srcset: string, sizes: string, width: int, height: int}
      */
-    public static function fromLocalPath(string $path, array $widths, int $primaryWidth, string $sizes): array
-    {
+    public static function fromLocalPath(
+        string $path,
+        array $widths,
+        int $primaryWidth,
+        string $sizes,
+        string $role = self::ROLE_POSTER
+    ): array {
         $path = self::normalizeWebPath($path);
         if ($path === '') {
-            return self::emptyDescriptor($primaryWidth, $sizes);
+            return self::emptyDescriptor($primaryWidth, $sizes, $role);
         }
 
         $variants = self::discoverVariants($path);
@@ -175,7 +141,7 @@ final class MediaImage
         }
 
         if ($entries === []) {
-            return self::emptyDescriptor($primaryWidth, $sizes);
+            return self::emptyDescriptor($primaryWidth, $sizes, $role);
         }
 
         $src = $entries[$primaryWidth] ?? $entries[max(array_keys($entries))];
@@ -185,7 +151,7 @@ final class MediaImage
             'srcset' => self::buildSrcset($entries),
             'sizes' => $sizes,
             'width' => $primaryWidth,
-            'height' => (int) round($primaryWidth * 1.5),
+            'height' => self::heightForRole($primaryWidth, $role),
         ];
     }
 
@@ -201,22 +167,28 @@ final class MediaImage
         string $role = self::ROLE_POSTER
     ): array {
         $canonical = self::canonicalTmdbUrl($url, $role);
-        $envSize = self::envSizeToken($role);
-        $src = self::tmdbSizedUrl($canonical, $envSize, $role);
+        if (!preg_match('#/t/p/(w\d+|original)/#', $canonical)) {
+            return [
+                'src' => $canonical,
+                'srcset' => '',
+                'sizes' => $sizes,
+                'width' => $primaryWidth,
+                'height' => self::heightForRole($primaryWidth, $role),
+            ];
+        }
+
+        $src = self::tmdbSizedUrl($canonical, 'w' . $primaryWidth, $role);
 
         $entries = [];
-        if ($envSize !== 'original') {
-            foreach ($widths as $width) {
-                $token = 'w' . $width;
-                $sized = self::tmdbSizedUrl($canonical, $token, $role);
-                if ($sized !== '' && $sized !== $src) {
-                    $entries[$width] = $sized;
-                }
+        foreach ($widths as $width) {
+            $sized = self::tmdbSizedUrl($canonical, 'w' . $width, $role);
+            if ($sized !== '') {
+                $entries[$width] = $sized;
             }
+        }
 
-            if (!isset($entries[$primaryWidth])) {
-                $entries[$primaryWidth] = $src;
-            }
+        if (!isset($entries[$primaryWidth]) && $src !== '') {
+            $entries[$primaryWidth] = $src;
         }
 
         ksort($entries);
@@ -226,7 +198,7 @@ final class MediaImage
             'srcset' => self::buildSrcset($entries),
             'sizes' => $sizes,
             'width' => $primaryWidth,
-            'height' => (int) round($primaryWidth * 1.5),
+            'height' => self::heightForRole($primaryWidth, $role),
         ];
     }
 
@@ -239,13 +211,13 @@ final class MediaImage
         $url = trim($url);
 
         if ($url === '') {
-            return self::emptyDescriptor((int) $preset['primary'], (string) $preset['sizes']);
+            return self::emptyDescriptor((int) $preset['primary'], (string) $preset['sizes'], (string) ($preset['role'] ?? self::ROLE_POSTER));
         }
 
         $role = (string) ($preset['role'] ?? self::ROLE_POSTER);
 
         if (self::isLocalWebPath($url)) {
-            return self::fromLocalPath($url, $preset['widths'], (int) $preset['primary'], (string) $preset['sizes']);
+            return self::fromLocalPath($url, $preset['widths'], (int) $preset['primary'], (string) $preset['sizes'], $role);
         }
 
         return self::fromRemoteUrl($url, $preset['widths'], (int) $preset['primary'], (string) $preset['sizes'], $role);
@@ -286,23 +258,14 @@ final class MediaImage
             return self::canonicalTmdbUrl($url, self::ROLE_POSTER);
         }
 
-        $legacy = trim((string) ($row['poster_image'] ?? ''));
-        if ($legacy !== '' && self::isRemoteUrl($legacy)) {
-            return self::canonicalTmdbUrl($legacy, self::ROLE_POSTER);
-        }
-
         return '';
     }
 
     public static function displayBackdropUrl(array $row): string
     {
-        $stored = trim((string) ($row['backdrop_image'] ?? ''));
+        $stored = trim((string) ($row['backdrop_url'] ?? ''));
         if ($stored === '') {
             return '';
-        }
-
-        if (self::isLocalWebPath($stored) && self::downloadsImagesEnabled()) {
-            return $stored;
         }
 
         if (self::isRemoteUrl($stored)) {
@@ -313,39 +276,27 @@ final class MediaImage
     }
 
     /**
-     * @param array{poster_url?: string, poster_image?: string, backdrop_image?: string} $fields
-     * @return array{poster_url: ?string, poster_image: ?string, backdrop_image: ?string}
+     * @param array{poster_url?: string, backdrop_url?: string} $fields
+     * @return array{poster_url: ?string, backdrop_url: ?string}
      */
     public static function normalizeStoredImages(array $fields): array
     {
         $posterUrl = trim((string) ($fields['poster_url'] ?? ''));
-        $posterImage = trim((string) ($fields['poster_image'] ?? ''));
-        $backdrop = trim((string) ($fields['backdrop_image'] ?? ''));
+        $backdrop = trim((string) ($fields['backdrop_url'] ?? ''));
 
         if ($posterUrl !== '') {
             $posterUrl = self::canonicalTmdbUrl($posterUrl, self::ROLE_POSTER)
                 ?: (string) (self::buildTmdbAssetUrl($posterUrl, self::ROLE_POSTER) ?? $posterUrl);
-        } elseif ($posterImage !== '' && self::isRemoteUrl($posterImage)) {
-            $posterUrl = self::canonicalTmdbUrl($posterImage, self::ROLE_POSTER);
         }
 
         if ($backdrop !== '') {
-            if (self::isLocalWebPath($backdrop) && self::downloadsImagesEnabled()) {
-                // keep local WebP path
-            } elseif (self::isRemoteUrl($backdrop) || !self::isLocalWebPath($backdrop)) {
-                $backdrop = self::canonicalTmdbUrl($backdrop, self::ROLE_BACKDROP)
-                    ?: (string) (self::buildTmdbAssetUrl($backdrop, self::ROLE_BACKDROP) ?? $backdrop);
-            }
-        }
-
-        if (!self::downloadsImagesEnabled()) {
-            $posterImage = self::isLocalWebPath($posterImage) ? null : null;
+            $backdrop = self::canonicalTmdbUrl($backdrop, self::ROLE_BACKDROP)
+                ?: (string) (self::buildTmdbAssetUrl($backdrop, self::ROLE_BACKDROP) ?? $backdrop);
         }
 
         return [
             'poster_url' => $posterUrl !== '' ? $posterUrl : null,
-            'poster_image' => $posterImage !== '' ? $posterImage : null,
-            'backdrop_image' => $backdrop !== '' ? $backdrop : null,
+            'backdrop_url' => $backdrop !== '' ? $backdrop : null,
         ];
     }
 
@@ -625,15 +576,27 @@ final class MediaImage
     /**
      * @return array{src: string, srcset: string, sizes: string, width: int, height: int}
      */
-    private static function emptyDescriptor(int $primaryWidth, string $sizes): array
-    {
+    private static function emptyDescriptor(
+        int $primaryWidth,
+        string $sizes,
+        string $role = self::ROLE_POSTER
+    ): array {
         return [
             'src' => '',
             'srcset' => '',
             'sizes' => $sizes,
             'width' => $primaryWidth,
-            'height' => (int) round($primaryWidth * 1.5),
+            'height' => self::heightForRole($primaryWidth, $role),
         ];
+    }
+
+    private static function heightForRole(int $width, string $role): int
+    {
+        if ($role === self::ROLE_BACKDROP) {
+            return (int) round($width * 9 / 16);
+        }
+
+        return (int) round($width * 1.5);
     }
 
     public static function downloadsImagesEnabled(): bool

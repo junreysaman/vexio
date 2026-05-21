@@ -1,5 +1,6 @@
 <?php
 use App\Support\MediaImage;
+use App\Support\LocaleDisplay;
 
 $showTitle = (string) ($show['title'] ?? 'TV Show');
 $posterMedia = MediaImage::posterFromRow($show, 'detail');
@@ -12,6 +13,7 @@ $genreNames = is_array($show['genre_names'] ?? null)
   ? array_filter(array_map('trim', $show['genre_names']))
   : array_filter(array_map('trim', explode(',', $genres)));
 $genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : [];
+$networkLinks = is_array($show['network_links'] ?? null) ? $show['network_links'] : [];
 $rating = $show['tmdb_rating'] ?? 'N/A';
 $votes = number_format((int) ($show['tmdb_vote_count'] ?? 0));
 $views = number_format((int) ($show['views'] ?? 0));
@@ -21,6 +23,8 @@ $premiered = ($releaseDate && $releaseDate !== 'N/A' && strtotime((string) $rele
   ? date('F j, Y', strtotime((string) $releaseDate))
   : (string) $releaseDate;
 $status = !empty($show['in_production']) ? 'Ongoing' : (($show['tmdb_status'] ?? '') ?: 'Published');
+$language = LocaleDisplay::languageName((string) ($show['original_language'] ?? ''));
+$country = LocaleDisplay::countryNames((string) (($show['country'] ?? '') ?: ($show['origin_country'] ?? '')));
 $seasonCount = (int) (($show['number_of_seasons'] ?? 0) ?: count($seasons ?? []));
 $episodeCount = (int) (($show['number_of_episodes'] ?? 0) ?: count($episodes ?? []));
 $runtime = (int) ($show['runtime_minutes'] ?? 0);
@@ -92,7 +96,29 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
       <div class="detail-card"><div class="detail-label">Episodes</div><div class="detail-val"><?= number_format($episodeCount) ?> Total</div></div>
       <div class="detail-card"><div class="detail-label">Premiered</div><div class="detail-val"><?= escape($premiered) ?></div></div>
       <div class="detail-card"><div class="detail-label">Status</div><div class="detail-val" style="color:var(--gold)"><?= escape($status) ?></div></div>
-      <div class="detail-card"><div class="detail-label">Language</div><div class="detail-val"><?= escape(strtoupper((string) ($show['original_language'] ?? 'N/A'))) ?></div></div>
+      <div class="detail-card"><div class="detail-label">Language</div><div class="detail-val"><?= escape($language) ?></div></div>
+      <div class="detail-card"><div class="detail-label">Country</div><div class="detail-val"><?= escape($country) ?></div></div>
+      <?php if ($networkLinks !== []): ?>
+        <div class="detail-card network-detail-card">
+          <div class="detail-label">Network</div>
+          <div class="network-list network-detail-list">
+            <?php foreach ($networkLinks as $network): ?>
+              <?php
+                $networkName = (string) ($network['name'] ?? 'Network');
+                $networkLogo = (string) ($network['logo_url'] ?? '');
+                $networkUrl = (string) ($network['url'] ?? '#');
+              ?>
+              <a class="network-chip" href="<?= escape($networkUrl) ?>" aria-label="<?= escape($networkName) ?>" title="<?= escape($networkName) ?>">
+                <?php if ($networkLogo !== ''): ?>
+                  <img src="<?= escape($networkLogo) ?>" alt="<?= escape($networkName) ?>" loading="lazy">
+                <?php else: ?>
+                  <span><?= escape($networkName) ?></span>
+                <?php endif; ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
       <div class="detail-card"><div class="detail-label">Views</div><div class="detail-val accent"><?= $views ?></div></div>
       <div class="detail-card"><div class="detail-label">Quality</div><div class="detail-val">4K &middot; HDR10</div></div>
       <div class="detail-card"><div class="detail-label">Votes</div><div class="detail-val"><?= $votes ?></div></div>
@@ -215,7 +241,7 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
             echo $this->includePartial('/frontend/partials/card', [
               'cardTitle'    => (string) ($item['title'] ?? 'Untitled'),
               'cardPosterMedia' => MediaImage::posterFromRow($item, 'card'),
-              'cardPoster'   => (string) (($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '')),
+              'cardPoster'   => (string) ($item['poster_url'] ?? ''),
               'cardWatchUrl' => (string) ($item['watchUrl'] ?? $item['watch_url'] ?? '#'),
               'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',
               'cardBadge'    => '',

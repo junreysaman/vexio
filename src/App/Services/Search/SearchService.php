@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Search;
 
+use App\Cache\CacheInterface;
 use App\Database\TmdbMetadataSchema;
 use App\Support\MediaImage;
 use App\Support\MediaUrl;
@@ -11,7 +12,10 @@ use Framework\Database;
 
 class SearchService
 {
-    public function __construct(private Database $db)
+    public function __construct(
+        private Database $db,
+        private CacheInterface $cache
+    )
     {
         TmdbMetadataSchema::ensure($db);
     }
@@ -28,6 +32,12 @@ class SearchService
         }
 
         $limit = max(1, min(12, $limit));
+        $cacheKey = 'search:live:v1:' . sha1(strtolower($query) . ':' . $limit);
+        $cached = $this->cache->get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $like = '%' . $query . '%';
 
         $items = $this->db->select(
@@ -38,9 +48,8 @@ class SearchService
                     media_items.tmdb_id,
                     media_items.original_title,
                     media_items.release_year,
-                    media_items.poster_image,
                     media_items.poster_url,
-                    media_items.backdrop_image,
+                    media_items.backdrop_url,
                     media_items.views,
                     media_items.tmdb_rating,
                     media_items.updated_at
@@ -72,7 +81,10 @@ class SearchService
             ]
         );
 
-        return array_values(array_filter(array_map([$this, 'resultPayload'], $items)));
+        $results = array_values(array_filter(array_map([$this, 'resultPayload'], $items)));
+        $this->cache->set($cacheKey, $results, max(15, min(300, (int) ($_ENV['SEARCH_CACHE_TTL'] ?? 60))));
+
+        return $results;
     }
 
     /**

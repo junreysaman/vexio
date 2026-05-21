@@ -82,6 +82,7 @@
     gap: 10px;
     flex: 1 1 520px;
     min-width: 300px;
+    flex-wrap: wrap;
 }
 
 .importer-filter input,
@@ -104,6 +105,40 @@
     outline: none;
     border-color: var(--paper-blue);
     box-shadow: 0 0 0 2px rgba(50, 119, 200, .1);
+}
+
+.importer-advanced-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap: 10px;
+    flex: 1 1 100%;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.importer-advanced-filters label {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.importer-advanced-filters span {
+    color: var(--paper-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.importer-advanced-filters input,
+.importer-advanced-filters select {
+    width: 100%;
+}
+
+.importer-advanced-filters .is-muted {
+    opacity: .55;
 }
 
 .importer-search {

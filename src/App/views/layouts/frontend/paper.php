@@ -18,6 +18,8 @@
     <meta name="twitter:title" content="<?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?>">
     <meta name="twitter:description" content="<?= escape($meta_description ?? 'Stream free movies, TV shows, and anime in one place. Discover the latest releases, trending series, and curated anime collections without signup or subscription.') ?>">
     <link rel="icon" href="/favicon.png" type="image/x-icon">
+    <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
+    <link rel="dns-prefetch" href="//image.tmdb.org">
     <title><?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?></title>
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/frontend/css/paper.css">

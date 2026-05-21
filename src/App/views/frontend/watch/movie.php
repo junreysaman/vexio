@@ -1,7 +1,13 @@
 <?= $this->start('content') ?>
 <?php
-$poster = ($item['poster_image'] ?? '') ?: ($item['poster_url'] ?? '');
-$backdrop = ($item['backdrop_image'] ?? '') ?: $poster;
+use App\Support\MediaImage;
+
+$poster = (string) ($item['poster_url'] ?? '');
+$backdrop = ($item['backdrop_url'] ?? '') ?: $poster;
+$posterMedia = MediaImage::fromString($poster, 'detail');
+$backdropMedia = MediaImage::fromString($backdrop, 'player');
+$poster = MediaImage::srcOnly($posterMedia);
+$backdrop = MediaImage::srcOnly($backdropMedia);
 $rating = $item['tmdb_rating'] ?? null;
 $genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : [];
 ?>
@@ -22,7 +28,7 @@ $genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : []
 
       <div class="watch-main-card">
         <div class="watch-info">
-          <div class="watch-poster"><?php if ($poster): ?><img src="<?= escape($poster) ?>" alt=""><?php endif; ?></div>
+          <div class="watch-poster"><?php if ($poster): ?><img src="<?= escape($poster) ?>" srcset="<?= escape($posterMedia['srcset'] ?? '') ?>" sizes="<?= escape($posterMedia['sizes'] ?? '') ?>" width="<?= (int) ($posterMedia['width'] ?? 0) ?>" height="<?= (int) ($posterMedia['height'] ?? 0) ?>" alt="<?= escape((string) ($item['title'] ?? 'Movie poster')) ?>" loading="eager" decoding="async"><?php endif; ?></div>
           <div>
             <div class="watch-kicker">Movie · TMDB #<?= (int) $item['tmdb_id'] ?></div>
             <h1 class="watch-heading"><?= escape($item['title']) ?></h1>
@@ -50,11 +56,12 @@ $genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : []
       <div class="related-list">
         <?php foreach (array_slice(($related ?? []), 0, 15) as $relatedItem): ?>
           <?php
-          $relatedPoster = ($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? '');
+          $relatedPosterMedia = MediaImage::fromString((string) ($relatedItem['poster_url'] ?? ''), 'thumb');
+          $relatedPoster = MediaImage::srcOnly($relatedPosterMedia);
           $relatedWatchUrl = (string) ($relatedItem['watchUrl'] ?? '#');
           ?>
           <a class="related-card" href="<?= escape($relatedWatchUrl !== '' ? $relatedWatchUrl : '#') ?>">
-            <span class="related-poster"><?php if ($relatedPoster): ?><img src="<?= escape($relatedPoster) ?>" alt=""><?php endif; ?></span>
+            <span class="related-poster"><?php if ($relatedPoster): ?><img src="<?= escape($relatedPoster) ?>" srcset="<?= escape($relatedPosterMedia['srcset'] ?? '') ?>" sizes="<?= escape($relatedPosterMedia['sizes'] ?? '') ?>" width="<?= (int) ($relatedPosterMedia['width'] ?? 0) ?>" height="<?= (int) ($relatedPosterMedia['height'] ?? 0) ?>" alt="<?= escape((string) ($relatedItem['title'] ?? 'Related poster')) ?>" loading="lazy" decoding="async"><?php endif; ?></span>
             <span><strong><?= escape($relatedItem['title']) ?></strong><span><?= escape((string) ($relatedItem['release_year'] ?: 'Movie')) ?> · ★ <?= escape((string) ($relatedItem['tmdb_rating'] ?? 'N/A')) ?></span></span>
           </a>
         <?php endforeach; ?>

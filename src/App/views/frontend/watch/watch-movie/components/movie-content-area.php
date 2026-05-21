@@ -1,5 +1,6 @@
 <?php
 use App\Support\MediaImage;
+use App\Support\LocaleDisplay;
 
 // Extract data from $item
 $posterMedia = MediaImage::posterFromRow($item, 'detail');
@@ -10,6 +11,7 @@ $genreNames = is_array($item['genre_names'] ?? null)
   ? array_filter(array_map('trim', $item['genre_names']))
   : array_filter(array_map('trim', explode(',', (string) $genres)));
 $genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : [];
+$networkLinks = is_array($item['network_links'] ?? null) ? $item['network_links'] : [];
 $year = $item['release_year'] ?? 'N/A';
 $rating = $item['tmdb_rating'] ?? 'N/A';
 $votes = number_format((int) ($item['tmdb_vote_count'] ?? 0));
@@ -21,8 +23,8 @@ if ($releaseDateRaw !== '') {
   $releaseTimestamp = strtotime((string) $releaseDateRaw);
   $releaseDate = $releaseTimestamp ? date('F j, Y', $releaseTimestamp) : (string) $releaseDateRaw;
 }
-$language = $item['original_language'] ?? 'EN';
-$country = $item['country'] ?? $item['origin_country'] ?? 'N/A';
+$language = LocaleDisplay::languageName((string) ($item['original_language'] ?? ''));
+$country = LocaleDisplay::countryNames((string) (($item['country'] ?? '') ?: ($item['origin_country'] ?? '')));
 $rated = $item['rated'] ?? 'PG-13';
 $synopsis = $item['synopsis'] ?? 'No synopsis available.';
 $tagline = $item['tagline'] ?? '';
@@ -113,7 +115,7 @@ $revenue = $item['revenue'] ?? null;
             </div>
             <div class="detail-card">
               <div class="detail-label">Language</div>
-              <div class="detail-val"><?= strtoupper(escape($language)) ?></div>
+              <div class="detail-val"><?= escape($language) ?></div>
             </div>
             <div class="detail-card">
               <div class="detail-label">Country</div>
@@ -132,6 +134,28 @@ $revenue = $item['revenue'] ?? null;
               <div class="detail-val" style="color:var(--green)"><?= $votes ?></div>
             </div>
           </div>
+
+          <?php if ($networkLinks !== []): ?>
+            <div class="network-box">
+              <div class="detail-label">Network</div>
+              <div class="network-list">
+                <?php foreach ($networkLinks as $network): ?>
+                  <?php
+                    $networkName = (string) ($network['name'] ?? 'Network');
+                    $networkLogo = (string) ($network['logo_url'] ?? '');
+                    $networkUrl = (string) ($network['url'] ?? '#');
+                  ?>
+                  <a class="network-chip" href="<?= escape($networkUrl) ?>" aria-label="<?= escape($networkName) ?>">
+                    <?php if ($networkLogo !== ''): ?>
+                      <img src="<?= escape($networkLogo) ?>" alt="<?= escape($networkName) ?>" loading="lazy">
+                    <?php else: ?>
+                      <span><?= escape($networkName) ?></span>
+                    <?php endif; ?>
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
 
           <!-- GENRES -->
           <div class="genres-row">
@@ -209,7 +233,7 @@ $revenue = $item['revenue'] ?? null;
                   echo $this->includePartial('/frontend/partials/card', [
                     'cardTitle'    => (string) ($relatedItem['title'] ?? 'Untitled'),
                     'cardPosterMedia' => MediaImage::posterFromRow($relatedItem, 'card'),
-                    'cardPoster'   => (string) (($relatedItem['poster_image'] ?? '') ?: ($relatedItem['poster_url'] ?? '')),
+                    'cardPoster'   => (string) ($relatedItem['poster_url'] ?? ''),
                     'cardWatchUrl' => (string) ($relatedItem['watchUrl'] ?? $relatedItem['watch_url'] ?? '#'),
                     'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',
                     'cardBadge'    => '',

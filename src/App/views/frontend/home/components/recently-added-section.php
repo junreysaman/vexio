@@ -1,4 +1,4 @@
-<section id="now-airing">
+<section id="recently-added">
   <div class="container">
     <div class="sec-head">
       <h2 class="sec-title">
@@ -7,11 +7,11 @@
         </div>
         Recently <span class="accent">Added</span>
       </h2>
-      <a href="#" class="see-all">All Titles <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <a href="/archive/browse" class="see-all">All Titles <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
     </div>
     <div class="hrow-wrap">
-      <button class="hrow-btn prev" onclick="scrollRow('airing-row',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <div class="hrow" id="airing-row">
+      <button class="hrow-btn prev" onclick="scrollRow('recently-row',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="hrow" id="recently-row">
       <?php if (!empty($recentlyAdded) && is_array($recentlyAdded)): ?>
         <?php foreach ($recentlyAdded as $item): ?>
           <?php
@@ -46,7 +46,7 @@
         ]); ?>
       <?php endif; ?>
       </div>
-      <button class="hrow-btn next" onclick="scrollRow('airing-row',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button class="hrow-btn next" onclick="scrollRow('recently-row',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>
   </div>
 </section>

@@ -1,11 +1,12 @@
 <?php
 $featuredGenres = !empty($featured_genres) && is_array($featured_genres) ? $featured_genres : [];
+$taxonomyPlural = (string) ($taxonomy_plural ?? 'Genres');
 ?>
 <?php if ($featuredGenres !== []): ?>
 <section class="genre-section" data-genre-section="featured">
   <div class="section-header">
     <div class="section-dot"></div>
-    <div class="section-title">Featured Genres</div>
+    <div class="section-title">Featured <?= escape($taxonomyPlural) ?></div>
     <div class="section-line"></div>
   </div>
   <div class="genre-grid-featured">
@@ -13,6 +14,7 @@ $featuredGenres = !empty($featured_genres) && is_array($featured_genres) ? $feat
       <?php
         $name = (string) ($genre['name'] ?? 'Unknown');
         $backdrop = (string) (($genre['backdrop'] ?? '') ?: ($genre['poster'] ?? ''));
+        $logoUrl = (string) ($genre['logo_url'] ?? '');
         $modelTitle = (string) ($genre['model_title'] ?? '');
         $badge = $index === 0 ? '#1 Most Content' : 'High Volume';
       ?>
@@ -23,7 +25,13 @@ $featuredGenres = !empty($featured_genres) && is_array($featured_genres) ? $feat
         <div class="gcl-gradient"></div>
         <div class="gcl-content">
           <div class="gcl-kicker"><?= escape($badge) ?></div>
-          <div class="gcl-name"><?= escape($name) ?></div>
+          <div class="gcl-name">
+            <?php if ($logoUrl !== ''): ?>
+              <img class="network-logo" src="<?= escape($logoUrl) ?>" alt="<?= escape($name) ?>" loading="lazy">
+            <?php else: ?>
+              <?= escape($name) ?>
+            <?php endif; ?>
+          </div>
           <div class="gcl-meta">
             <span class="count"><?= number_format((int) ($genre['total'] ?? 0)) ?></span> titles
             <?php if ($modelTitle !== ''): ?>

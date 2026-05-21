@@ -1,4 +1,4 @@
--- Vexio database schema.
+-- Vexio database schema
 -- Default login:
 --   username: admin
 --   email: admin@example.com
@@ -50,8 +50,6 @@ CREATE TABLE users (
 
 -- -------------------------------------------------------
 -- media_items  (movies and TV shows)
--- Removed unused columns: youtube_id, imagenes, homepage_url,
---   adult, spoken_languages, dt_featured_post, clgnrt
 -- -------------------------------------------------------
 CREATE TABLE media_items (
     id                  BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
@@ -62,8 +60,7 @@ CREATE TABLE media_items (
     type                ENUM('movie','tv_show') NOT NULL,
     synopsis            TEXT             DEFAULT NULL,
     poster_url          VARCHAR(500)     DEFAULT NULL,
-    poster_image        VARCHAR(500)     DEFAULT NULL,
-    backdrop_image      VARCHAR(500)     DEFAULT NULL,
+    backdrop_url        VARCHAR(500)     DEFAULT NULL,
     stream_link         VARCHAR(500)     DEFAULT NULL,
     rated               VARCHAR(40)      DEFAULT NULL,
     country             VARCHAR(120)     DEFAULT NULL,
@@ -96,9 +93,10 @@ CREATE TABLE media_items (
     PRIMARY KEY (id),
     UNIQUE KEY uq_media_items_tmdb (tmdb_type, tmdb_id),
     INDEX idx_media_items_slug          (slug),
-    INDEX idx_media_items_featured      (status, is_featured),
-    INDEX idx_media_items_status_views  (status, views),
-    INDEX idx_media_items_type          (type),
+    INDEX idx_media_items_featured      (status, is_featured, updated_at),
+    INDEX idx_media_items_status_views  (status, views, updated_at),
+    INDEX idx_media_items_type_status   (type, status, release_year),
+    INDEX idx_media_items_popular       (status, tmdb_rating, views),
     INDEX idx_media_items_imdb          (imdb_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -112,8 +110,7 @@ CREATE TABLE media_seasons (
     serie          VARCHAR(190)     DEFAULT NULL,
     synopsis       TEXT             DEFAULT NULL,
     poster_url     VARCHAR(500)     DEFAULT NULL,
-    poster_image   VARCHAR(500)     DEFAULT NULL,
-    backdrop_image VARCHAR(500)     DEFAULT NULL,
+    backdrop_url   VARCHAR(500)     DEFAULT NULL,
     tmdb_id        BIGINT UNSIGNED  DEFAULT NULL,
     tmdb_parent_id BIGINT UNSIGNED  DEFAULT NULL,
     tmdb_type      ENUM('tv_season') DEFAULT NULL,
@@ -128,6 +125,7 @@ CREATE TABLE media_seasons (
     UNIQUE KEY uq_media_seasons_parent_number (media_item_id, season_number),
     UNIQUE KEY uq_media_seasons_tmdb          (tmdb_type, tmdb_id),
     INDEX idx_media_seasons_parent (media_item_id),
+    INDEX idx_media_seasons_status (status, air_date),
     CONSTRAINT fk_media_seasons_media_item
         FOREIGN KEY (media_item_id) REFERENCES media_items(id)
         ON DELETE CASCADE
@@ -135,7 +133,6 @@ CREATE TABLE media_seasons (
 
 -- -------------------------------------------------------
 -- media_episodes
--- Removed unused column: imagenes
 -- -------------------------------------------------------
 CREATE TABLE media_episodes (
     id              BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
@@ -146,8 +143,7 @@ CREATE TABLE media_episodes (
     episode_name    VARCHAR(190)     DEFAULT NULL,
     synopsis        TEXT             DEFAULT NULL,
     poster_url      VARCHAR(500)     DEFAULT NULL,
-    poster_image    VARCHAR(500)     DEFAULT NULL,
-    backdrop_image  VARCHAR(500)     DEFAULT NULL,
+    backdrop_url    VARCHAR(500)     DEFAULT NULL,
     stream_link     VARCHAR(500)     DEFAULT NULL,
     tmdb_id         BIGINT UNSIGNED  DEFAULT NULL,
     tmdb_parent_id  BIGINT UNSIGNED  DEFAULT NULL,
@@ -158,14 +154,15 @@ CREATE TABLE media_episodes (
     air_date        DATE             DEFAULT NULL,
     views           BIGINT UNSIGNED  NOT NULL DEFAULT 0,
     status          ENUM('draft','published','archived','scheduled') NOT NULL DEFAULT 'draft',
-    created_at      DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_media_episodes_parent_number (media_item_id, season_number, episode_number),
     UNIQUE KEY uq_media_episodes_tmdb          (tmdb_type, tmdb_id),
     INDEX idx_media_episodes_parent       (media_item_id),
     INDEX idx_media_episodes_season       (media_season_id),
-    INDEX idx_media_episodes_status_views (status, views),
+    INDEX idx_media_episodes_status_views (status, views, updated_at),
+    INDEX idx_media_episodes_airing       (status, air_date),
     CONSTRAINT fk_media_episodes_media_item
         FOREIGN KEY (media_item_id) REFERENCES media_items(id)
         ON DELETE CASCADE,
@@ -175,9 +172,7 @@ CREATE TABLE media_episodes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------
--- content_meta  (only cast_profiles / crew_profiles used)
--- Added ON DELETE CASCADE via app-level delete (no FK possible
--- on polymorphic owner_id, handled in ContentService).
+-- content_meta
 -- -------------------------------------------------------
 CREATE TABLE content_meta (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -193,7 +188,7 @@ CREATE TABLE content_meta (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------
--- content_terms  (genres taxonomy)
+-- content_terms
 -- -------------------------------------------------------
 CREATE TABLE content_terms (
     id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -208,7 +203,7 @@ CREATE TABLE content_terms (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------
--- content_term_links  (polymorphic, app-level cascade)
+-- content_term_links
 -- -------------------------------------------------------
 CREATE TABLE content_term_links (
     owner_type ENUM('item','season','episode') NOT NULL,
@@ -246,7 +241,7 @@ CREATE TABLE media_comments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------
--- Seed data  (roles and default admin — do not remove)
+-- Seed data
 -- -------------------------------------------------------
 INSERT INTO roles (id, name, description) VALUES
     (1, 'superuser', 'Full administrative access'),

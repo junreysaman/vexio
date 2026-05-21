@@ -31,7 +31,7 @@ class HomeService
      */
     public function pageData(): array
     {
-        $cacheKey = 'home:pageData:v3';
+        $cacheKey = 'home:pageData:v9';
         $useCache = filter_var($_ENV['HOME_PAGE_CACHE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
         $ttl = (int) ($_ENV['HOME_PAGE_CACHE_TTL'] ?? 120);
         $ttl = max(15, min(3600, $ttl));
@@ -46,9 +46,12 @@ class HomeService
         $data = [
             'title' => 'Home',
             'featured' => $this->getFeatured(),
+            'siteStats' => $this->siteStats(),
             'trending' => $this->getTrending(),
             'recentlyAdded' => $this->recentlyAdded(),
+            'nowAiring' => $this->nowAiring(),
             'newEpisodes' => $this->newEpisodes(),
+            'releaseSchedule' => $this->releaseSchedule(),
             'topByTmdb' => $this->getTopByTmdb(),
             'genres' => $this->getAllGenre(),
         ];
@@ -58,6 +61,61 @@ class HomeService
         }
 
         return $data;
+    }
+
+    /**
+     * Returns compact catalogue totals for the homepage stats band.
+     *
+     * @return array<int, array{label: string, value: int, tone: string}>
+     */
+    public function siteStats(): array
+    {
+        $items = $this->db->selectOne(
+            'SELECT
+                SUM(CASE WHEN type = :movie THEN 1 ELSE 0 END) AS movies,
+                SUM(CASE WHEN type = :tv_show THEN 1 ELSE 0 END) AS shows
+             FROM media_items
+             WHERE status = :status',
+            [
+                'movie' => 'movie',
+                'tv_show' => 'tv_show',
+                'status' => 'published',
+            ]
+        ) ?: [];
+
+        $episodes = $this->db->selectOne(
+            'SELECT COUNT(media_episodes.id) AS total
+             FROM media_episodes
+             INNER JOIN media_items ON media_items.id = media_episodes.media_item_id
+             WHERE media_episodes.status = :episode_status
+             AND media_items.status = :item_status',
+            [
+                'episode_status' => 'published',
+                'item_status' => 'published',
+            ]
+        ) ?: [];
+
+        $genres = $this->db->selectOne(
+            'SELECT COUNT(DISTINCT content_terms.id) AS total
+             FROM content_terms
+             INNER JOIN content_term_links ON content_term_links.term_id = content_terms.id
+             INNER JOIN media_items ON media_items.id = content_term_links.owner_id
+             WHERE content_terms.taxonomy = :taxonomy
+             AND content_term_links.owner_type = :owner_type
+             AND media_items.status = :status',
+            [
+                'taxonomy' => 'genres',
+                'owner_type' => 'item',
+                'status' => 'published',
+            ]
+        ) ?: [];
+
+        return [
+            ['label' => 'Movies', 'value' => (int) ($items['movies'] ?? 0), 'tone' => 'accent'],
+            ['label' => 'TV Shows', 'value' => (int) ($items['shows'] ?? 0), 'tone' => 'cyan'],
+            ['label' => 'Episodes', 'value' => (int) ($episodes['total'] ?? 0), 'tone' => 'gold'],
+            ['label' => 'Genres', 'value' => (int) ($genres['total'] ?? 0), 'tone' => 'purple'],
+        ];
     }
 
     /**
@@ -72,7 +130,7 @@ class HomeService
              FROM media_items
              WHERE status = :status
              AND is_featured = 1
-             ORDER BY tmdb_rating DESC, tmdb_popularity DESC, views DESC, updated_at DESC, id DESC
+             ORDER BY release_date DESC, release_year DESC, tmdb_rating DESC, tmdb_popularity DESC, id DESC
              LIMIT 10',
             ['status' => 'published']
         );
@@ -158,11 +216,24 @@ class HomeService
     public function getAllGenre(): array
     {
         $genres = $this->db->select(
-            'SELECT id, name, slug
+            'SELECT
+                 content_terms.id,
+                 content_terms.name,
+                 content_terms.slug,
+                 COUNT(DISTINCT media_items.id) AS total
              FROM content_terms
-             WHERE taxonomy = :taxonomy
-             ORDER BY name ASC',
-            ['taxonomy' => 'genres']
+             LEFT JOIN content_term_links ON content_term_links.term_id = content_terms.id
+                 AND content_term_links.owner_type = :owner_type
+             LEFT JOIN media_items ON media_items.id = content_term_links.owner_id
+                 AND media_items.status = :status
+             WHERE content_terms.taxonomy = :taxonomy
+             GROUP BY content_terms.id, content_terms.name, content_terms.slug
+             ORDER BY content_terms.name ASC',
+            [
+                'owner_type' => 'item',
+                'status' => 'published',
+                'taxonomy' => 'genres',
+            ]
         );
 
         return array_map(function (array $genre): array {
@@ -174,7 +245,9 @@ class HomeService
 
             return [
                 'name' => $name,
+                'slug' => $slug,
                 'url' => $link['url'],
+                'total' => (int) ($genre['total'] ?? 0),
                 'image' => MediaImage::srcOnly($imageMedia),
                 'image_media' => $imageMedia,
             ];
@@ -200,7 +273,7 @@ class HomeService
         }
 
         $item = $this->db->selectOne(
-            'SELECT media_items.poster_image, media_items.backdrop_image, media_items.poster_url
+            'SELECT media_items.poster_url, media_items.backdrop_url
              FROM media_items
              INNER JOIN content_term_links ON media_items.id = content_term_links.owner_id
              INNER JOIN content_terms ON content_terms.id = content_term_links.term_id
@@ -255,6 +328,34 @@ class HomeService
     }
 
     /**
+     * Returns published TV shows ordered by their latest release date.
+     *
+     * @param int $limit Number of shows to return.
+     * @return array<int, array<string, mixed>>
+     */
+    public function nowAiring(int $limit = 25): array
+    {
+        $limit = max(1, min(50, $limit));
+
+        $items = $this->db->select(
+            'SELECT *
+             FROM media_items
+             WHERE status = :status
+             AND type = :type
+             ORDER BY release_date DESC, release_year DESC, updated_at DESC, id DESC
+             LIMIT ' . $limit,
+            [
+                'status' => 'published',
+                'type' => 'tv_show',
+            ]
+        );
+
+        return array_map(function (array $item): array {
+            return $this->recentlyAddedPayload($item);
+        }, $items);
+    }
+
+    /**
      * Returns the latest published TV episodes for the homepage.
      *
      * @param int $limit Number of episodes to return.
@@ -274,8 +375,7 @@ class HomeService
                 media_items.tmdb_id AS show_tmdb_id,
                 media_items.tmdb_rating AS show_tmdb_rating,
                 media_items.poster_url AS show_poster_url,
-                media_items.poster_image AS show_poster_image,
-                media_items.backdrop_image AS show_backdrop_image,
+                media_items.backdrop_url AS show_backdrop_url,
                 media_items.release_year AS show_release_year
              FROM media_episodes
              INNER JOIN media_items ON media_items.id = media_episodes.media_item_id
@@ -294,6 +394,55 @@ class HomeService
         return array_map(function (array $episode): array {
             return $this->episodePayload($episode);
         }, $episodes);
+    }
+
+    /**
+     * Returns scheduled or upcoming TV episodes grouped by their release day.
+     *
+     * @param int $limit Number of episodes to return per day.
+     * @return array<int, array<string, mixed>>
+     */
+    public function releaseSchedule(int $limit = 20): array
+    {
+        $limit = max(1, min(20, $limit));
+        $today = date('Y-m-d');
+        $items = [];
+
+        for ($offset = 0; $offset < 7; $offset++) {
+            $day = date('Y-m-d', strtotime('+' . $offset . ' days', strtotime($today) ?: time()));
+            $episodes = $this->db->select(
+                'SELECT
+                    media_episodes.*,
+                    media_items.id AS show_id,
+                    media_items.title AS show_title,
+                    media_items.slug AS show_slug,
+                    media_items.type AS show_type,
+                    media_items.tmdb_id AS show_tmdb_id,
+                    media_items.tmdb_rating AS show_tmdb_rating,
+                    media_items.poster_url AS show_poster_url,
+                    media_items.backdrop_url AS show_backdrop_url,
+                    media_items.release_year AS show_release_year
+                 FROM media_episodes
+                 INNER JOIN media_items ON media_items.id = media_episodes.media_item_id
+                 WHERE media_items.status = :item_status
+                 AND media_items.type = :type
+                 AND media_episodes.air_date = :air_date
+                 AND media_episodes.status IN (\'scheduled\', \'published\')
+                 ORDER BY media_episodes.season_number ASC, media_episodes.episode_number ASC, media_episodes.id ASC
+                 LIMIT ' . $limit,
+                [
+                    'item_status' => 'published',
+                    'type' => 'tv_show',
+                    'air_date' => $day,
+                ]
+            );
+
+            foreach ($episodes as $episode) {
+                $items[] = $this->schedulePayload($episode);
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -353,6 +502,7 @@ class HomeService
             'genre' => $this->genreLabel($genres),
             'genres' => $genres,
             'year' => (string) ($item['release_year'] ?: 'N/A'),
+            'release_date' => (string) ($item['release_date'] ?? ''),
             'score' => (string) ($item['tmdb_rating'] ?: 'N/A'),
             'poster' => MediaImage::srcOnly(MediaImage::posterFromRow($item, 'card')),
             'poster_media' => MediaImage::posterFromRow($item, 'card'),
@@ -383,8 +533,7 @@ class HomeService
 
         $imageRow = [
             'poster_url' => (string) (($episode['poster_url'] ?? '') ?: ($episode['show_poster_url'] ?? '')),
-            'poster_image' => (string) (($episode['poster_image'] ?? '') ?: ($episode['show_poster_image'] ?? '')),
-            'backdrop_image' => (string) (($episode['backdrop_image'] ?? '') ?: ($episode['show_backdrop_image'] ?? '')),
+            'backdrop_url' => (string) (($episode['backdrop_url'] ?? '') ?: ($episode['show_backdrop_url'] ?? '')),
         ];
 
         $watchUrl = MediaUrl::watchUrlForItem($show, $episode);
@@ -408,6 +557,32 @@ class HomeService
             'watchUrl' => $watchUrl,
             'watch_url' => $watchUrl,
         ];
+    }
+
+    /**
+     * Formats a TV episode for the homepage release schedule.
+     *
+     * @param array<string, mixed> $episode Raw joined episode/show row.
+     * @return array<string, mixed>
+     */
+    private function schedulePayload(array $episode): array
+    {
+        $payload = $this->episodePayload($episode);
+        $airDate = trim((string) ($payload['air_date'] ?? ''));
+        $timestamp = $airDate !== '' ? strtotime($airDate) : false;
+        $posterRow = [
+            'poster_url' => (string) (($episode['poster_url'] ?? '') ?: ($episode['show_poster_url'] ?? '')),
+            'backdrop_url' => (string) (($episode['backdrop_url'] ?? '') ?: ($episode['show_backdrop_url'] ?? '')),
+        ];
+
+        $payload['day'] = $timestamp ? date('D', $timestamp) : '';
+        $payload['date_label'] = $timestamp ? date('M j', $timestamp) : 'TBA';
+        $payload['time_label'] = $timestamp ? date('l', $timestamp) : 'Release day';
+        $payload['status'] = (string) ($episode['status'] ?? '');
+        $payload['poster'] = MediaImage::srcOnly(MediaImage::posterFromRow($posterRow, 'schedulePoster'));
+        $payload['poster_media'] = MediaImage::posterFromRow($posterRow, 'schedulePoster');
+
+        return $payload;
     }
 
     /**

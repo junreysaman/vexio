@@ -1164,8 +1164,7 @@ button.icon-action {
 .hierarchy-fields textarea,
 .hierarchy-fields input[name="stream_link"],
 .hierarchy-fields input[name="poster_url"],
-.hierarchy-fields input[name="poster_image"],
-.hierarchy-fields input[name="backdrop_image"] {
+.hierarchy-fields input[name="backdrop_url"] {
     grid-column: span 2;
 }
 
@@ -1241,8 +1240,7 @@ button.icon-action {
     .hierarchy-fields textarea,
     .hierarchy-fields input[name="stream_link"],
     .hierarchy-fields input[name="poster_url"],
-    .hierarchy-fields input[name="poster_image"],
-    .hierarchy-fields input[name="backdrop_image"] {
+    .hierarchy-fields input[name="backdrop_url"] {
         grid-column: auto;
     }
 

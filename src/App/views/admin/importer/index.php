@@ -17,6 +17,7 @@ $genreOptions = $genres ?? [];
 $languageOptions = $languageOptions ?? [];
 $countryOptions = $countryOptions ?? [];
 $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Live'];
+$filters = $filters ?? [];
 ?>
 
 <div class="importer-container">
@@ -69,6 +70,74 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                     <option value="<?= escape($value) ?>" <?= ($country ?? '') === $value ? 'selected' : '' ?>><?= escape($label) ?></option>
                 <?php endforeach; ?>
             </select>
+
+            <div class="importer-advanced-filters">
+                <label>
+                    <span>Adult</span>
+                    <select name="include_adult">
+                        <option value="0" <?= empty($filters['include_adult']) ? 'selected' : '' ?>>False</option>
+                        <option value="1" <?= !empty($filters['include_adult']) ? 'selected' : '' ?>>True</option>
+                    </select>
+                </label>
+                <label class="movie-only-control">
+                    <span>Video</span>
+                    <select name="include_video">
+                        <option value="0" <?= empty($filters['include_video']) ? 'selected' : '' ?>>False</option>
+                        <option value="1" <?= !empty($filters['include_video']) ? 'selected' : '' ?>>True</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Rating min</span>
+                    <input type="number" name="vote_average_gte" min="0" max="10" step="0.1" value="<?= escape((string) ($filters['vote_average_gte'] ?? '')) ?>">
+                </label>
+                <label>
+                    <span>Rating max</span>
+                    <input type="number" name="vote_average_lte" min="0" max="10" step="0.1" value="<?= escape((string) ($filters['vote_average_lte'] ?? '')) ?>">
+                </label>
+                <label>
+                    <span>Votes min</span>
+                    <input type="number" name="vote_count_gte" min="0" step="1" value="<?= escape((string) ($filters['vote_count_gte'] ?? '')) ?>">
+                </label>
+                <label>
+                    <span>Votes max</span>
+                    <input type="number" name="vote_count_lte" min="0" step="1" value="<?= escape((string) ($filters['vote_count_lte'] ?? '')) ?>">
+                </label>
+                <label>
+                    <span>Date from</span>
+                    <input type="date" name="date_gte" value="<?= escape((string) ($filters['date_gte'] ?? '')) ?>">
+                </label>
+                <label>
+                    <span>Date to</span>
+                    <input type="date" name="date_lte" value="<?= escape((string) ($filters['date_lte'] ?? '')) ?>">
+                </label>
+                <label class="movie-only-control">
+                    <span>Primary from</span>
+                    <input type="date" name="primary_date_gte" value="<?= escape((string) ($filters['primary_date_gte'] ?? '')) ?>">
+                </label>
+                <label class="movie-only-control">
+                    <span>Primary to</span>
+                    <input type="date" name="primary_date_lte" value="<?= escape((string) ($filters['primary_date_lte'] ?? '')) ?>">
+                </label>
+                <label>
+                    <span>Region</span>
+                    <input type="text" name="region" maxlength="2" value="<?= escape((string) ($filters['region'] ?? '')) ?>" placeholder="US">
+                </label>
+                <label>
+                    <span>Watch region</span>
+                    <input type="text" name="watch_region" maxlength="2" value="<?= escape((string) ($filters['watch_region'] ?? '')) ?>" placeholder="US">
+                </label>
+                <label>
+                    <span>Network</span>
+                    <select id="dbmvs-network" name="network" size="5" class="custom-select" style="max-height: 11rem; overflow-y: auto;">
+                        <option value="">All networks</option>
+                        <?php foreach ($networkOptions ?? [] as $networkOption): ?>
+                            <option value="<?= (int) $networkOption['id'] ?>" <?= (string) ($filters['network'] ?? '') === (string) ((int) $networkOption['id']) ? 'selected' : '' ?>>
+                                <?= escape((string) $networkOption['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
             
             <button type="submit" id="dbmvs-btn-filter" class="paper-btn primary">
                 <i class="icon-search"></i> Discover
@@ -161,7 +230,21 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         genre: <?= json_encode((string) ($genre ?? '')) ?>,
         language: <?= json_encode((string) ($language ?? '')) ?>,
         country: <?= json_encode((string) ($country ?? '')) ?>,
+        include_adult: <?= json_encode(!empty($filters['include_adult']) ? '1' : '0') ?>,
+        include_video: <?= json_encode(!empty($filters['include_video']) ? '1' : '0') ?>,
+        vote_average_gte: <?= json_encode((string) ($filters['vote_average_gte'] ?? '')) ?>,
+        vote_average_lte: <?= json_encode((string) ($filters['vote_average_lte'] ?? '')) ?>,
+        vote_count_gte: <?= json_encode((string) ($filters['vote_count_gte'] ?? '')) ?>,
+        vote_count_lte: <?= json_encode((string) ($filters['vote_count_lte'] ?? '')) ?>,
+        date_gte: <?= json_encode((string) ($filters['date_gte'] ?? '')) ?>,
+        date_lte: <?= json_encode((string) ($filters['date_lte'] ?? '')) ?>,
+        primary_date_gte: <?= json_encode((string) ($filters['primary_date_gte'] ?? '')) ?>,
+        primary_date_lte: <?= json_encode((string) ($filters['primary_date_lte'] ?? '')) ?>,
+        region: <?= json_encode((string) ($filters['region'] ?? '')) ?>,
+        watch_region: <?= json_encode((string) ($filters['watch_region'] ?? '')) ?>,
+        network: <?= json_encode((string) ($filters['network'] ?? '')) ?>,
         totalPages: 1,
+        nextPage: null,
         token: <?= json_encode((string) ($_csrfToken ?? '')) ?>,
     };
     const genresByTab = <?= json_encode($genresByTab ?? ['movies' => [], 'tv' => []]) ?>;
@@ -198,7 +281,58 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         genre: state.genre,
         language: state.language,
         country: state.country,
+        include_adult: state.include_adult,
+        include_video: state.include_video,
+        vote_average_gte: state.vote_average_gte,
+        vote_average_lte: state.vote_average_lte,
+        vote_count_gte: state.vote_count_gte,
+        vote_count_lte: state.vote_count_lte,
+        date_gte: state.date_gte,
+        date_lte: state.date_lte,
+        primary_date_gte: state.primary_date_gte,
+        primary_date_lte: state.primary_date_lte,
+        region: state.region,
+        watch_region: state.watch_region,
+        network: state.network,
     });
+
+    const filterKeys = [
+        'include_adult',
+        'include_video',
+        'vote_average_gte',
+        'vote_average_lte',
+        'vote_count_gte',
+        'vote_count_lte',
+        'date_gte',
+        'date_lte',
+        'primary_date_gte',
+        'primary_date_lte',
+        'region',
+        'watch_region',
+        'network',
+    ];
+
+    const syncStateFromFilterForm = () => {
+        state.year = form.year.value.trim();
+        state.sort = form.sort.value;
+        state.genre = form.genre.value;
+        state.language = form.language.value;
+        state.country = form.country.value;
+        filterKeys.forEach((key) => {
+            const field = form.elements[key];
+            state[key] = field ? String(field.value || '').trim() : '';
+        });
+    };
+
+    const renderFilterHiddenInputs = () => filterKeys.map((key) => (
+        `<input type="hidden" name="${esc(key)}" value="${esc(state[key] || '')}">`
+    )).join('');
+
+    const syncMovieOnlyControls = () => {
+        document.querySelectorAll('.movie-only-control').forEach((field) => {
+            field.classList.toggle('is-muted', state.tab !== 'movies');
+        });
+    };
 
     const skeletonGrid = () => {
         const count = 12;
@@ -216,7 +350,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         }
         form.querySelectorAll('button, input, select').forEach((field) => field.disabled = busy);
         prev.disabled = busy || state.page <= 1;
-        next.disabled = busy || state.page >= state.totalPages;
+        next.disabled = busy || !state.nextPage;
         importVisible.disabled = busy || !grid.querySelector('[data-import-form]');
     };
 
@@ -225,10 +359,13 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         const visible = Number(data.meta?.visible_results ?? 0).toLocaleString();
         state.totalPages = Number(data.meta?.total_pages ?? 1);
         state.page = Number(data.meta?.page ?? state.page);
-        meta.innerHTML = `<span>${visible} visible from ${total} TMDB results</span><span>Page ${state.page.toLocaleString()} of ${state.totalPages.toLocaleString()}</span>`;
+        state.nextPage = data.meta?.next_page ? Number(data.meta.next_page) : null;
+        const scanned = Number(data.meta?.scanned_pages ?? 1);
+        const scanLabel = scanned > 1 ? ` · scanned ${scanned} pages` : '';
+        meta.innerHTML = `<span>${visible} visible from ${total} TMDB results${scanLabel}</span><span>Page ${state.page.toLocaleString()} of ${state.totalPages.toLocaleString()}</span>`;
         document.getElementById('dbmvs-page-display').textContent = `Page ${state.page}`;
         prev.disabled = state.page <= 1;
-        next.disabled = state.page >= state.totalPages;
+        next.disabled = !state.nextPage;
     };
 
     const renderGenres = () => {
@@ -277,12 +414,13 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                 </div>
                 <div class="import-card-body">
                     <strong title="${esc(item.title)}">${esc(item.title)}</strong>
-                    <span>${esc(item.year)} &middot; ${esc(item.language || 'N/A')}</span>
+                    <span>${esc(item.year)} &middot; ${esc(item.language || 'N/A')} &middot; ${Number(item.vote_count || 0).toLocaleString()} votes</span>
                 </div>
                 <form class="import-action" data-import-form>
                     <input type="hidden" name="token" value="${esc(state.token)}">
                     <input type="hidden" name="tab" value="${esc(state.tab)}">
                     <input type="hidden" name="tmdb_id" value="${item.id}">
+                    ${renderFilterHiddenInputs()}
                     <label class="import-featured-toggle">
                         <input type="checkbox" name="featured" value="1">
                         <span>Featured</span>
@@ -306,11 +444,18 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
         // Sync the hidden token field with the latest known token before sending.
         const tokenField = importForm.querySelector('[name="token"]');
         if (tokenField) tokenField.value = state.token;
+        const payload = new FormData(importForm);
+        const featuredField = importForm.querySelector('[name="featured"]');
+        if (featuredField?.checked) {
+            payload.set('featured', '1');
+        } else {
+            payload.delete('featured');
+        }
 
         return fetch('/admin/importer/import', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
-            body: new URLSearchParams(new FormData(importForm)),
+            body: new URLSearchParams(payload),
         })
         .then((response) => response.json().then((data) => ({ response, data })))
         .then(({ response, data }) => {
@@ -489,12 +634,9 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         state.page = 1;
+        state.nextPage = null;
         state.q = form.q.value.trim();
-        state.year = form.year.value.trim();
-        state.sort = form.sort.value;
-        state.genre = form.genre.value;
-        state.language = form.language.value;
-        state.country = form.country.value;
+        syncStateFromFilterForm();
         searchForm.q.value = '';
         state.q = '';
         load();
@@ -503,12 +645,9 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     searchForm.addEventListener('submit', (event) => {
         event.preventDefault();
         state.page = 1;
+        state.nextPage = null;
         state.q = searchForm.q.value.trim();
-        state.year = form.year.value.trim();
-        state.sort = form.sort.value;
-        state.genre = form.genre.value;
-        state.language = form.language.value;
-        state.country = form.country.value;
+        syncStateFromFilterForm();
         form.q.value = state.q;
         load();
     });
@@ -519,6 +658,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
             if (newTab && newTab !== state.tab) {
                 state.tab = newTab;
                 state.page = 1;
+                state.nextPage = null;
                 state.genre = '';
                 state.language = '';
                 state.country = '';
@@ -526,6 +666,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
                 searchForm.tab.value = state.tab;
                 form.language.value = '';
                 form.country.value = '';
+                syncMovieOnlyControls();
                 renderGenres();
                 document.querySelectorAll('.importer-tab').forEach((link) => {
                     link.classList.toggle('active', link === tab);
@@ -544,8 +685,8 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     });
 
     next.addEventListener('click', () => {
-        if (state.page < state.totalPages) {
-            state.page += 1;
+        if (state.nextPage) {
+            state.page = state.nextPage;
             load();
         }
     });
@@ -563,6 +704,7 @@ $stats = $importerStats ?? ['credits' => 'TMDB', 'used' => 0, 'requests' => 'Liv
     });
 
     renderGenres();
+    syncMovieOnlyControls();
     load();
 })();
 </script>

@@ -134,8 +134,7 @@ class WatchService
                     'synopsis' => $show['synopsis'] ?? '',
                     'season_number' => 1,
                     'episode_number' => 1,
-                    'backdrop_image' => $show['backdrop_image'] ?? null,
-                    'poster_image' => $show['poster_image'] ?? null,
+                    'backdrop_url' => $show['backdrop_url'] ?? null,
                     'poster_url' => $show['poster_url'] ?? null,
                     'watch_url' => MediaUrl::watchUrlForItem($show),
                     'watchUrl' => MediaUrl::watchUrlForItem($show),
@@ -200,6 +199,8 @@ class WatchService
         $watchUrl = MediaUrl::watchUrlForItem($item);
         $genreLinks = $this->genreLinks((int) ($item['id'] ?? 0));
         $genreNames = array_map(static fn(array $genre): string => $genre['name'], $genreLinks);
+        $networkLinks = $this->networkLinks((int) ($item['id'] ?? 0));
+        $networkNames = array_map(static fn(array $network): string => $network['name'], $networkLinks);
 
         $embedServers = $this->movieEmbedServers($item);
         $embedUrl = $embedServers[0]['url'] ?? null;
@@ -210,6 +211,9 @@ class WatchService
             'genres' => implode(', ', $genreNames),
             'genre_names' => $genreNames,
             'genre_links' => $genreLinks,
+            'networks' => implode(', ', $networkNames),
+            'network_names' => $networkNames,
+            'network_links' => $networkLinks,
             'embed_servers' => $embedServers,
             'embedServers' => $embedServers,
             'embed_url' => $embedUrl,
@@ -259,6 +263,98 @@ class WatchService
         }
 
         return $links;
+    }
+
+    /**
+     * @return array<int, array{name: string, slug: string, url: string, logo_url: string}>
+     */
+    private function networkLinks(int $itemId): array
+    {
+        if ($itemId < 1) {
+            return [];
+        }
+
+        $profiles = $this->networkProfiles($itemId);
+        $rows = $this->db->select(
+            "SELECT content_terms.name, content_terms.slug
+             FROM content_term_links
+             INNER JOIN content_terms ON content_terms.id = content_term_links.term_id
+             WHERE content_term_links.owner_type = :owner_type
+             AND content_term_links.owner_id = :owner_id
+             AND content_terms.taxonomy = :taxonomy
+             ORDER BY content_terms.name ASC",
+            [
+                'owner_type' => 'item',
+                'owner_id' => $itemId,
+                'taxonomy' => 'networks',
+            ]
+        );
+
+        $links = [];
+        foreach ($rows as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+            $slug = trim((string) ($row['slug'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $slug = $slug !== '' ? $slug : MediaUrl::slugify($name);
+            $profile = $profiles[$slug] ?? [];
+            $links[] = [
+                'name' => $name,
+                'slug' => $slug,
+                'url' => '/network/' . rawurlencode($slug),
+                'logo_url' => (string) ($profile['logo_url'] ?? ''),
+            ];
+        }
+
+        return $links;
+    }
+
+    /**
+     * @return array<string, array{name: string, slug: string, logo_url: string}>
+     */
+    private function networkProfiles(int $itemId): array
+    {
+        $row = $this->db->selectOne(
+            "SELECT meta_value
+             FROM content_meta
+             WHERE owner_type = :owner_type
+             AND owner_id = :owner_id
+             AND meta_key = :meta_key
+             LIMIT 1",
+            [
+                'owner_type' => 'item',
+                'owner_id' => $itemId,
+                'meta_key' => 'network_profiles',
+            ]
+        );
+
+        $decoded = json_decode((string) ($row['meta_value'] ?? ''), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $profiles = [];
+        foreach ($decoded as $profile) {
+            if (!is_array($profile)) {
+                continue;
+            }
+
+            $slug = trim((string) ($profile['slug'] ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+
+            $profiles[$slug] = [
+                'name' => (string) ($profile['name'] ?? ''),
+                'slug' => $slug,
+                'logo_url' => (string) ($profile['logo_url'] ?? ''),
+            ];
+        }
+
+        return $profiles;
     }
 
     private function withEpisodeWatchUrl(array $show, array $episode): array

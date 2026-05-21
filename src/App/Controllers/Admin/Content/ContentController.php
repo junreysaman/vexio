@@ -213,8 +213,8 @@ class ContentController
 
         if ($season) {
             $this->content->deleteSeason($contentId, (int) $seasonId);
-            $this->deleteLocalAsset($season['poster_image'] ?? null);
-            $this->deleteLocalAsset($season['backdrop_image'] ?? null);
+            $this->deleteLocalAsset($season['poster_url'] ?? null);
+            $this->deleteLocalAsset($season['backdrop_url'] ?? null);
             setFlash('content', 'Season deleted. Episodes from that season were kept for review.', 'success');
         } else {
             setFlash('content', 'Season could not be found for this title.', 'danger');
@@ -333,8 +333,8 @@ class ContentController
 
         if ($episode) {
             $this->content->deleteEpisode($contentId, (int) $episodeId);
-            $this->deleteLocalAsset($episode['poster_image'] ?? null);
-            $this->deleteLocalAsset($episode['backdrop_image'] ?? null);
+            $this->deleteLocalAsset($episode['poster_url'] ?? null);
+            $this->deleteLocalAsset($episode['backdrop_url'] ?? null);
             setFlash('content', 'Episode deleted.', 'success');
         } else {
             setFlash('content', 'Episode could not be found for this title.', 'danger');
@@ -366,8 +366,7 @@ class ContentController
             'type' => (string) $request->post('type', ''),
             'synopsis' => trim((string) $request->post('synopsis', '')),
             'poster_url' => trim((string) $request->post('poster_url', '')),
-            'poster_image' => trim((string) $request->post('poster_image', '')),
-            'backdrop_image' => trim((string) $request->post('backdrop_image', '')),
+            'backdrop_url' => trim((string) $request->post('backdrop_url', '')),
             'stream_link' => trim((string) $request->post('stream_link', '')),
             'release_year' => trim((string) $request->post('release_year', '')),
             'is_featured' => (int) $request->post('is_featured', 0),
@@ -385,8 +384,7 @@ class ContentController
             'title' => trim((string) $request->post('title', '')),
             'synopsis' => trim((string) $request->post('synopsis', '')),
             'poster_url' => trim((string) $request->post('poster_url', '')),
-            'poster_image' => trim((string) $request->post('poster_image', '')),
-            'backdrop_image' => trim((string) $request->post('backdrop_image', '')),
+            'backdrop_url' => trim((string) $request->post('backdrop_url', '')),
             'season_number' => (int) $request->post('season_number', 1),
             'release_year' => trim((string) $request->post('release_year', '')),
             'status' => (string) $request->post('status', 'draft'),
@@ -399,8 +397,7 @@ class ContentController
             'title' => trim((string) $request->post('title', '')),
             'synopsis' => trim((string) $request->post('synopsis', '')),
             'poster_url' => trim((string) $request->post('poster_url', '')),
-            'poster_image' => trim((string) $request->post('poster_image', '')),
-            'backdrop_image' => trim((string) $request->post('backdrop_image', '')),
+            'backdrop_url' => trim((string) $request->post('backdrop_url', '')),
             'stream_link' => trim((string) $request->post('stream_link', '')),
             'episode_name' => trim((string) $request->post('episode_name', '')),
             'season_number' => (int) $request->post('season_number', 1),
@@ -470,16 +467,16 @@ class ContentController
     }
 
     /**
-     * Removes local poster and backdrop files for a deleted title, its seasons, and its episodes.
+     * Cleans up legacy local image files if older rows still point at /uploads paths.
      */
     private function deleteContentAssets(array $item, array $hierarchy): void
     {
-        $this->deleteLocalAsset($item['poster_image'] ?? null);
-        $this->deleteLocalAsset($item['backdrop_image'] ?? null);
+        $this->deleteLocalAsset($item['poster_url'] ?? null);
+        $this->deleteLocalAsset($item['backdrop_url'] ?? null);
 
         foreach ([...($hierarchy['seasons'] ?? []), ...($hierarchy['episodes'] ?? [])] as $row) {
-            $this->deleteLocalAsset($row['poster_image'] ?? null);
-            $this->deleteLocalAsset($row['backdrop_image'] ?? null);
+            $this->deleteLocalAsset($row['poster_url'] ?? null);
+            $this->deleteLocalAsset($row['backdrop_url'] ?? null);
         }
     }
 

@@ -123,8 +123,7 @@ class ContentService
             'type' => (string) $data['type'],
             'synopsis' => trim((string) $data['synopsis']),
             'poster_url' => $images['poster_url'],
-            'poster_image' => $images['poster_image'],
-            'backdrop_image' => $images['backdrop_image'],
+            'backdrop_url' => $images['backdrop_url'],
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'release_year' => $this->nullableInt($data['release_year'] ?? null),
             'is_featured' => !empty($data['is_featured']) ? 1 : 0,
@@ -290,8 +289,7 @@ class ContentService
             'title' => trim((string) $data['title']),
             'synopsis' => trim((string) ($data['synopsis'] ?? '')),
             'poster_url' => $images['poster_url'],
-            'poster_image' => $images['poster_image'],
-            'backdrop_image' => $images['backdrop_image'],
+            'backdrop_url' => $images['backdrop_url'],
             'season_number' => max(1, (int) ($data['season_number'] ?? 1)),
             'release_year' => $this->nullableInt($data['release_year'] ?? null),
             'status' => (string) $data['status'],
@@ -309,8 +307,7 @@ class ContentService
             'title' => trim((string) $data['title']),
             'synopsis' => trim((string) ($data['synopsis'] ?? '')),
             'poster_url' => $images['poster_url'],
-            'poster_image' => $images['poster_image'],
-            'backdrop_image' => $images['backdrop_image'],
+            'backdrop_url' => $images['backdrop_url'],
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'season_number' => max(1, (int) ($data['season_number'] ?? 1)),
             'episode_number' => max(1, (int) ($data['episode_number'] ?? 1)),
@@ -343,8 +340,7 @@ class ContentService
             'episode_name' => trim((string) $data['episode_name']) ?: trim((string) $data['title']),
             'synopsis' => trim((string) ($data['synopsis'] ?? '')),
             'poster_url' => $images['poster_url'],
-            'poster_image' => $images['poster_image'],
-            'backdrop_image' => $images['backdrop_image'],
+            'backdrop_url' => $images['backdrop_url'],
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'season_number' => $seasonNumber,
             'episode_number' => $episodeNumber,
@@ -499,14 +495,13 @@ class ContentService
     }
 
     /**
-     * @return array{poster_url: ?string, poster_image: ?string, backdrop_image: ?string}
+     * @return array{poster_url: ?string, backdrop_url: ?string}
      */
     private function normalizedImageFields(array $data): array
     {
         return MediaImage::normalizeStoredImages([
             'poster_url' => $data['poster_url'] ?? null,
-            'poster_image' => $data['poster_image'] ?? null,
-            'backdrop_image' => $data['backdrop_image'] ?? null,
+            'backdrop_url' => $data['backdrop_url'] ?? null,
         ]);
     }
 

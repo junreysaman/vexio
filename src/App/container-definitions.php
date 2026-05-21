@@ -79,8 +79,8 @@ return [
     BrowseController::class => fn($container) => $container->resolve(BrowseController::class),
     GenrePageController::class => fn($container) => $container->resolve(GenrePageController::class),
     TrendingPageController::class => fn($container) => $container->resolve(TrendingPageController::class),
-    BrowseService::class => fn($container) => new BrowseService(fn() => $container->get(Database::class)),
-    GenrePageService::class => fn($container) => new GenrePageService(fn() => $container->get(Database::class)),
-    TrendingPageService::class => fn($container) => new TrendingPageService(fn() => $container->get(Database::class)),
+    BrowseService::class => fn($container) => new BrowseService(fn() => $container->get(Database::class), $container->get(CacheInterface::class)),
+    GenrePageService::class => fn($container) => new GenrePageService(fn() => $container->get(Database::class), $container->get(CacheInterface::class)),
+    TrendingPageService::class => fn($container) => new TrendingPageService(fn() => $container->get(Database::class), $container->get(CacheInterface::class)),
     PublicSeoController::class => fn($container) => $container->resolve(PublicSeoController::class),
 ];

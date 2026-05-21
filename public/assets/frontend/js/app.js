@@ -108,9 +108,13 @@ function initScheduleTabs() {
     document.querySelectorAll('.day-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const day = tab.dataset.day;
-            document.querySelectorAll('.day-tab').forEach(item => item.classList.toggle('active', item === tab));
-            document.querySelectorAll('#schedGrid .sched-card').forEach(card => {
-                card.hidden = card.dataset.day !== day;
+            document.querySelectorAll('.day-tab').forEach(item => {
+                const active = item === tab;
+                item.classList.toggle('active', active);
+                item.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('#schedGrid .sched-day-panel').forEach(panel => {
+                panel.hidden = panel.dataset.dayPanel !== day;
             });
         });
     });

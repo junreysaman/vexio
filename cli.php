@@ -14,6 +14,7 @@ try {
     match ($command) {
         'install' => installDatabase($root),
         'publish-scheduled' => publishScheduledEpisodes($root),
+        'sync-networks' => syncNetworks($root, $arguments),
         'hydrate-images' => hydrateImages($root, $arguments),
         'regenerate-image-variants' => regenerateImageVariants($root, $arguments),
         'create-controller' => createController($root, $arguments),
@@ -35,10 +36,11 @@ function showHelp(): void
     echo "Usage:\n";
     echo "  php cli.php install                                      Create the database and import database.sql\n";
     echo "  php cli.php publish-scheduled                            Publish scheduled/draft episodes whose air date has passed\n";
+    echo "  php cli.php sync-networks [--limit=50] [--loop]           Backfill TV network taxonomy links from existing TMDB IDs\n";
     echo "  php cli.php hydrate-images [--scope=all] [--limit=50] [--loop]\n";
-    echo "      Backfill missing local WebP poster/backdrop variants from TMDB URLs\n";
+    echo "      Backfill missing remote TMDB poster/backdrop URLs\n";
     echo "  php cli.php regenerate-image-variants [--scope=all] [--limit=50] [--loop]\n";
-    echo "      Regenerate width variants for existing local poster/backdrop files\n";
+    echo "      Deprecated: local image variants are no longer stored\n";
     echo "  php cli.php create-controller --UserController           Create and register UserController/UserController.php\n";
     echo "  php cli.php create-controller --UserController --ProfileController\n";
     echo "      Create and register UserController/ProfileController.php\n";
@@ -2259,6 +2261,32 @@ function hydrateImages(string $root, array $arguments): void
             (int) ($result['failed'] ?? 0)
         );
     } while ($options['loop'] && (int) ($result['hydrated'] ?? 0) > 0 && $iterations < $options['max_iterations']);
+}
+
+function syncNetworks(string $root, array $arguments): void
+{
+    require_once $root . '/src/App/functions.php';
+
+    $options = cliImageCommandOptions($arguments);
+    $db = cliDatabase($root);
+    $importer = new App\Services\TMDB\TmdbImporterService($db);
+
+    $iterations = 0;
+    do {
+        $iterations++;
+        $result = $importer->syncNetworksForExistingItems($options['limit']);
+        echo sprintf(
+            "Network sync batch %d: scanned=%d synced=%d failed=%d\n",
+            $iterations,
+            (int) ($result['scanned'] ?? 0),
+            (int) ($result['synced'] ?? 0),
+            (int) ($result['failed'] ?? 0)
+        );
+
+        foreach (($result['errors'] ?? []) as $error) {
+            echo "  - {$error}\n";
+        }
+    } while ($options['loop'] && (int) ($result['scanned'] ?? 0) > 0 && $iterations < $options['max_iterations']);
 }
 
 function regenerateImageVariants(string $root, array $arguments): void

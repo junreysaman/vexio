@@ -38,16 +38,21 @@ $totalItems = (int) ($total_items ?? count($items));
         $rating     = $item['tmdb_rating'] ?? null;
         $views      = (int) ($item['views'] ?? 0);
         $created    = (string) ($item['created_at'] ?? '');
+        $releaseDate = (string) ($item['release_date'] ?? '');
         $isFeatured = !empty($item['is_featured']);
         $genres     = !empty($item['genres']) && is_array($item['genres']) ? $item['genres'] : [];
         $genreSlugs = array_map(fn(array $g): string => basename((string) ($g['url'] ?? '')), $genres);
+        $countries  = !empty($item['countries']) && is_array($item['countries']) ? $item['countries'] : [];
+        $countrySlugs = array_map(fn(array $country): string => (string) ($country['slug'] ?? ''), $countries);
 
         $dataAttrs = 'data-title="' . escape(strtolower((string) ($item['title'] ?? ''))) . '"'
           . ' data-type="' . escape($type) . '"'
           . ' data-genres="' . escape(implode(',', $genreSlugs)) . '"'
+          . ' data-countries="' . escape(implode(',', array_filter($countrySlugs))) . '"'
           . ' data-year="' . escape($year) . '"'
           . ' data-rating="' . escape((string) ($rating ?? 0)) . '"'
           . ' data-views="' . escape((string) $views) . '"'
+          . ' data-release-date="' . escape($releaseDate) . '"'
           . ' data-created="' . escape($created) . '"';
 
         echo $this->includePartial('/frontend/partials/card', [

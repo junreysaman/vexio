@@ -7,7 +7,7 @@
         </div>
         New <span class="accent">Episodes</span>
       </h2>
-      <a href="/archive/browse" class="see-all">Browse Shows <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      <!-- <a href="/archive/browse" class="see-all">Browse Shows <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a> -->
     </div>
     <div class="hrow-wrap">
       <button class="hrow-btn prev" onclick="scrollRow('episodes-row',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>

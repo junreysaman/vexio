@@ -1,7 +1,13 @@
 <?= $this->start('content') ?>
 <?php
-$poster = ($show['poster_image'] ?? '') ?: ($show['poster_url'] ?? '');
-$backdrop = ($episode['backdrop_image'] ?? '') ?: (($show['backdrop_image'] ?? '') ?: $poster);
+use App\Support\MediaImage;
+
+$poster = (string) ($show['poster_url'] ?? '');
+$backdrop = ($episode['backdrop_url'] ?? '') ?: ($show['backdrop_url'] ?? '') ?: $poster;
+$posterMedia = MediaImage::fromString($poster, 'detail');
+$backdropMedia = MediaImage::fromString($backdrop, 'player');
+$poster = MediaImage::srcOnly($posterMedia);
+$backdrop = MediaImage::srcOnly($backdropMedia);
 $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
 $genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : [];
@@ -23,7 +29,7 @@ $genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : []
 
       <div class="watch-main-card">
         <div class="watch-info">
-          <div class="watch-poster"><?php if ($poster): ?><img src="<?= escape($poster) ?>" alt=""><?php endif; ?></div>
+          <div class="watch-poster"><?php if ($poster): ?><img src="<?= escape($poster) ?>" srcset="<?= escape($posterMedia['srcset'] ?? '') ?>" sizes="<?= escape($posterMedia['sizes'] ?? '') ?>" width="<?= (int) ($posterMedia['width'] ?? 0) ?>" height="<?= (int) ($posterMedia['height'] ?? 0) ?>" alt="<?= escape((string) ($show['title'] ?? 'TV show poster')) ?>" loading="eager" decoding="async"><?php endif; ?></div>
           <div>
             <div class="watch-kicker">TV Show · TMDB #<?= (int) $show['tmdb_id'] ?></div>
             <h1 class="watch-heading"><?= escape($show['title']) ?></h1>
@@ -55,10 +61,11 @@ $genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : []
           <?php
           $rowSeason = (int) $row['season_number'];
           $rowEpisode = (int) $row['episode_number'];
-          $rowPoster = ($row['backdrop_image'] ?? '') ?: (($row['poster_image'] ?? '') ?: $poster);
+          $rowPosterMedia = MediaImage::fromString((string) (($row['backdrop_url'] ?? '') ?: ($row['poster_url'] ?? '') ?: $poster), 'thumb');
+          $rowPoster = MediaImage::srcOnly($rowPosterMedia);
           ?>
           <a class="episode-card <?= $rowEpisode === $currentEpisode ? 'current' : '' ?>" href="<?= escape((string) ($row['watchUrl'] ?? '#')) ?>">
-            <span class="episode-thumb"><?php if ($rowPoster): ?><img src="<?= escape($rowPoster) ?>" alt=""><?php endif; ?></span>
+            <span class="episode-thumb"><?php if ($rowPoster): ?><img src="<?= escape($rowPoster) ?>" srcset="<?= escape($rowPosterMedia['srcset'] ?? '') ?>" sizes="<?= escape($rowPosterMedia['sizes'] ?? '') ?>" width="<?= (int) ($rowPosterMedia['width'] ?? 0) ?>" height="<?= (int) ($rowPosterMedia['height'] ?? 0) ?>" alt="<?= escape((string) ($row['title'] ?? 'Episode thumbnail')) ?>" loading="lazy" decoding="async"><?php endif; ?></span>
             <span><strong>Episode <?= $rowEpisode ?></strong><span><?= escape($row['title']) ?></span></span>
           </a>
         <?php endforeach; ?>

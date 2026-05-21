@@ -15,11 +15,17 @@ use Throwable;
 
 class TmdbImporterService
 {
+    public const MIN_ROOT_RATING = 7.0;
+    public const MAX_ROOT_RATING = 10.0;
+    public const MIN_ROOT_VOTE_COUNT = 50;
+
     private Client $http;
     private Client $assetHttp;
     private string $apiKey;
     private string $accessToken;
     private string $publicPath;
+    /** @var array<string, bool> */
+    private array $columnExistsCache = [];
 
     public function __construct(private Database $db)
     {
@@ -46,7 +52,7 @@ class TmdbImporterService
         $params = [
             'query' => $query,
             'page' => max(1, $page),
-            'include_adult' => false,
+            'include_adult' => 'false',
         ];
 
         if ($year !== null) {
@@ -66,7 +72,7 @@ class TmdbImporterService
         $params = [
             'query' => $query,
             'page' => max(1, $page),
-            'include_adult' => false,
+            'include_adult' => 'false',
         ];
 
         if ($year !== null) {
@@ -90,13 +96,31 @@ class TmdbImporterService
         return $this->get('genre/tv/list')['genres'] ?? [];
     }
 
-    public function discoverMovies(int $page = 1, ?int $year = null, string $sortBy = 'popularity.desc', ?int $genreId = null, ?string $language = null, ?string $country = null): array
+    public function networkOptions(): array
+    {
+        $rows = $this->db->select(
+            "SELECT id, name FROM content_terms WHERE taxonomy = 'networks' ORDER BY name ASC"
+        );
+
+        return array_values(array_filter(array_map(static function (array $row): ?array {
+            if (empty($row['id']) || empty($row['name'])) {
+                return null;
+            }
+
+            return [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+            ];
+        }, $rows)));
+    }
+
+    public function discoverMovies(int $page = 1, ?int $year = null, string $sortBy = 'popularity.desc', ?int $genreId = null, ?string $language = null, ?string $country = null, array $filters = []): array
     {
         $query = [
             'page' => max(1, $page),
-            'include_adult' => false,
             'sort_by' => $this->normalizeSort($sortBy),
         ];
+        $query = $this->withDiscoverFilters($query, $filters, true);
 
         if ($year !== null) {
             $query['primary_release_year'] = $year;
@@ -117,13 +141,13 @@ class TmdbImporterService
         return $this->get('discover/movie', $query);
     }
 
-    public function discoverTvShows(int $page = 1, ?int $year = null, string $sortBy = 'popularity.desc', ?int $genreId = null, ?string $language = null, ?string $country = null): array
+    public function discoverTvShows(int $page = 1, ?int $year = null, string $sortBy = 'popularity.desc', ?int $genreId = null, ?string $language = null, ?string $country = null, array $filters = []): array
     {
         $query = [
             'page' => max(1, $page),
-            'include_adult' => false,
             'sort_by' => $this->normalizeSort($sortBy),
         ];
+        $query = $this->withDiscoverFilters($query, $filters, false);
 
         if ($year !== null) {
             $query['first_air_date_year'] = $year;
@@ -199,9 +223,14 @@ class TmdbImporterService
         };
     }
 
-    public function importMovie(int $tmdbMovieId, int $views = 0, string $status = 'draft', bool $featured = false): ?array
+    public function importMovie(int $tmdbMovieId, int $views = 0, string $status = 'draft', bool $featured = false, array $filters = []): ?array
     {
         $movie = $this->movieDetails($tmdbMovieId);
+        if (empty($filters['include_adult']) && $this->isAdultTitle($movie)) {
+            throw new RuntimeException('Adult titles cannot be imported.');
+        }
+        $this->ensureEligibleRootRating($movie, $filters);
+
         $posterUrl = $this->imageUrl($movie['poster_path'] ?? null);
         $backdropUrl = $this->backdropUrl($movie['backdrop_path'] ?? null);
         $castProfiles = $this->castProfileMeta($movie['credits']['cast'] ?? []);
@@ -237,16 +266,21 @@ class TmdbImporterService
             'is_featured'      => $featured ? 1 : 0,
         ]);
 
-        // Store cast/crew profiles and sync genres taxonomy
+        // Store cast/crew profiles and sync taxonomies
         $this->syncItemMeta($id, $castProfiles, $crewProfiles);
         $this->syncGenres($id, 'item', $this->names($movie['genres'] ?? []));
 
         return $this->db->findById('media_items', $id);
     }
 
-    public function importTvShow(int $tmdbTvId, int $views = 0, string $status = 'draft', bool $featured = false): ?array
+    public function importTvShow(int $tmdbTvId, int $views = 0, string $status = 'draft', bool $featured = false, array $filters = []): ?array
     {
         $show = $this->tvShowDetails($tmdbTvId);
+        if (empty($filters['include_adult']) && $this->isAdultTitle($show)) {
+            throw new RuntimeException('Adult titles cannot be imported.');
+        }
+        $this->ensureEligibleRootRating($show, $filters);
+
         $posterUrl = $this->imageUrl($show['poster_path'] ?? null);
         $backdropUrl = $this->backdropUrl($show['backdrop_path'] ?? null);
         $castProfiles = $this->castProfileMeta($show['credits']['cast'] ?? []);
@@ -282,11 +316,66 @@ class TmdbImporterService
             'is_featured'        => $featured ? 1 : 0,
         ]);
 
-        // Store cast/crew profiles and sync genres taxonomy
+        // Store cast/crew profiles and sync taxonomies
         $this->syncItemMeta($id, $castProfiles, $crewProfiles);
         $this->syncGenres($id, 'item', $this->names($show['genres'] ?? []));
+        $this->syncNetworks($id, 'item', $show['networks'] ?? []);
 
         return $this->db->findById('media_items', $id);
+    }
+
+    /**
+     * Backfills network taxonomy links for existing TV shows without reimporting catalogue rows.
+     *
+     * @return array{scanned: int, synced: int, failed: int, errors: list<string>}
+     */
+    public function syncNetworksForExistingItems(int $limit = 50): array
+    {
+        $limit = max(1, min(500, $limit));
+        $rows = $this->db->select(
+            "SELECT media_items.id, media_items.tmdb_id, media_items.title
+             FROM media_items
+             LEFT JOIN content_meta
+                ON content_meta.owner_type = 'item'
+                AND content_meta.owner_id = media_items.id
+                AND content_meta.meta_key = 'network_profiles'
+             WHERE media_items.type = 'tv_show'
+             AND media_items.tmdb_id IS NOT NULL
+             AND media_items.tmdb_id > 0
+             AND content_meta.owner_id IS NULL
+             ORDER BY media_items.updated_at DESC, media_items.id DESC
+             LIMIT " . $limit
+        );
+
+        $result = [
+            'scanned' => count($rows),
+            'synced' => 0,
+            'failed' => 0,
+            'errors' => [],
+        ];
+
+        foreach ($rows as $row) {
+            try {
+                $show = $this->tvShowDetails((int) $row['tmdb_id']);
+                $this->syncNetworks((int) $row['id'], 'item', $show['networks'] ?? []);
+                $this->db->updateOrInsert('content_meta', [
+                    'owner_type' => 'item',
+                    'owner_id' => (int) $row['id'],
+                    'meta_key' => 'networks_synced_at',
+                ], ['meta_value' => date('c')]);
+                $result['synced']++;
+            } catch (Throwable $exception) {
+                $result['failed']++;
+                $result['errors'][] = sprintf(
+                    '%s (%s): %s',
+                    (string) ($row['title'] ?? 'Untitled'),
+                    (string) ($row['tmdb_id'] ?? ''),
+                    $exception->getMessage()
+                );
+            }
+        }
+
+        return $result;
     }
 
     public function generateTvSeasons(int $tmdbTvId, string $status = 'draft'): array
@@ -312,7 +401,7 @@ class TmdbImporterService
             $generated['seasons']++;
         }
 
-        $this->db->update('media_items', ['clgnrt' => 1], [
+        $this->markGeneratedFlag('media_items', [
             'tmdb_type' => 'tv_show',
             'tmdb_id' => $tmdbTvId,
         ]);
@@ -378,7 +467,7 @@ class TmdbImporterService
             }
         }
 
-        $this->db->update('media_seasons', ['clgnrt' => 1], [
+        $this->markGeneratedFlag('media_seasons', [
             'media_item_id' => (int) $parent['id'],
             'season_number' => $seasonNumber,
         ]);
@@ -483,7 +572,7 @@ class TmdbImporterService
     }
 
     /**
-     * Backfill locally cached WebP assets for already imported records.
+     * Backfill missing remote TMDB poster/backdrop URLs for already imported records.
      *
      * @return array{
      *   scope:string,
@@ -514,11 +603,11 @@ class TmdbImporterService
 
         if ($scope === 'all' || $scope === 'items') {
             $rows = $this->db->select(
-                "SELECT id, type, tmdb_id, poster_url, poster_image, backdrop_image
+                "SELECT id, type, tmdb_id, poster_url, backdrop_url
                  FROM media_items
                  WHERE (
                      poster_url IS NULL OR poster_url = ''
-                     OR backdrop_image IS NULL OR backdrop_image = ''
+                     OR backdrop_url IS NULL OR backdrop_url = ''
                  )
                  ORDER BY id DESC
                  LIMIT {$limit}"
@@ -541,10 +630,10 @@ class TmdbImporterService
                     }
                 }
 
-                if (trim((string) ($row['backdrop_image'] ?? '')) === '') {
+                if (trim((string) ($row['backdrop_url'] ?? '')) === '') {
                     $backdropUrl = $this->resolveBackdropUrlForItem($type, $tmdbId, $posterUrl);
                     if ($backdropUrl !== null) {
-                        $updates['backdrop_image'] = $backdropUrl;
+                        $updates['backdrop_url'] = $backdropUrl;
                         $result['backdrops_hydrated']++;
                     }
                 }
@@ -570,7 +659,7 @@ class TmdbImporterService
     }
 
     /**
-     * Regenerate width variants for rows that already have a local primary asset.
+     * Deprecated: local image variants are no longer stored in the database.
      *
      * @return array{scope:string, limit:int, scanned:int, variants_regenerated:int, failed:int}
      */
@@ -587,7 +676,7 @@ class TmdbImporterService
                 'variants_regenerated' => 0,
                 'failed' => 0,
                 'skipped' => true,
-                'message' => 'Local WebP variants are disabled (TMDB_DOWNLOAD_IMAGES=false). Images use TMDB URLs only.',
+                'message' => 'Local WebP variants are disabled. Images use TMDB URLs only.',
             ];
         }
 
@@ -601,11 +690,11 @@ class TmdbImporterService
 
         if ($scope === 'all' || $scope === 'items') {
             $rows = $this->db->select(
-                "SELECT id, type, tmdb_id, poster_url, poster_image, backdrop_image
+                "SELECT id, type, tmdb_id, poster_url, backdrop_url
                  FROM media_items
                  WHERE (
-                    (poster_image IS NOT NULL AND poster_image <> '' AND poster_image LIKE '/uploads/%')
-                    OR (backdrop_image IS NOT NULL AND backdrop_image <> '' AND backdrop_image LIKE '/uploads/%')
+                    (poster_url IS NOT NULL AND poster_url <> '' AND poster_url LIKE '/uploads/%')
+                    OR (backdrop_url IS NOT NULL AND backdrop_url <> '' AND backdrop_url LIKE '/uploads/%')
                  )
                  ORDER BY id DESC
                  LIMIT {$limit}"
@@ -620,7 +709,7 @@ class TmdbImporterService
                 $key = (string) ($tmdbId ?: $id);
                 $changed = false;
 
-                $posterPath = trim((string) ($row['poster_image'] ?? ''));
+                $posterPath = trim((string) ($row['poster_url'] ?? ''));
                 if ($posterPath !== '' && MediaImage::needsVariantRegeneration($posterPath, MediaImage::posterWidths())) {
                     $regenerated = $this->regenerateVariantsFromLocal(
                         $posterPath,
@@ -630,12 +719,12 @@ class TmdbImporterService
                         MediaImage::ROLE_POSTER
                     );
                     if ($regenerated !== null) {
-                        $this->db->updateById('media_items', $id, ['poster_image' => $regenerated]);
+                        $this->db->updateById('media_items', $id, ['poster_url' => $regenerated]);
                         $changed = true;
                     }
                 }
 
-                $backdropPath = trim((string) ($row['backdrop_image'] ?? ''));
+                $backdropPath = trim((string) ($row['backdrop_url'] ?? ''));
                 if ($backdropPath !== '' && MediaImage::needsVariantRegeneration($backdropPath, MediaImage::backdropWidths())) {
                     $backdropUrl = $this->resolveBackdropUrlForItem($type, $tmdbId, trim((string) ($row['poster_url'] ?? '')));
                     $regenerated = $this->regenerateVariantsFromLocal(
@@ -646,7 +735,7 @@ class TmdbImporterService
                         MediaImage::ROLE_BACKDROP
                     );
                     if ($regenerated !== null) {
-                        $this->db->updateById('media_items', $id, ['backdrop_image' => $regenerated]);
+                        $this->db->updateById('media_items', $id, ['backdrop_url' => $regenerated]);
                         $changed = true;
                     }
                 }
@@ -784,10 +873,10 @@ class TmdbImporterService
                         }
                     }
 
-                    $this->db->updateById('media_seasons', $seasonId, ['clgnrt' => 1]);
+                    $this->markGeneratedFlagById('media_seasons', $seasonId);
                 }
 
-                $this->db->updateById('media_items', $mediaItemId, ['clgnrt' => 1]);
+                $this->markGeneratedFlagById('media_items', $mediaItemId);
             } catch (Throwable $e) {
                 $result['errors'][] = 'TMDB show ' . $tmdbTvId . ': ' . $e->getMessage();
             }
@@ -916,6 +1005,60 @@ class TmdbImporterService
         return in_array($status, ['draft', 'published', 'archived'], true) ? $status : 'draft';
     }
 
+    private function isAdultTitle(array $item): bool
+    {
+        if (filter_var($item['adult'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        $text = strtolower(trim(implode(' ', array_filter([
+            (string) ($item['title'] ?? ''),
+            (string) ($item['original_title'] ?? ''),
+            (string) ($item['name'] ?? ''),
+            (string) ($item['original_name'] ?? ''),
+            (string) ($item['overview'] ?? ''),
+            (string) ($item['tagline'] ?? ''),
+        ]))));
+
+        if ($text === '') {
+            return false;
+        }
+
+        foreach ($this->adultTitlePatterns() as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * TMDB occasionally leaves adult=false on softcore/direct-to-video titles.
+     *
+     * @return list<string>
+     */
+    private function adultTitlePatterns(): array
+    {
+        return [
+            '/\bmy\s+wife[\'’]s\s+sister\b/u',
+            '/\bwife[\'’]s\s+sister\b/u',
+            '/\bsister[-\s]?in[-\s]?law\b/u',
+            '/\byoung\s+(?:sister|wife|mother|aunt)\b/u',
+            '/\b(?:stepmom|stepmother|stepdad|stepfather|stepsister|stepbrother)\b/u',
+            '/\b(?:sex|sexual|sexy|porn|porno|pornographic)\b/u',
+            '/\bsex\b/u',
+            '/\bsoftcore\b/u',
+            '/\berotic\b/u',
+            '/\berotica\b/u',
+            '/\b(?:lust|seduction|seduce|sensual|nude|naked)\b/u',
+            '/\b(?:mistress|prostitute|prostitution|brothel|call\s+girl)\b/u',
+            '/\b(?:affair|adultery)\b/u',
+            '/\b(?:massage\s+parlor|hostess|escort)\b/u',
+            '/\badult\b/u',
+        ];
+    }
+
     private function get(string $path, array $query = []): array
     {
         $this->ensureCredentials();
@@ -947,6 +1090,56 @@ class TmdbImporterService
         }
 
         return $data;
+    }
+
+    private function withDiscoverFilters(array $query, array $filters, bool $isMovie): array
+    {
+        $query['include_adult'] = !empty($filters['include_adult']) ? 'true' : 'false';
+
+        if ($isMovie) {
+            $query['include_video'] = !empty($filters['include_video']) ? 'true' : 'false';
+        }
+
+        foreach ([
+            'vote_average.gte' => 'vote_average_gte',
+            'vote_average.lte' => 'vote_average_lte',
+            'vote_count.gte' => 'vote_count_gte',
+            'vote_count.lte' => 'vote_count_lte',
+        ] as $tmdbKey => $filterKey) {
+            if (isset($filters[$filterKey]) && $filters[$filterKey] !== null && $filters[$filterKey] !== '') {
+                $query[$tmdbKey] = $filters[$filterKey];
+            }
+        }
+
+        if (!empty($filters['date_gte'])) {
+            $query[$isMovie ? 'release_date.gte' : 'first_air_date.gte'] = $filters['date_gte'];
+        }
+
+        if (!empty($filters['date_lte'])) {
+            $query[$isMovie ? 'release_date.lte' : 'first_air_date.lte'] = $filters['date_lte'];
+        }
+
+        if ($isMovie && !empty($filters['primary_date_gte'])) {
+            $query['primary_release_date.gte'] = $filters['primary_date_gte'];
+        }
+
+        if ($isMovie && !empty($filters['primary_date_lte'])) {
+            $query['primary_release_date.lte'] = $filters['primary_date_lte'];
+        }
+
+        if (!empty($filters['region'])) {
+            $query['region'] = $filters['region'];
+        }
+
+        if (!empty($filters['watch_region'])) {
+            $query['watch_region'] = $filters['watch_region'];
+        }
+
+        if (!$isMovie && !empty($filters['network'])) {
+            $query['with_networks'] = $filters['network'];
+        }
+
+        return $query;
     }
 
     private function headers(): array
@@ -1095,13 +1288,46 @@ class TmdbImporterService
         }
     }
 
-    /**
-     * Syncs the genres taxonomy for a media item.
-     * Only the genres taxonomy is queried anywhere in the project.
-     */
     private function syncGenres(int $ownerId, string $ownerType, array $names): void
     {
-        // Remove existing genre links for this item
+        $this->syncTaxonomy($ownerId, $ownerType, 'genres', $names);
+    }
+
+    private function syncNetworks(int $ownerId, string $ownerType, array $networks): void
+    {
+        $names = $this->names($networks);
+        $this->syncTaxonomy($ownerId, $ownerType, 'networks', $names);
+
+        $profiles = [];
+        foreach ($networks as $network) {
+            if (!is_array($network)) {
+                continue;
+            }
+
+            $name = trim((string) ($network['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $profiles[] = [
+                'name' => $name,
+                'slug' => $this->slug($name),
+                'logo_url' => MediaImage::buildTmdbAssetUrl((string) ($network['logo_path'] ?? ''), MediaImage::ROLE_POSTER) ?? '',
+            ];
+        }
+
+        $this->db->updateOrInsert('content_meta', [
+            'owner_type' => $ownerType,
+            'owner_id' => $ownerId,
+            'meta_key' => 'network_profiles',
+        ], [
+            'meta_value' => json_encode($profiles, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '[]',
+        ]);
+    }
+
+    private function syncTaxonomy(int $ownerId, string $ownerType, string $taxonomy, array $names): void
+    {
+        // Remove existing links for this taxonomy before replacing them.
         $existing = $this->db->select(
             'SELECT content_term_links.term_id
              FROM content_term_links
@@ -1109,7 +1335,7 @@ class TmdbImporterService
              WHERE content_term_links.owner_type = :owner_type
              AND content_term_links.owner_id = :owner_id
              AND content_terms.taxonomy = :taxonomy',
-            ['owner_type' => $ownerType, 'owner_id' => $ownerId, 'taxonomy' => 'genres']
+            ['owner_type' => $ownerType, 'owner_id' => $ownerId, 'taxonomy' => $taxonomy]
         );
 
         foreach ($existing as $row) {
@@ -1123,7 +1349,7 @@ class TmdbImporterService
         foreach (array_values(array_unique(array_filter(array_map('trim', $names)))) as $name) {
             $slug = $this->slug($name);
             $termId = $this->upsertAndGetId('content_terms', [
-                'taxonomy' => 'genres',
+                'taxonomy' => $taxonomy,
                 'slug' => $slug,
             ], ['name' => $name]);
 
@@ -1199,6 +1425,49 @@ class TmdbImporterService
     }
 
     /**
+     * Legacy DooPlay schemas use clgnrt to remember generated season/episode data.
+     * Newer Vexio installs do not need that marker, so only write it when present.
+     */
+    private function markGeneratedFlag(string $table, array $where): void
+    {
+        if (!$this->columnExists($table, 'clgnrt')) {
+            return;
+        }
+
+        $this->db->update($table, ['clgnrt' => 1], $where);
+    }
+
+    private function markGeneratedFlagById(string $table, int $id): void
+    {
+        if ($id < 1 || !$this->columnExists($table, 'clgnrt')) {
+            return;
+        }
+
+        $this->db->updateById($table, $id, ['clgnrt' => 1]);
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        $key = $table . '.' . $column;
+        if (array_key_exists($key, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$key];
+        }
+
+        return $this->columnExistsCache[$key] = $this->db->exists(
+            'SELECT 1
+             FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+             AND table_name = :table
+             AND column_name = :column
+             LIMIT 1',
+            [
+                'table' => $table,
+                'column' => $column,
+            ]
+        );
+    }
+
+    /**
      * Determines the correct status for an episode based on its air date.
      * If the requested status is 'published' but the air date is in the future,
      * the episode is stored as 'scheduled' instead so it stays hidden until it airs.
@@ -1225,6 +1494,26 @@ class TmdbImporterService
     private function rating(array $data): ?float
     {
         return isset($data['vote_average']) ? round((float) $data['vote_average'], 1) : null;
+    }
+
+    private function ensureEligibleRootRating(array $data, array $filters = []): void
+    {
+        $rating = $this->rating($data);
+        $voteCount = (int) ($data['vote_count'] ?? 0);
+        $minRating = $filters['vote_average_gte'] ?? self::MIN_ROOT_RATING;
+        $maxRating = $filters['vote_average_lte'] ?? self::MAX_ROOT_RATING;
+        $minVotes = $filters['vote_count_gte'] ?? self::MIN_ROOT_VOTE_COUNT;
+        $maxVotes = $filters['vote_count_lte'] ?? null;
+
+        if (
+            $rating === null
+            || ($minRating !== null && $rating < (float) $minRating)
+            || ($maxRating !== null && $rating > (float) $maxRating)
+            || ($minVotes !== null && $voteCount < (int) $minVotes)
+            || ($maxVotes !== null && $voteCount > (int) $maxVotes)
+        ) {
+            throw new RuntimeException('Only TMDB titles matching the selected rating and vote filters can be imported.');
+        }
     }
 
     private function popularity(array $data): ?float
@@ -1428,11 +1717,11 @@ class TmdbImporterService
     private function hydrateSeasonImages(int $limit, array &$result): void
     {
         $rows = $this->db->select(
-            "SELECT id, tmdb_parent_id, season_number, poster_url, poster_image, backdrop_image
+            "SELECT id, tmdb_parent_id, season_number, poster_url, backdrop_url
              FROM media_seasons
              WHERE (
                 poster_url IS NULL OR poster_url = ''
-                OR backdrop_image IS NULL OR backdrop_image = ''
+                OR backdrop_url IS NULL OR backdrop_url = ''
              )
              ORDER BY id DESC
              LIMIT {$limit}"
@@ -1455,10 +1744,10 @@ class TmdbImporterService
                 }
             }
 
-            if (trim((string) ($row['backdrop_image'] ?? '')) === '') {
+            if (trim((string) ($row['backdrop_url'] ?? '')) === '') {
                 $backdropUrl = $this->resolveBackdropUrlForItem('tv_show', $showTmdbId, $posterUrl);
                 if ($backdropUrl !== null) {
-                    $updates['backdrop_image'] = $backdropUrl;
+                    $updates['backdrop_url'] = $backdropUrl;
                     $result['backdrops_hydrated']++;
                 }
             }
@@ -1478,11 +1767,11 @@ class TmdbImporterService
     private function hydrateEpisodeImages(int $limit, array &$result): void
     {
         $rows = $this->db->select(
-            "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url, poster_image, backdrop_image
+            "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url, backdrop_url
              FROM media_episodes
              WHERE (
                 poster_url IS NULL OR poster_url = ''
-                OR backdrop_image IS NULL OR backdrop_image = ''
+                OR backdrop_url IS NULL OR backdrop_url = ''
              )
              ORDER BY id DESC
              LIMIT {$limit}"
@@ -1506,10 +1795,10 @@ class TmdbImporterService
                 }
             }
 
-            if (trim((string) ($row['backdrop_image'] ?? '')) === '') {
+            if (trim((string) ($row['backdrop_url'] ?? '')) === '') {
                 $backdropUrl = $this->resolveBackdropUrlForItem('tv_show', $showTmdbId, $posterUrl);
                 if ($backdropUrl !== null) {
-                    $updates['backdrop_image'] = $backdropUrl;
+                    $updates['backdrop_url'] = $backdropUrl;
                     $result['backdrops_hydrated']++;
                 }
             }
@@ -1529,10 +1818,10 @@ class TmdbImporterService
     private function regenerateSeasonVariants(int $limit, array &$result): void
     {
         $rows = $this->db->select(
-            "SELECT id, tmdb_parent_id, season_number, poster_url, poster_image, backdrop_image
+            "SELECT id, tmdb_parent_id, season_number, poster_url, backdrop_url
              FROM media_seasons
-             WHERE (poster_image IS NOT NULL AND poster_image <> '')
-                OR (backdrop_image IS NOT NULL AND backdrop_image <> '')
+             WHERE (poster_url IS NOT NULL AND poster_url <> '')
+                OR (backdrop_url IS NOT NULL AND backdrop_url <> '')
              ORDER BY id DESC
              LIMIT {$limit}"
         );
@@ -1549,10 +1838,10 @@ class TmdbImporterService
     private function regenerateEpisodeVariants(int $limit, array &$result): void
     {
         $rows = $this->db->select(
-            "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url, poster_image, backdrop_image
+            "SELECT id, tmdb_parent_id, season_number, episode_number, poster_url, backdrop_url
              FROM media_episodes
-             WHERE (poster_image IS NOT NULL AND poster_image <> '')
-                OR (backdrop_image IS NOT NULL AND backdrop_image <> '')
+             WHERE (poster_url IS NOT NULL AND poster_url <> '')
+                OR (backdrop_url IS NOT NULL AND backdrop_url <> '')
              ORDER BY id DESC
              LIMIT {$limit}"
         );
@@ -1585,7 +1874,7 @@ class TmdbImporterService
         $key = $nameKey ?? (($showTmdbId ?: $id) . '-s' . max(1, $seasonNumber));
         $changed = false;
 
-        $posterPath = trim((string) ($row['poster_image'] ?? ''));
+        $posterPath = trim((string) ($row['poster_url'] ?? ''));
         if ($posterPath !== '' && MediaImage::needsVariantRegeneration($posterPath, MediaImage::posterWidths())) {
             $regenerated = $this->regenerateVariantsFromLocal(
                 $posterPath,
@@ -1596,12 +1885,12 @@ class TmdbImporterService
             );
             if ($regenerated !== null) {
                 $table = str_contains($folder, 'episode') ? 'media_episodes' : 'media_seasons';
-                $this->db->updateById($table, $id, ['poster_image' => $regenerated]);
+                $this->db->updateById($table, $id, ['poster_url' => $regenerated]);
                 $changed = true;
             }
         }
 
-        $backdropPath = trim((string) ($row['backdrop_image'] ?? ''));
+        $backdropPath = trim((string) ($row['backdrop_url'] ?? ''));
         if ($backdropPath !== '' && MediaImage::needsVariantRegeneration($backdropPath, MediaImage::backdropWidths())) {
             $backdropUrl = $this->resolveBackdropUrlForItem($type, $showTmdbId, trim((string) ($row['poster_url'] ?? '')));
             $regenerated = $this->regenerateVariantsFromLocal(
@@ -1613,7 +1902,7 @@ class TmdbImporterService
             );
             if ($regenerated !== null) {
                 $table = str_contains($folder, 'episode') ? 'media_episodes' : 'media_seasons';
-                $this->db->updateById($table, $id, ['backdrop_image' => $regenerated]);
+                $this->db->updateById($table, $id, ['backdrop_url' => $regenerated]);
                 $changed = true;
             }
         }
@@ -1627,11 +1916,11 @@ class TmdbImporterService
 
     private function downloadsImages(): bool
     {
-        return MediaImage::downloadsImagesEnabled();
+        return false;
     }
 
     /**
-     * @return array{poster_url: ?string, poster_image: ?string, backdrop_image: ?string}
+     * @return array{poster_url: ?string, backdrop_url: ?string}
      */
     private function imagePayload(?string $posterUrl, ?string $backdropUrl, string $folder, string $key): array
     {
@@ -1641,15 +1930,13 @@ class TmdbImporterService
         if (!$this->downloadsImages()) {
             return [
                 'poster_url' => $posterUrl,
-                'poster_image' => null,
-                'backdrop_image' => $backdropUrl,
+                'backdrop_url' => $backdropUrl,
             ];
         }
 
         return [
             'poster_url' => $posterUrl,
-            'poster_image' => $this->downloadImageVariants($posterUrl, $folder, 'poster-' . $key, MediaImage::ROLE_POSTER),
-            'backdrop_image' => $this->downloadImageVariants($backdropUrl, $folder, 'backdrop-' . $key, MediaImage::ROLE_BACKDROP),
+            'backdrop_url' => $backdropUrl,
         ];
     }
 

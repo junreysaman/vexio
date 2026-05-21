@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Services\Archive;
 
+use App\Cache\CacheInterface;
 use App\Database\TmdbMetadataSchema;
+use App\Support\LocaleDisplay;
 use App\Support\MediaImage;
 use App\Support\MediaUrl;
 use Closure;
 
 class BrowseService
 {
-    public function __construct(private Closure $databaseFactory)
+    public function __construct(
+        private Closure $databaseFactory,
+        private CacheInterface $cache
+    )
     {
     }
 
@@ -30,10 +35,13 @@ class BrowseService
                     media_items.title,
                     media_items.slug,
                     media_items.type,
-                    media_items.synopsis,
-                    media_items.poster_image,
-                    media_items.poster_url,
-                    media_items.release_year,
+                       media_items.synopsis,
+                       media_items.poster_url,
+                       media_items.release_year,
+                    media_items.release_date,
+                    media_items.original_language,
+                    media_items.country,
+                    media_items.origin_country,
                     media_items.tmdb_id,
                     media_items.tmdb_rating,
                     media_items.views,
@@ -55,10 +63,13 @@ class BrowseService
                       media_items.slug,
                       media_items.type,
                       media_items.synopsis,
-                      media_items.poster_image,
-                      media_items.poster_url,
-                      media_items.release_year,
-                      media_items.tmdb_id,
+                       media_items.poster_url,
+                       media_items.release_year,
+                       media_items.release_date,
+                       media_items.original_language,
+                       media_items.country,
+                       media_items.origin_country,
+                       media_items.tmdb_id,
                       media_items.tmdb_rating,
                       media_items.views,
                       media_items.is_featured,
@@ -88,20 +99,31 @@ class BrowseService
      */
     public function pageData(): array
     {
+        $cacheKey = 'archive:browse:pageData:v2';
+        $cached = $this->cache->get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $items = $this->getAllItems();
 
-        return [
+        $data = [
             'title' => 'Browse',
             'body_class' => 'paper-archive-browse',
             'items' => $items,
             'total_items' => count($items),
             'genres' => $this->getAllGenres(),
+            'countries' => $this->getAllCountries(),
             'types' => [
                 ['label' => 'All', 'value' => 'all'],
                 ['label' => 'Movies', 'value' => 'movie'],
                 ['label' => 'TV Shows', 'value' => 'tv_show'],
             ],
         ];
+
+        $this->cache->set($cacheKey, $data, $this->publicCacheTtl());
+
+        return $data;
     }
 
     /**
@@ -132,6 +154,44 @@ class BrowseService
                 'url' => $this->genreLink($name, $slug)['url'],
             ];
         }, $genres);
+    }
+
+    /**
+     * Return normalized country options for browse filters.
+     *
+     * @return array<int, array{name: string, slug: string}>
+     */
+    public function getAllCountries(): array
+    {
+        $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
+
+        $rows = $db->select(
+            'SELECT country, origin_country
+             FROM media_items
+             WHERE status = :status
+             AND type IN (\'movie\', \'tv_show\')',
+            ['status' => 'published']
+        );
+
+        $countries = [];
+        foreach ($rows as $row) {
+            $value = trim(implode(',', array_filter([
+                (string) ($row['country'] ?? ''),
+                (string) ($row['origin_country'] ?? ''),
+            ])));
+
+            foreach (LocaleDisplay::countryList($value) as $country) {
+                $countries[$country['slug']] = [
+                    'name' => $country['name'],
+                    'slug' => $country['slug'],
+                ];
+            }
+        }
+
+        uasort($countries, fn(array $left, array $right): int => $left['name'] <=> $right['name']);
+
+        return array_values($countries);
     }
 
     /**
@@ -190,6 +250,7 @@ class BrowseService
         $year = $this->coalesceInt($item['release_year'] ?? null, null);
         $rating = $this->coalesceFloat($item['tmdb_rating'] ?? null, null);
         $tmdbId = $this->coalesceInt($item['tmdb_id'] ?? null, null);
+        $countries = LocaleDisplay::countryList($this->countryValue($item));
 
         return [
             'id' => $itemId,
@@ -202,6 +263,11 @@ class BrowseService
             'tmdb_id' => $tmdbId,
             'tmdb_rating' => $rating,
             'release_year' => $year,
+            'release_date' => (string) ($item['release_date'] ?? ''),
+            'original_language' => (string) ($item['original_language'] ?? ''),
+            'language_label' => LocaleDisplay::languageName((string) ($item['original_language'] ?? '')),
+            'countries' => $countries,
+            'country_label' => $countries === [] ? 'N/A' : implode(', ', array_map(fn(array $country): string => $country['name'], $countries)),
             'views' => $this->coalesceInt($item['views'] ?? null, null) ?? 0,
             'created_at' => (string) ($item['created_at'] ?? ''),
             'genres' => $genres,
@@ -298,5 +364,18 @@ class BrowseService
         }
 
         return null;
+    }
+
+    private function countryValue(array $item): string
+    {
+        return trim(implode(',', array_filter([
+            (string) ($item['country'] ?? ''),
+            (string) ($item['origin_country'] ?? ''),
+        ])));
+    }
+
+    private function publicCacheTtl(): int
+    {
+        return max(60, min(3600, (int) ($_ENV['PUBLIC_PAGE_CACHE_TTL'] ?? 600)));
     }
 }

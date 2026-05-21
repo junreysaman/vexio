@@ -26,4 +26,13 @@ class GenrePageController
             $this->genres->pageData($slug)
         ));
     }
+
+    public function networks(Request $request, Response $response, ?string $slug = null): Response
+    {
+        return $response->html($this->view->render(
+            'frontend/archive/genre-page/index',
+            'layouts/frontend/paper',
+            $this->genres->pageData($slug, 24, 'networks')
+        ));
+    }
 }

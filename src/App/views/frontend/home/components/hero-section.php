@@ -56,6 +56,7 @@ $slideCount = count($slides);
                     'media' => $backdropMedia,
                     'alt' => '',
                     'loading' => $index === 0 ? 'eager' : 'lazy',
+                    'fetchpriority' => $index === 0 ? 'high' : '',
                 ]); ?>
               </div>
             </div>

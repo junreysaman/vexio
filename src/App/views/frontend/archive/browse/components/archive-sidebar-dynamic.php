@@ -2,9 +2,10 @@
   <?php
   $types = $types ?? [];
   $genres = $genres ?? [];
+  $countries = $countries ?? [];
   ?>
   <div class="filter-panel">
-    <div class="fp-head" onclick="togglePanel(this)">
+    <div class="fp-head open" onclick="togglePanel(this)">
       <div class="fp-head-left">
         <div class="fp-icon" style="background:rgba(232,23,63,.15);">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -13,13 +14,40 @@
       </div>
       <svg class="fp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
-    <div class="fp-body">
+    <div class="fp-body open">
       <div class="fr-list">
         <?php foreach ($types as $type): ?>
           <label class="fr-item">
             <input type="radio" name="type" value="<?= escape($type['value'] ?? '') ?>" onchange="updateFilters()" <?= ($type['value'] ?? '') === 'all' ? 'checked' : '' ?>>
             <div class="fr-dot"></div>
             <span class="fr-label"><?= escape($type['label'] ?? 'All Types') ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-panel">
+    <div class="fp-head" onclick="togglePanel(this)">
+      <div class="fp-head-left">
+        <div class="fp-icon" style="background:rgba(0,200,240,.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20"/><path d="M12 2a15 15 0 0 0 0 20"/></svg>
+        </div>
+        <span class="fp-title">Country</span>
+      </div>
+      <svg class="fp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="fp-body">
+      <div class="filter-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input placeholder="Search countries..." oninput="filterCountryList(this.value)">
+      </div>
+      <div class="fc-list" id="countryList">
+        <?php foreach ($countries as $country): ?>
+          <label class="fc-item">
+            <input type="checkbox" name="country[]" value="<?= escape($country['slug'] ?? '') ?>" onchange="updateFilters()">
+            <div class="fc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="fc-label"><?= escape($country['name'] ?? 'Unknown') ?></span>
           </label>
         <?php endforeach; ?>
       </div>

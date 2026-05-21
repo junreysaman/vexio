@@ -113,7 +113,7 @@
             <?php endforeach; ?>
           <?php else: ?>
             <div class="tl-item">
-              <div class="tl-thumb"><img src="https://picsum.photos/seed/vexio-trending-empty/180/240" alt="No trending titles" loading="lazy"></div>
+              <div class="tl-thumb"><img src="https://picsum.photos/seed/vexio-trending-empty/180/240" alt="No trending titles" width="180" height="240" loading="lazy" decoding="async"></div>
               <div class="tl-info">
                 <div class="tl-title">No trending titles available</div>
                 <div class="tl-sub"><span>Check back soon</span></div>

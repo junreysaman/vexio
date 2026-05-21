@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Archive;
 
+use App\Cache\CacheInterface;
 use App\Database\TmdbMetadataSchema;
 use App\Support\MediaImage;
 use App\Support\MediaUrl;
@@ -11,7 +12,10 @@ use Closure;
 
 class GenrePageService
 {
-    public function __construct(private Closure $databaseFactory)
+    public function __construct(
+        private Closure $databaseFactory,
+        private CacheInterface $cache
+    )
     {
     }
 
@@ -20,15 +24,25 @@ class GenrePageService
      *
      * @return array<string, mixed>
      */
-    public function pageData(?string $slug = null, int $limit = 24): array
+    public function pageData(?string $slug = null, int $limit = 24, string $taxonomy = 'genres'): array
     {
-        $genre = $slug !== null && trim($slug) !== '' ? $this->genreBySlug($slug) : null;
+        $taxonomy = $this->normalizeTaxonomy($taxonomy);
+        $normalizedSlug = $slug !== null ? trim($slug) : '';
+        $limit = max(1, min(60, $limit));
+        $cacheKey = 'archive:taxonomy:pageData:v1:' . $taxonomy . ':' . ($normalizedSlug !== '' ? $normalizedSlug : 'index') . ':' . $limit;
+        $cached = $this->cache->get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $copy = $this->taxonomyCopy($taxonomy);
+        $genre = $normalizedSlug !== '' ? $this->genreBySlug($normalizedSlug, $taxonomy) : null;
         $items = $genre ? $this->itemsForGenre((int) $genre['id'], $limit) : [];
-        $genres = $this->genres();
+        $genres = $this->genres($taxonomy);
         $rankedGenres = $this->rankGenresByTotal($genres);
 
-        return [
-            'title' => $genre ? (string) $genre['name'] : 'Genres',
+        $data = [
+            'title' => $genre ? (string) $genre['name'] : $copy['plural'],
             'body_class' => 'paper-archive-genre-page',
             'genres' => $genres,
             'featured_genres' => array_slice($rankedGenres, 0, 2),
@@ -38,14 +52,25 @@ class GenrePageService
             'items' => $items,
             'total_items' => count($items),
             'total_catalog_items' => array_sum(array_map(static fn(array $genre): int => (int) ($genre['total'] ?? 0), $genres)),
+            'taxonomy' => $taxonomy,
+            'taxonomy_url_base' => $copy['url_base'],
+            'taxonomy_singular' => $copy['singular'],
+            'taxonomy_plural' => $copy['plural'],
+            'taxonomy_archive_label' => $copy['archive_label'],
         ];
+
+        $this->cache->set($cacheKey, $data, $this->publicCacheTtl());
+
+        return $data;
     }
 
     /**
      * @return array<int, array{id: int, name: string, slug: string, url: string, total: int, backdrop: string, poster: string, model_title: string}>
      */
-    public function genres(): array
+    public function genres(string $taxonomy = 'genres'): array
     {
+        $taxonomy = $this->normalizeTaxonomy($taxonomy);
+        $copy = $this->taxonomyCopy($taxonomy);
         $db = ($this->databaseFactory)();
         TmdbMetadataSchema::ensure($db);
 
@@ -55,7 +80,7 @@ class GenrePageService
                     content_terms.slug,
                     COUNT(DISTINCT media_items.id) AS total,
                     (
-                        SELECT COALESCE(NULLIF(model_items.backdrop_image, \'\'), NULLIF(model_items.poster_image, \'\'), NULLIF(model_items.poster_url, \'\'), \'\')
+                        SELECT COALESCE(NULLIF(model_items.backdrop_url, \'\'), NULLIF(model_items.poster_url, \'\'), \'\')
                         FROM media_items model_items
                         INNER JOIN content_term_links model_links
                             ON model_links.owner_id = model_items.id
@@ -63,9 +88,9 @@ class GenrePageService
                             AND model_links.term_id = content_terms.id
                         WHERE model_items.status = :model_backdrop_status
                         AND model_items.type IN (\'movie\', \'tv_show\')
-                        AND COALESCE(NULLIF(model_items.backdrop_image, \'\'), NULLIF(model_items.poster_image, \'\'), NULLIF(model_items.poster_url, \'\'), \'\') <> \'\'
+                        AND COALESCE(NULLIF(model_items.backdrop_url, \'\'), NULLIF(model_items.poster_url, \'\'), \'\') <> \'\'
                         ORDER BY
-                            CASE WHEN NULLIF(model_items.backdrop_image, \'\') IS NOT NULL THEN 0 ELSE 1 END,
+                            CASE WHEN NULLIF(model_items.backdrop_url, \'\') IS NOT NULL THEN 0 ELSE 1 END,
                             model_items.tmdb_rating DESC,
                             model_items.views DESC,
                             model_items.created_at DESC
@@ -98,7 +123,7 @@ class GenrePageService
                 'status' => 'published',
                 'model_backdrop_status' => 'published',
                 'model_title_status' => 'published',
-                'taxonomy' => 'genres',
+                'taxonomy' => $taxonomy,
             ]
         );
 
@@ -106,19 +131,93 @@ class GenrePageService
             'id' => (int) ($row['id'] ?? 0),
             'name' => (string) ($row['name'] ?? 'Unknown'),
             'slug' => (string) ($row['slug'] ?? ''),
-            'url' => '/genre/' . rawurlencode((string) ($row['slug'] ?? '')),
+            'url' => $copy['url_base'] . rawurlencode((string) ($row['slug'] ?? '')),
             'total' => (int) ($row['total'] ?? 0),
             'backdrop' => (string) ($row['model_backdrop'] ?? ''),
             'poster' => (string) ($row['model_backdrop'] ?? ''),
             'model_title' => (string) ($row['model_title'] ?? ''),
+            'logo_url' => $taxonomy === 'networks' ? $this->networkLogoUrl((int) ($row['id'] ?? 0), (string) ($row['name'] ?? '')) : '',
         ], $rows);
+    }
+
+    /**
+     * @param int $termId
+     * @param string $termName
+     * @return string
+     */
+    private function networkLogoUrl(int $termId, string $termName): string
+    {
+        if ($termId < 1 || trim($termName) === '') {
+            return '';
+        }
+
+        $db = ($this->databaseFactory)();
+        $row = $db->selectOne(
+            'SELECT content_meta.meta_value
+             FROM content_meta
+             INNER JOIN media_items
+               ON media_items.id = content_meta.owner_id
+             INNER JOIN content_term_links
+               ON content_term_links.owner_id = media_items.id
+               AND content_term_links.owner_type = \'item\'
+               AND content_term_links.term_id = :term_id
+             WHERE content_meta.owner_type = \'item\'
+               AND content_meta.meta_key = \'network_profiles\'
+               AND media_items.status = :status
+               AND media_items.type IN (\'movie\', \'tv_show\')
+             ORDER BY media_items.tmdb_rating DESC, media_items.views DESC, media_items.created_at DESC
+             LIMIT 1',
+            ['term_id' => $termId, 'status' => 'published']
+        );
+
+        if (!$row || !is_string($row['meta_value'] ?? null) || trim((string) $row['meta_value'] ?? '') === '') {
+            return '';
+        }
+
+        $profiles = json_decode((string) $row['meta_value'], true);
+        if (!is_array($profiles)) {
+            return '';
+        }
+
+        $termSlug = MediaUrl::slugify($termName);
+        $fallbackLogo = '';
+
+        foreach ($profiles as $profile) {
+            if (!is_array($profile)) {
+                continue;
+            }
+
+            $profileName = trim((string) ($profile['name'] ?? ''));
+            $profileSlug = trim((string) ($profile['slug'] ?? '')) ?: MediaUrl::slugify($profileName);
+            $logoUrl = trim((string) ($profile['logo_url'] ?? ''));
+
+            if ($logoUrl === '') {
+                continue;
+            }
+
+            if ($profileName !== '' && strcasecmp($profileName, $termName) === 0) {
+                return $logoUrl;
+            }
+
+            if ($profileSlug !== '' && $profileSlug === $termSlug) {
+                return $logoUrl;
+            }
+
+            if ($fallbackLogo === '') {
+                $fallbackLogo = $logoUrl;
+            }
+        }
+
+        return $fallbackLogo;
     }
 
     /**
      * @return array<string, mixed>|null
      */
-    public function genreBySlug(string $slug): ?array
+    public function genreBySlug(string $slug, string $taxonomy = 'genres'): ?array
     {
+        $taxonomy = $this->normalizeTaxonomy($taxonomy);
+        $copy = $this->taxonomyCopy($taxonomy);
         $db = ($this->databaseFactory)();
         TmdbMetadataSchema::ensure($db);
 
@@ -128,7 +227,7 @@ class GenrePageService
              WHERE taxonomy = :taxonomy
              AND slug = :slug
              LIMIT 1',
-            ['taxonomy' => 'genres', 'slug' => trim($slug)]
+            ['taxonomy' => $taxonomy, 'slug' => trim($slug)]
         );
 
         if (!$row) {
@@ -139,7 +238,7 @@ class GenrePageService
             'id' => (int) ($row['id'] ?? 0),
             'name' => (string) ($row['name'] ?? 'Unknown'),
             'slug' => (string) ($row['slug'] ?? ''),
-            'url' => '/genre/' . rawurlencode((string) ($row['slug'] ?? '')),
+            'url' => $copy['url_base'] . rawurlencode((string) ($row['slug'] ?? '')),
         ];
     }
 
@@ -162,7 +261,6 @@ class GenrePageService
                     media_items.slug,
                     media_items.type,
                     media_items.synopsis,
-                    media_items.poster_image,
                     media_items.poster_url,
                     media_items.release_year,
                     media_items.tmdb_id,
@@ -220,6 +318,11 @@ class GenrePageService
         };
     }
 
+    private function publicCacheTtl(): int
+    {
+        return max(60, min(3600, (int) ($_ENV['PUBLIC_PAGE_CACHE_TTL'] ?? 600)));
+    }
+
     /**
      * @param array<int, array<string, mixed>> $genres
      * @return array<int, array<string, mixed>>
@@ -237,5 +340,32 @@ class GenrePageService
         });
 
         return $genres;
+    }
+
+    private function normalizeTaxonomy(string $taxonomy): string
+    {
+        return $taxonomy === 'networks' ? 'networks' : 'genres';
+    }
+
+    /**
+     * @return array{singular: string, plural: string, archive_label: string, url_base: string}
+     */
+    private function taxonomyCopy(string $taxonomy): array
+    {
+        if ($taxonomy === 'networks') {
+            return [
+                'singular' => 'Network',
+                'plural' => 'Networks',
+                'archive_label' => 'Network archive',
+                'url_base' => '/network/',
+            ];
+        }
+
+        return [
+            'singular' => 'Genre',
+            'plural' => 'Genres',
+            'archive_label' => 'Genre archive',
+            'url_base' => '/genre/',
+        ];
     }
 }

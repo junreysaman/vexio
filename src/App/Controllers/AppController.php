@@ -52,6 +52,16 @@ class AppController
         return $this->archiveGenrePage($request, $response);
     }
 
+    public function archiveNetworkPage(Request $request, Response $response, ?string $slug = null): Response
+    {
+        return $this->archiveGenrePage->networks($request, $response, $slug);
+    }
+
+    public function networkNetworkPage(Request $request, Response $response): Response
+    {
+        return $this->archiveNetworkPage($request, $response);
+    }
+
     public function archiveTrendingPage(Request $request, Response $response): Response
     {
         return $this->archiveTrendingPage->index($request, $response);

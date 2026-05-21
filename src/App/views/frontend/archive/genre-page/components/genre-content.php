@@ -1,6 +1,7 @@
 <?php
 $activeGenre = is_array($active_genre ?? null) ? $active_genre : null;
 $items = !empty($items) && is_array($items) ? $items : [];
+$taxonomySingular = (string) ($taxonomy_singular ?? 'Genre');
 ?>
 <?php if ($activeGenre): ?>
 <section class="genre-section active-genre-results" id="genre-results">
@@ -32,7 +33,7 @@ $items = !empty($items) && is_array($items) ? $items : [];
     </div>
   <?php else: ?>
     <div class="genre-empty">
-      <strong>No titles in this genre yet</strong>
+      <strong>No titles in this <?= strtolower(escape($taxonomySingular)) ?> yet</strong>
       <span>Import or tag content and it will appear here.</span>
     </div>
   <?php endif; ?>

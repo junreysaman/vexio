@@ -48,7 +48,7 @@
       <?php else: ?>
         <div class="lb-item">
           <span class="lb-rank r1">1</span>
-          <div class="lb-thumb"><img src="https://picsum.photos/seed/vexio-top-empty/160/220" alt="No items available" loading="lazy"></div>
+          <div class="lb-thumb"><img src="https://picsum.photos/seed/vexio-top-empty/160/220" alt="No items available" width="160" height="220" loading="lazy" decoding="async"></div>
           <div class="lb-info">
             <div class="lb-title">No top TMDb titles available</div>
             <div class="lb-sub"><span>Check back soon</span><span>—</span></div>

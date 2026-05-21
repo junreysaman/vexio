@@ -28,9 +28,12 @@ function registerRoutes(App $app): void
         ['GET', '/', [AppController::class, 'home']],
         ['GET', '/genres', [AppController::class, 'genreGenrePage']],
         ['GET', '/genre/{slug}', [AppController::class, 'archiveGenrePage']],
+        ['GET', '/networks', [AppController::class, 'networkNetworkPage']],
+        ['GET', '/network/{slug}', [AppController::class, 'archiveNetworkPage']],
         // Archive Routes
         ['GET', '/archive/browse', [AppController::class, 'archiveBrowse']],
         ['GET', '/archive/genres', [AppController::class, 'archiveGenrePage']],
+        ['GET', '/archive/networks', [AppController::class, 'archiveNetworkPage']],
         ['GET', '/archive/trending', [AppController::class, 'archiveTrendingPage']],
         // Auth Routes
         ['GET', '/login', [AuthPageController::class, 'login']],

@@ -51,10 +51,15 @@ function selectedGenres() {
   return Array.from(document.querySelectorAll('input[name="genre[]"]:checked')).map((input) => input.value);
 }
 
+function selectedCountries() {
+  return Array.from(document.querySelectorAll('input[name="country[]"]:checked')).map((input) => input.value);
+}
+
 function filterState() {
   return {
     type: selectedType(),
     genres: selectedGenres(),
+    countries: selectedCountries(),
     rating: Number(document.getElementById('ratingSlider')?.value || 0),
     yearFrom: Number(document.getElementById('yearFrom')?.value || 0),
     yearTo: Number(document.getElementById('yearTo')?.value || 0),
@@ -64,11 +69,13 @@ function filterState() {
 function cardMatches(card, state) {
   const type = card.dataset.type || '';
   const genres = (card.dataset.genres || '').split(',').filter(Boolean);
+  const countries = (card.dataset.countries || '').split(',').filter(Boolean);
   const year = Number(card.dataset.year || 0);
   const rating = Number(card.dataset.rating || 0);
 
   if (state.type !== 'all' && type !== state.type) return false;
   if (state.genres.length && !state.genres.some((genre) => genres.includes(genre))) return false;
+  if (state.countries.length && !state.countries.some((country) => countries.includes(country))) return false;
   if (state.rating > 0 && rating < state.rating) return false;
   if (state.yearFrom > 0 && year < state.yearFrom) return false;
   if (state.yearTo > 0 && year > state.yearTo) return false;
@@ -110,6 +117,10 @@ function updateActiveFilters(state) {
     const input = document.querySelector(`input[name="genre[]"][value="${CSS.escape(slug)}"]`);
     badges.push({ key: 'genre', value: slug, label: input?.closest('label')?.querySelector('.fc-label')?.textContent || slug });
   });
+  state.countries.forEach((slug) => {
+    const input = document.querySelector(`input[name="country[]"][value="${CSS.escape(slug)}"]`);
+    badges.push({ key: 'country', value: slug, label: input?.closest('label')?.querySelector('.fc-label')?.textContent || slug });
+  });
   if (state.rating > 0) badges.push({ key: 'rating', label: `Rating ${state.rating.toFixed(1)}+` });
   if (state.yearFrom > 0 || state.yearTo > 0) {
     badges.push({ key: 'year', label: `${state.yearFrom || 'Any'} - ${state.yearTo || 'Any'}` });
@@ -144,8 +155,8 @@ function sortCards(value, notify = true) {
   const cards = Array.from(grid.querySelectorAll('.trend-card, .acard'));
   const sorted = cards.sort((left, right) => {
     if (value === 'rating') return Number(right.dataset.rating || 0) - Number(left.dataset.rating || 0);
-    if (value === 'newest') return String(right.dataset.created || '').localeCompare(String(left.dataset.created || ''));
-    if (value === 'oldest') return String(left.dataset.created || '').localeCompare(String(right.dataset.created || ''));
+    if (value === 'newest') return String(right.dataset.releaseDate || '').localeCompare(String(left.dataset.releaseDate || ''));
+    if (value === 'oldest') return String(left.dataset.releaseDate || '').localeCompare(String(right.dataset.releaseDate || ''));
     if (value === 'az') return String(left.dataset.title || '').localeCompare(String(right.dataset.title || ''));
     if (value === 'za') return String(right.dataset.title || '').localeCompare(String(left.dataset.title || ''));
     return Number(right.dataset.views || 0) - Number(left.dataset.views || 0);
@@ -164,6 +175,7 @@ function applyFilters() {
 
 function resetFilters() {
   document.querySelectorAll('input[name="genre[]"]').forEach((input) => input.checked = false);
+  document.querySelectorAll('input[name="country[]"]').forEach((input) => input.checked = false);
   document.querySelector('input[name="type"][value="all"]')?.click();
   const slider = document.getElementById('ratingSlider');
   if (slider) {
@@ -182,6 +194,10 @@ function removeFilter(key, value) {
   if (key === 'type') document.querySelector('input[name="type"][value="all"]')?.click();
   if (key === 'genre') {
     const input = document.querySelector(`input[name="genre[]"][value="${CSS.escape(value)}"]`);
+    if (input) input.checked = false;
+  }
+  if (key === 'country') {
+    const input = document.querySelector(`input[name="country[]"][value="${CSS.escape(value)}"]`);
     if (input) input.checked = false;
   }
   if (key === 'rating') {
@@ -205,6 +221,14 @@ function clearAllFilters() {
 function filterGenreList(term) {
   const needle = term.trim().toLowerCase();
   document.querySelectorAll('#genreList .fc-item').forEach((item) => {
+    const text = item.textContent.toLowerCase();
+    item.hidden = needle !== '' && !text.includes(needle);
+  });
+}
+
+function filterCountryList(term) {
+  const needle = term.trim().toLowerCase();
+  document.querySelectorAll('#countryList .fc-item').forEach((item) => {
     const text = item.textContent.toLowerCase();
     item.hidden = needle !== '' && !text.includes(needle);
   });

@@ -42,6 +42,15 @@ $navItems = [
     ],
 
     [
+        'key' => 'networks',
+        'label' => 'Networks',
+        'href' => '/archive/networks',
+        'active' => in_array($currentPath, ['archive/networks', 'networks'], true)
+            || str_starts_with($currentPath, 'network/'),
+        'icon' => '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20"/><path d="M12 2a15 15 0 0 0 0 20"/>',
+    ],
+
+    [
         'key' => 'trending',
         'label' => 'Trending',
         'href' => '/archive/trending',
@@ -67,7 +76,7 @@ $navItems = [
 
 $mobileNavItems = array_values(array_filter(
     $navItems,
-    static fn (array $item): bool => in_array($item['key'], ['home', 'browse', 'genre', 'trending', 'watching'], true)
+    static fn (array $item): bool => in_array($item['key'], ['home', 'browse', 'genre', 'networks', 'trending', 'watching'], true)
 ));
 ?>
 
@@ -78,7 +87,7 @@ $mobileNavItems = array_values(array_filter(
 <nav id="topnav">
 
     <a href="/" class="vx-logo">
-        <img src="/brand/vexio-transparent.png" alt="Vexio">
+        <img src="/brand/vexio-transparent.png" alt="Vexio" width="140" height="48" decoding="async">
     </a>
 
     <div class="nav-links">

@@ -18,7 +18,7 @@ class MediaCatalogService
     public function trendingByViews(int $limit = 8): array
     {
         $items = $this->db->select(
-            'SELECT id, title, slug, type, tmdb_id, views, poster_url, poster_image, backdrop_image, status, release_year
+            'SELECT id, title, slug, type, tmdb_id, views, poster_url, backdrop_url, status, release_year
              FROM media_items
              WHERE status = :status
              ORDER BY views DESC, updated_at DESC

@@ -2,9 +2,13 @@
 
 <?= $this->includePartial('/frontend/home/components/hero-section') ?>
 
+<?= $this->includePartial('/frontend/home/components/stats-section') ?>
+
 <?= $this->includePartial('/frontend/home/ads/ad-afterhero') ?>
 
 <?= $this->includePartial('/frontend/home/components/recently-added-section') ?>
+
+<?= $this->includePartial('/frontend/home/components/now-airing-section') ?>
 
 <?= $this->includePartial('/frontend/home/components/new-episodes-section') ?>
 
@@ -12,9 +16,9 @@
 
 <?= $this->includePartial('/frontend/home/ads/ad-midpage') ?>
 
-<?= $this->includePartial('/frontend/home/components/tmdb-top10-section') ?>
+<?= $this->includePartial('/frontend/home/components/schedule-section') ?>
 
-<?= $this->includePartial('/frontend/home/components/genre-section') ?>
+<?= $this->includePartial('/frontend/home/components/tmdb-top10-section') ?>
 
 
 <?= $this->includePartial('/frontend/home/ads/ad-footer') ?>
