@@ -146,7 +146,7 @@ class CoreStreamController
             $proxyOrigin = 'https://proxy.vexio.asia';
         }
 
-        return rtrim($proxyOrigin, '/') . '/api/core/proxy';
+        return rtrim($proxyOrigin, '/') . '/v1/proxy';
     }
 
     private function normalizeServerKey(string $server): string
@@ -161,8 +161,8 @@ class CoreStreamController
     private function providersForServer(string $server): array
     {
         return match ($server) {
-            'vexio-s1' => ['02moviedownloader'],
-            'vexio-s2' => ['cinesu'],
+            'vexio-s1' => ['cinesu'],
+            'vexio-s2' => ['02moviedownloader'],
             'vexio-s3' => ['vidrock'],
             'vexio-s4' => ['videasy'],
             'vexio-s5' => ['vixsrc'],
@@ -457,7 +457,9 @@ class CoreStreamController
             rtrim($coreBaseUrl, '/') . '/v1/proxy',
             rtrim($corePublicUrl, '/') . '/v1/proxy',
             rtrim($appUrl, '/') . '/v1/proxy',
+            rtrim($appUrl, '/') . '/api/core/proxy',
             '/v1/proxy',
+            '/api/core/proxy',
         ]));
 
         return str_replace($needles, $proxyBaseUrl, $body);
@@ -559,8 +561,8 @@ class CoreStreamController
     const endpoint = {$this->jsonForScript($sourceUrl)};
     const serverKey = {$this->jsonForScript($server)};
     const providerGroups = {
-      'vexio-s1': ['02MovieDownloader'],
-      'vexio-s2': ['CineSu'],
+      'vexio-s1': ['CineSu'],
+      'vexio-s2': ['02MovieDownloader'],
       'vexio-s3': ['VidRock'],
       'vexio-s4': ['Videasy'],
       'vexio-s5': ['VixSrc'],
