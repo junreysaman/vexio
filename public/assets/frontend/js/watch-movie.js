@@ -32,9 +32,18 @@ function sourceMimeType(source) {
     const type = String(source?.type || '').toLowerCase();
     const url = String(source?.url || '').toLowerCase();
     if (type === 'hls' || url.includes('.m3u8')) return 'application/vnd.apple.mpegurl';
+    if (type === 'mkv' || url.includes('.mkv')) return 'video/x-matroska';
     if (type === 'webm' || url.includes('.webm')) return 'video/webm';
     if (type === 'ogg' || url.includes('.ogv') || url.includes('.ogg')) return 'video/ogg';
     return 'video/mp4';
+}
+
+function sourceCompatibilityMessage(source) {
+    if (source?.compatibilityWarning) return source.compatibilityWarning;
+    if (String(source?.type || '').toLowerCase() === 'mkv') {
+        return 'This MKV source may not play in every browser.';
+    }
+    return '';
 }
 
 function subtitleLanguage(subtitle) {
@@ -132,9 +141,11 @@ function playSource(source, subtitles, shouldPlay = false) {
     }
 
     const mimeType = sourceMimeType(source);
+    const compatibilityMessage = sourceCompatibilityMessage(source);
     const startPlayback = () => {
         streamLoaded = true;
         wrap.classList.add('is-ready');
+        if (compatibilityMessage) showToast(compatibilityMessage);
         if (shouldPlay) Promise.resolve(player.play()).catch(() => {});
     };
 
@@ -148,6 +159,9 @@ function playSource(source, subtitles, shouldPlay = false) {
             if (data?.fatal) showToast('Stream playback failed');
         });
     } else {
+        video.addEventListener('error', () => {
+            showToast(compatibilityMessage || 'This stream format is not supported by your browser');
+        }, { once: true });
         video.src = source.url;
         video.type = mimeType;
         video.addEventListener('loadedmetadata', startPlayback, { once: true });

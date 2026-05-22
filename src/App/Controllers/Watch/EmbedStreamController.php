@@ -93,7 +93,7 @@ class EmbedStreamController
 
     private function sourceCacheKey(string $type, int $tmdbId, int $season, int $episode): string
     {
-        return 'embed-source:v4:' . implode(':', [$type, $tmdbId, $season, $episode]);
+        return 'embed-source:v5:' . implode(':', [$type, $tmdbId, $season, $episode]);
     }
 
     private function embedApiTimeoutForRequest(): float
@@ -164,6 +164,8 @@ class EmbedStreamController
                 $normalized['subtitles'] = $sourceSubtitles;
             }
 
+            $normalized['browserPlayable'] = $this->isBrowserPlayableSource($normalized);
+
             $sources[] = $normalized;
         }
 
@@ -231,13 +233,21 @@ class EmbedStreamController
     {
         $playable = array_values(array_filter($sources, fn (array $source): bool => $this->isBrowserPlayableSource($source)));
 
-        if ($playable === []) {
-            return [];
+        if ($playable !== []) {
+            usort($playable, fn (array $a, array $b): int => $this->sourceScore($b) <=> $this->sourceScore($a));
+
+            return array_slice($playable, 0, $count);
         }
 
-        usort($playable, fn (array $a, array $b): int => $this->sourceScore($b) <=> $this->sourceScore($a));
+        $fallbacks = array_values(array_filter($sources, fn (array $source): bool => trim((string) ($source['url'] ?? '')) !== ''));
+        usort($fallbacks, fn (array $a, array $b): int => $this->fallbackSourceScore($b) <=> $this->fallbackSourceScore($a));
 
-        return array_slice($playable, 0, $count);
+        return array_map(function (array $source): array {
+            $source['browserPlayable'] = false;
+            $source['compatibilityWarning'] = 'This source is an MKV/codec fallback and may not play in every browser.';
+
+            return $source;
+        }, array_slice($fallbacks, 0, $count));
     }
 
     private function isBrowserPlayableSource(array $source): bool
@@ -278,6 +288,35 @@ class EmbedStreamController
         };
 
         return ($quality * 100) + $typeScore;
+    }
+
+    private function fallbackSourceScore(array $source): int
+    {
+        $text = strtolower(
+            (string) ($source['title'] ?? '')
+            . ' ' . (string) ($source['quality'] ?? '')
+            . ' ' . urldecode((string) ($source['url'] ?? ''))
+        );
+
+        $score = $this->qualityScore((string) ($source['quality'] ?? '')) * 100;
+
+        if (preg_match('/\b(h\.?264|x264|avc)\b/', $text)) {
+            $score += 70000;
+        }
+
+        if (preg_match('/\b(hevc|h\.?265|x265)\b/', $text)) {
+            $score -= 45000;
+        }
+
+        if (preg_match('/\b(10bit|10-bit|dv|dolby vision)\b/', $text)) {
+            $score -= 25000;
+        }
+
+        if (preg_match('/\|\s*(\d+(?:\.\d+)?)\s*gb\s*\|/i', (string) ($source['title'] ?? ''), $matches)) {
+            $score -= (int) round(((float) $matches[1]) * 100);
+        }
+
+        return $score;
     }
 
     private function qualityScore(string $quality): int
