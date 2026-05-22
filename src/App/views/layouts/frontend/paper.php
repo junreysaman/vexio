@@ -35,10 +35,8 @@ $pageLoaderEnabled = filter_var($_ENV['PAGE_LOADER_ENABLED'] ?? false, FILTER_VA
 
 <body class="<?= escape(trim(($body_class ?? 'paper-frontend') . ($pageLoaderEnabled ? '' : ' loaded'))) ?>">
 
-    <?php if ($pageLoaderEnabled): ?>
     <?= $this->includePartial('frontend/partials/page-loader') ?>
-    <?php endif; ?>
-    <div id="app" class="vexio-app-shell<?= $pageLoaderEnabled ? '' : ' visible' ?>">
+    <div id="app" class="vexio-app-shell">
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
      <!-- $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial')
