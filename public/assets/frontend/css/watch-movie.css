@@ -838,3 +838,10 @@
   .ctrl-btn{width:32px;height:32px;}
   .ctrl-btn svg{width:16px;height:16px;}
 }
+
+.player-wrap{cursor:default;}
+.player-wrap .plyr{z-index:2;}
+.player-wrap .plyr,
+.player-wrap .plyr__video-wrapper,
+.player-wrap .plyr video{border-radius:0;}
+.player-wrap .plyr__poster{background-size:cover;}

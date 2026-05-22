@@ -93,7 +93,7 @@ class EmbedStreamController
 
     private function sourceCacheKey(string $type, int $tmdbId, int $season, int $episode): string
     {
-        return 'embed-source:v2:' . implode(':', [$type, $tmdbId, $season, $episode]);
+        return 'embed-source:v3:' . implode(':', [$type, $tmdbId, $season, $episode]);
     }
 
     private function embedApiTimeoutForRequest(): float
@@ -159,16 +159,24 @@ class EmbedStreamController
                 $normalized['headers'] = $source['headers'];
             }
 
+            $sourceSubtitles = $this->selectSubtitles($source['subtitles'] ?? $source['tracks'] ?? []);
+            if ($sourceSubtitles !== []) {
+                $normalized['subtitles'] = $sourceSubtitles;
+            }
+
             $sources[] = $normalized;
         }
 
         $sources = $this->topPlayableSources($sources, 5);
+        $subtitles = $this->selectSubtitles($payload['subtitles'] ?? []);
 
         return [
             'success' => true,
+            'source' => 'embed-api',
+            'scraperIntegrated' => true,
             'count' => count($sources),
             'sources' => $sources,
-            'subtitles' => $this->selectSubtitles($payload['subtitles'] ?? []),
+            'subtitles' => $subtitles,
             'providerTimings' => is_array($payload['providerTimings'] ?? null) ? $payload['providerTimings'] : [],
         ];
     }
@@ -176,9 +184,30 @@ class EmbedStreamController
     private function sourceType(array $source, string $url): string
     {
         $type = strtolower(trim((string) ($source['type'] ?? '')));
+        $sourceText = strtolower($url . ' ' . urldecode($url) . ' ' . ($source['title'] ?? '') . ' ' . ($source['name'] ?? ''));
         $path = strtolower((string) parse_url($url, PHP_URL_PATH));
 
-        return str_ends_with($path, '.m3u8') ? 'hls' : 'mp4';
+        if (str_contains($sourceText, '.mkv') || preg_match('/\b(mkv|matroska)\b/', $sourceText)) {
+            return 'mkv';
+        }
+
+        if ($type !== '') {
+            return $type;
+        }
+
+        if (str_ends_with($path, '.m3u8')) {
+            return 'hls';
+        }
+
+        if (str_ends_with($path, '.webm')) {
+            return 'webm';
+        }
+
+        if (str_ends_with($path, '.ogg') || str_ends_with($path, '.ogv')) {
+            return 'ogg';
+        }
+
+        return 'mp4';
     }
 
     private function normalizeProvider(mixed $provider): array
@@ -215,18 +244,27 @@ class EmbedStreamController
     {
         $url = trim((string) ($source['url'] ?? ''));
         $type = strtolower(trim((string) ($source['type'] ?? '')));
+        $sourceText = strtolower($url . ' ' . urldecode($url) . ' ' . ($source['title'] ?? '') . ' ' . ($source['quality'] ?? ''));
 
         if ($url === '') {
             return false;
         }
 
-        if (in_array($type, ['hls', 'mp4'], true)) {
+        if ($type === 'mkv' || str_contains($sourceText, '.mkv') || preg_match('/\b(mkv|matroska)\b/', $sourceText)) {
+            return false;
+        }
+
+        if (in_array($type, ['hls', 'mp4', 'webm', 'ogg'], true)) {
             return true;
         }
 
         $path = strtolower((string) parse_url($url, PHP_URL_PATH));
 
-        return str_ends_with($path, '.m3u8') || str_ends_with($path, '.mp4');
+        return str_ends_with($path, '.m3u8')
+            || str_ends_with($path, '.mp4')
+            || str_ends_with($path, '.webm')
+            || str_ends_with($path, '.ogg')
+            || str_ends_with($path, '.ogv');
     }
 
     private function sourceScore(array $source): int
@@ -281,21 +319,39 @@ class EmbedStreamController
                 continue;
             }
 
-            $url = trim((string) ($subtitle['url'] ?? $subtitle['src'] ?? ''));
+            $url = trim((string) ($subtitle['url'] ?? $subtitle['src'] ?? $subtitle['file'] ?? ''));
             if ($url === '' || isset($deduped[$url])) {
                 continue;
             }
 
-            $format = strtolower(trim((string) ($subtitle['format'] ?? pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION))));
+            $format = strtolower(trim((string) ($subtitle['format'] ?? $subtitle['type'] ?? pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION))));
             $deduped[$url] = [
-                'url' => $url,
-                'label' => (string) ($subtitle['label'] ?? $subtitle['language'] ?? 'Subtitle'),
-                'language' => (string) ($subtitle['language'] ?? ''),
+                'url' => $this->subtitleUrl($url, is_array($subtitle['headers'] ?? null) ? $subtitle['headers'] : []),
+                'label' => (string) ($subtitle['label'] ?? $subtitle['language'] ?? $subtitle['lang'] ?? 'Subtitle'),
+                'language' => (string) ($subtitle['language'] ?? $subtitle['lang'] ?? $subtitle['srclang'] ?? ''),
                 'format' => $format ?: 'vtt',
             ];
         }
 
         return array_values($deduped);
+    }
+
+    private function subtitleUrl(string $url, array $headers = []): string
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+
+        if (!filter_var($_ENV['EMBED_API_PROXY_SUBTITLES'] ?? true, FILTER_VALIDATE_BOOLEAN)) {
+            return $url;
+        }
+
+        $query = ['url' => $url];
+        if ($headers !== []) {
+            $query['headers'] = json_encode($headers, JSON_UNESCAPED_SLASHES);
+        }
+
+        return $this->embedApiBaseUrl() . '/sub-proxy?' . http_build_query($query);
     }
 
 }

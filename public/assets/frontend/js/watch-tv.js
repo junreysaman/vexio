@@ -27,12 +27,8 @@ function initEpisodeList() {
                 || (row.dataset.numberSearch || '').includes(term);
         });
 
-        rows.forEach(row => {
-            row.hidden = true;
-        });
-        matches.slice(0, visibleLimit).forEach(row => {
-            row.hidden = false;
-        });
+        rows.forEach(row => { row.hidden = true; });
+        matches.slice(0, visibleLimit).forEach(row => { row.hidden = false; });
 
         if (loadMore) loadMore.hidden = matches.length <= visibleLimit;
         if (loadMoreWrap) loadMoreWrap.hidden = matches.length <= visibleLimit;
@@ -64,9 +60,7 @@ function initSidebarEpisodeList() {
     let visibleLimit = Math.max(pageSize, Math.ceil((currentIndex + 1) / pageSize) * pageSize);
 
     const render = () => {
-        rows.forEach((row, index) => {
-            row.hidden = index >= visibleLimit;
-        });
+        rows.forEach((row, index) => { row.hidden = index >= visibleLimit; });
         if (sentinel) sentinel.hidden = visibleLimit >= rows.length;
     };
 
@@ -77,7 +71,7 @@ function initSidebarEpisodeList() {
     };
 
     if ('IntersectionObserver' in window && sentinel) {
-        const observer = new IntersectionObserver((entries) => {
+        const observer = new IntersectionObserver(entries => {
             if (entries.some(entry => entry.isIntersecting)) revealMore();
         }, { root: scroller, rootMargin: '160px 0px' });
         observer.observe(sentinel);
@@ -94,9 +88,10 @@ function initSidebarEpisodeList() {
 let vexioPlyr = null;
 let vexioHls = null;
 let streamLoaded = false;
+let streamLoading = null;
 let tvCountdownTimer;
 
-function initVexioPlyr() {
+function initVexioPlyr(options = {}) {
     const video = document.getElementById('vexioPlyrVideo');
     if (!video || !window.Plyr) return null;
     if (vexioPlyr) return vexioPlyr;
@@ -105,50 +100,119 @@ function initVexioPlyr() {
         iconUrl: '/assets/vendor/plyr/plyr.svg',
         controls: ['play-large', 'play', 'rewind', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
         settings: ['captions', 'quality', 'speed'],
-        seekTime: 10
+        captions: { active: true, language: 'auto', update: true },
+        seekTime: 10,
+        ...options
+    });
+
+    video.addEventListener('play', () => {
+        if (!streamLoaded) {
+            video.pause();
+            loadVexioStream(true);
+        }
     });
     video.addEventListener('ended', triggerNextEp);
+
     return vexioPlyr;
 }
 
 function sourceMimeType(source) {
     const type = String(source?.type || '').toLowerCase();
     const url = String(source?.url || '').toLowerCase();
-    return type === 'mp4' || url.includes('.mp4') ? 'video/mp4' : 'application/vnd.apple.mpegurl';
+    if (type === 'hls' || url.includes('.m3u8')) return 'application/vnd.apple.mpegurl';
+    if (type === 'webm' || url.includes('.webm')) return 'video/webm';
+    if (type === 'ogg' || url.includes('.ogv') || url.includes('.ogg')) return 'video/ogg';
+    return 'video/mp4';
 }
 
 function subtitleLanguage(subtitle) {
-    const label = String(subtitle.label || subtitle.language || '').toLowerCase();
-    if (label.includes('english') || label === 'eng') return 'en';
-    if (label.includes('spanish') || label === 'spa') return 'es';
-    if (label.includes('french') || label === 'fre') return 'fr';
-    if (label.includes('german') || label === 'ger') return 'de';
-    return label.replace(/[^a-z-]/g, '').slice(0, 12) || 'sub';
+    const raw = String(subtitle.language || subtitle.lang || subtitle.srclang || subtitle.label || '').trim();
+    const label = raw.toLowerCase();
+    const languages = {
+        english: 'en', eng: 'en',
+        spanish: 'es', spa: 'es',
+        french: 'fr', fre: 'fr', fra: 'fr',
+        german: 'de', ger: 'de', deu: 'de',
+        portuguese: 'pt', por: 'pt',
+        hindi: 'hi', hin: 'hi',
+        indonesian: 'id', ind: 'id',
+        malay: 'ms', may: 'ms', msa: 'ms',
+        japanese: 'ja', jpn: 'ja',
+        korean: 'ko', kor: 'ko',
+        chinese: 'zh', chi: 'zh', zho: 'zh'
+    };
+
+    return languages[label] || label.replace(/[^a-z-]/g, '').slice(0, 12) || 'sub';
+}
+
+function isVttSubtitle(subtitle) {
+    const format = String(subtitle.format || subtitle.type || '').toLowerCase();
+    const url = String(subtitle.url || subtitle.src || subtitle.file || '').toLowerCase();
+    return !format || ['vtt', 'webvtt'].includes(format) || url.includes('/sub-proxy') || url.includes('.vtt');
+}
+
+function normalizeSubtitles(subtitles) {
+    const seen = new Set();
+    return (Array.isArray(subtitles) ? subtitles : [])
+        .map(subtitle => ({
+            ...subtitle,
+            url: subtitle?.url || subtitle?.src || subtitle?.file || '',
+            label: subtitle?.label || subtitle?.language || subtitle?.lang || 'Subtitle'
+        }))
+        .filter(subtitle => subtitle.url && isVttSubtitle(subtitle))
+        .filter(subtitle => {
+            if (seen.has(subtitle.url)) return false;
+            seen.add(subtitle.url);
+            return true;
+        })
+        .slice(0, 14);
 }
 
 function addSubtitles(video, subtitles) {
+    const tracks = normalizeSubtitles(subtitles);
     video.querySelectorAll('track').forEach(track => track.remove());
-    (Array.isArray(subtitles) ? subtitles : [])
-        .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
-        .slice(0, 14)
-        .forEach((subtitle, index) => {
-            const track = document.createElement('track');
-            track.kind = 'subtitles';
-            track.src = subtitle.url;
-            track.label = subtitle.label || 'Subtitle';
-            track.srclang = subtitleLanguage(subtitle);
-            track.default = index === 0 && /english|eng|^en$/i.test(String(subtitle.label || subtitle.language || ''));
-            video.appendChild(track);
-        });
+
+    tracks.forEach((subtitle, index) => {
+        const track = document.createElement('track');
+        const language = subtitleLanguage(subtitle);
+        track.kind = 'subtitles';
+        track.src = subtitle.url;
+        track.label = subtitle.label;
+        track.srclang = language;
+        track.default = index === 0 && /^(en|english|eng)$/i.test(String(subtitle.label || subtitle.language || language));
+        video.appendChild(track);
+    });
+
+    return tracks;
 }
 
-function playSource(source, subtitles) {
+function applyHlsQualityLevels(player, hls) {
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        const heights = hls.levels
+            .map(level => level.height)
+            .filter((height, index, levels) => height && levels.indexOf(height) === index)
+            .sort((a, b) => b - a);
+
+        if (!heights.length) return;
+
+        player.config.quality = {
+            default: 0,
+            options: [0, ...heights],
+            forced: true,
+            onChange: quality => {
+                hls.currentLevel = quality === 0 ? -1 : hls.levels.findIndex(level => level.height === quality);
+            }
+        };
+    });
+}
+
+function playSource(source, subtitles, shouldPlay = false) {
     const wrap = document.getElementById('playerWrap');
     const video = document.getElementById('vexioPlyrVideo');
     const player = initVexioPlyr();
     if (!wrap || !video || !player || !source?.url) return false;
 
-    addSubtitles(video, subtitles);
+    addSubtitles(video, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
 
     if (vexioHls) {
         vexioHls.destroy();
@@ -156,81 +220,76 @@ function playSource(source, subtitles) {
     }
 
     const mimeType = sourceMimeType(source);
+    const startPlayback = () => {
+        streamLoaded = true;
+        wrap.classList.add('is-ready');
+        if (shouldPlay) Promise.resolve(player.play()).catch(() => {});
+    };
+
     if (mimeType.includes('mpegurl') && window.Hls && Hls.isSupported()) {
         vexioHls = new Hls({ enableWorker: true });
+        applyHlsQualityLevels(player, vexioHls);
         vexioHls.loadSource(source.url);
         vexioHls.attachMedia(video);
-        vexioHls.on(Hls.Events.MANIFEST_PARSED, () => {
-            wrap.classList.add('is-ready');
-            Promise.resolve(player.play()).catch(() => {});
-        });
+        vexioHls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
         vexioHls.on(Hls.Events.ERROR, (_event, data) => {
             if (data?.fatal) showToast('Stream playback failed');
         });
     } else {
         video.src = source.url;
         video.type = mimeType;
-        wrap.classList.add('is-ready');
-        video.addEventListener('loadedmetadata', () => Promise.resolve(player.play()).catch(() => {}), { once: true });
+        video.addEventListener('loadedmetadata', startPlayback, { once: true });
+        video.load();
     }
 
-    streamLoaded = true;
-    showToast('Loading stream');
     return true;
 }
 
-async function loadVexioStream() {
+async function loadVexioStream(shouldPlay = false) {
     if (streamLoaded) {
-        Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
+        if (shouldPlay) Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
         return true;
+    }
+
+    if (streamLoading) {
+        const loaded = await streamLoading;
+        if (loaded && shouldPlay) Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
+        return loaded;
     }
 
     const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
     if (!endpoint) return false;
 
-    try {
-        showToast('Loading stream');
-        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
-        const data = await response.json();
-        if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
+    streamLoading = (async () => {
+        try {
+            showToast('Loading stream');
+            const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
 
-        const source = (Array.isArray(data.sources) ? data.sources : []).find(item => item?.url);
-        if (!source) throw new Error('No playable stream found');
+            const source = (Array.isArray(data.sources) ? data.sources : []).find(item => item?.url);
+            if (!source) throw new Error('No playable stream found');
 
-        return playSource(source, data.subtitles || []);
-    } catch (error) {
-        showToast(error.message || 'Unable to load stream');
-        return false;
-    }
+            return playSource(source, data.subtitles || [], shouldPlay);
+        } catch (error) {
+            showToast(error.message || 'Unable to load stream');
+            return false;
+        } finally {
+            streamLoading = null;
+        }
+    })();
+
+    return streamLoading;
 }
 
-function initPlay() { loadVexioStream(); }
-function togglePlay() {
-    if (!streamLoaded) {
-        loadVexioStream();
-        return;
-    }
-    vexioPlyr?.togglePlay?.();
-}
+function initPlay() { loadVexioStream(true); }
+function togglePlay() { loadVexioStream(true); }
 function seekVideo() {}
 function skipBack() { vexioPlyr?.rewind?.(10); }
 function skipFwd() { vexioPlyr?.forward?.(10); }
 function toggleMute() { if (vexioPlyr) vexioPlyr.muted = !vexioPlyr.muted; }
 function setVolume() {}
 function toggleFullscreen() { vexioPlyr?.fullscreen?.toggle?.(); }
-
-function spawnTvParticles() {
-    const container = document.getElementById('particles');
-    if (!container || container.children.length) return;
-    const colors = ['#00c8f0', '#8b5cf6', '#e8173f', '#ffc340', '#ff5e7d'];
-    for (let i = 0; i < 18; i++) {
-        const p = document.createElement('div');
-        const size = Math.random() * 4 + 2;
-        p.className = 'particle';
-        p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random() * 100}%;background:${colors[Math.floor(Math.random() * colors.length)]};animation-duration:${Math.random() * 8 + 6}s;animation-delay:${Math.random() * 8}s;`;
-        container.appendChild(p);
-    }
-}
 
 function triggerNextEp() {
     const overlay = document.getElementById('nextEpOverlay');
@@ -289,12 +348,12 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initEpisodeList();
         initSidebarEpisodeList();
-        spawnTvParticles();
         initVexioPlyr();
+        loadVexioStream(false);
     });
 } else {
     initEpisodeList();
     initSidebarEpisodeList();
-    spawnTvParticles();
     initVexioPlyr();
+    loadVexioStream(false);
 }
