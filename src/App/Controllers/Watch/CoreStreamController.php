@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Watch;
 
+use App\Cache\CacheInterface;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use GuzzleHttp\Client;
@@ -12,6 +13,10 @@ use Psr\Http\Message\ResponseInterface;
 
 class CoreStreamController
 {
+    public function __construct(private CacheInterface $cache)
+    {
+    }
+
     public function player(Request $request, Response $response, string $type, string $tmdbId): Response
     {
         $type = $type === 'tv' ? 'tv' : 'movie';
@@ -35,9 +40,17 @@ class CoreStreamController
         $episode = max(1, (int) $request->query('episode', 1));
         $server = $this->normalizeServerKey((string) $request->query('server', 'vexio-s1'));
         $providers = $this->providersForServer($server);
+        $cacheKey = $this->sourceCacheKey($type, $tmdbId, $season, $episode, $server);
 
         if (!in_array($type, ['movie', 'tv'], true) || $tmdbId < 1) {
             return $response->error('Invalid Core source request.', 422);
+        }
+
+        $cachedPayload = $this->cache->get($cacheKey);
+        if (is_array($cachedPayload)) {
+            return $response
+                ->header('X-Vexio-Stream-Cache', 'hit')
+                ->json($cachedPayload);
         }
 
         $coreBaseUrl = $this->coreBaseUrl();
@@ -47,7 +60,7 @@ class CoreStreamController
             $client = new Client([
                 'base_uri' => $coreBaseUrl,
                 'connect_timeout' => (float) ($_ENV['CINEPRO_CORE_CONNECT_TIMEOUT'] ?? 5),
-                'timeout' => (float) ($_ENV['CINEPRO_CORE_TIMEOUT'] ?? 180),
+                'timeout' => $this->coreTimeoutForRequest($providers),
                 'http_errors' => false,
             ]);
 
@@ -64,7 +77,12 @@ class CoreStreamController
 
             $payload = $this->withDeferredSubtitleFallback($payload, $type, $tmdbId, $season, $episode, $server);
 
-            return $response->json($this->normalizeSourcePayload($payload, $coreBaseUrl, $this->vexioProxyBaseUrl()));
+            $normalizedPayload = $this->normalizeSourcePayload($payload, $coreBaseUrl, $this->vexioProxyBaseUrl());
+            $this->cache->set($cacheKey, $normalizedPayload, $this->sourceCacheTtl());
+
+            return $response
+                ->header('X-Vexio-Stream-Cache', 'miss')
+                ->json($normalizedPayload);
         } catch (GuzzleException $exception) {
             return $response->json([
                 'error' => [
@@ -124,6 +142,25 @@ class CoreStreamController
         return rtrim((string) ($_ENV['CINEPRO_CORE_URL'] ?? 'http://127.0.0.1:3000'), '/');
     }
 
+    private function sourceCacheTtl(): int
+    {
+        return max(30, (int) ($_ENV['CINEPRO_CORE_SOURCE_CACHE_TTL'] ?? 1800));
+    }
+
+    private function sourceCacheKey(string $type, int $tmdbId, int $season, int $episode, string $server): string
+    {
+        return 'core-source:v2:' . implode(':', [$type, $tmdbId, $season, $episode, $server]);
+    }
+
+    private function coreTimeoutForRequest(array $providers): float
+    {
+        if ($providers === []) {
+            return (float) ($_ENV['CINEPRO_CORE_MULTI_TIMEOUT'] ?? $_ENV['CINEPRO_CORE_TIMEOUT'] ?? 45);
+        }
+
+        return (float) ($_ENV['CINEPRO_CORE_SINGLE_TIMEOUT'] ?? 18);
+    }
+
     private function corePublicUrl(string $fallback): string
     {
         return rtrim((string) ($_ENV['CINEPRO_CORE_PUBLIC_URL'] ?? $fallback), '/');
@@ -143,7 +180,7 @@ class CoreStreamController
     {
         $server = strtolower(trim($server));
 
-        return in_array($server, ['vexio-s1', 'vexio-s2', 'vexio-s3', 'vexio-s4', 'vexio-s5', 'vexio-multi'], true)
+        return in_array($server, ['vexio-s1', 'vexio-s2', 'vexio-s3', 'vexio-s4', 'vexio-s5', 'vexio-multi', 'vexio-subtitles'], true)
             ? $server
             : 'vexio-s1';
     }
@@ -156,6 +193,7 @@ class CoreStreamController
             'vexio-s3' => ['cinesu'],
             'vexio-s4' => ['videasy'],
             'vexio-s5' => ['vixsrc'],
+            'vexio-subtitles' => ['vidrock', 'vidfast', 'vidup'],
             default => [],
         };
     }
@@ -163,7 +201,7 @@ class CoreStreamController
     private function subtitleFallbackProvidersForServer(string $server): array
     {
         return match ($server) {
-            'vexio-s3' => ['vidrock'],
+            'vexio-s3' => ['vidrock', 'vidfast', 'vidup'],
             default => [],
         };
     }
@@ -208,7 +246,7 @@ class CoreStreamController
             'tmdbId' => $tmdbId,
             'season' => $season,
             'episode' => $episode,
-            'server' => 'vexio-s3',
+            'server' => 'vexio-subtitles',
             'subtitlesOnly' => '1',
         ]);
 
