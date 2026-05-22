@@ -1,31 +1,15 @@
 let userRating = 0;
-let vexioPlyr = null;
-let vexioHls = null;
+let vexioVideo = null;
 let streamLoaded = false;
 let streamLoading = null;
+let streamSources = [];
+let streamSourceIndex = 0;
+let streamStartTimer = null;
+let vidstackModule = null;
 
-function initVexioPlyr(options = {}) {
-    const video = document.getElementById('vexioPlyrVideo');
-    if (!video || !window.Plyr) return null;
-    if (vexioPlyr) return vexioPlyr;
-
-    vexioPlyr = new Plyr(video, {
-        iconUrl: '/assets/vendor/plyr/plyr.svg',
-        controls: ['play-large', 'play', 'rewind', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
-        settings: ['captions', 'quality', 'speed'],
-        captions: { active: true, language: 'auto', update: true },
-        seekTime: 10,
-        ...options
-    });
-
-    video.addEventListener('play', () => {
-        if (!streamLoaded) {
-            video.pause();
-            loadVexioStream(true);
-        }
-    });
-
-    return vexioPlyr;
+function initVexioVideo() {
+    if (vexioVideo) return vexioVideo;
+    return document.querySelector('#vexioPlayerTarget media-player');
 }
 
 function sourceMimeType(source) {
@@ -72,6 +56,11 @@ function isVttSubtitle(subtitle) {
     return !format || ['vtt', 'webvtt'].includes(format) || url.includes('/sub-proxy') || url.includes('.vtt');
 }
 
+function isEnglishSubtitle(subtitle) {
+    const value = String(`${subtitle?.label || ''} ${subtitle?.language || ''} ${subtitle?.lang || ''}`).toLowerCase();
+    return /\b(en|eng|english)\b/.test(value);
+}
+
 function normalizeSubtitles(subtitles) {
     const seen = new Set();
     return (Array.isArray(subtitles) ? subtitles : [])
@@ -86,100 +75,131 @@ function normalizeSubtitles(subtitles) {
             seen.add(subtitle.url);
             return true;
         })
+        .sort((a, b) => Number(isEnglishSubtitle(b)) - Number(isEnglishSubtitle(a)))
         .slice(0, 14);
 }
 
-function addSubtitles(video, subtitles) {
+function createVidstackTracks(module, subtitles) {
     const tracks = normalizeSubtitles(subtitles);
-    video.querySelectorAll('track').forEach(track => track.remove());
-
-    tracks.forEach((subtitle, index) => {
-        const track = document.createElement('track');
+    const defaultIndex = Math.max(0, tracks.findIndex(isEnglishSubtitle));
+    return tracks.map((subtitle, index) => {
         const language = subtitleLanguage(subtitle);
-        track.kind = 'subtitles';
-        track.src = subtitle.url;
-        track.label = subtitle.label;
-        track.srclang = language;
-        track.default = index === 0 && /^(en|english|eng)$/i.test(String(subtitle.label || subtitle.language || language));
-        video.appendChild(track);
-    });
-
-    return tracks;
-}
-
-function applyHlsQualityLevels(player, hls) {
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const heights = hls.levels
-            .map(level => level.height)
-            .filter((height, index, levels) => height && levels.indexOf(height) === index)
-            .sort((a, b) => b - a);
-
-        if (!heights.length) return;
-
-        player.config.quality = {
-            default: 0,
-            options: [0, ...heights],
-            forced: true,
-            onChange: quality => {
-                hls.currentLevel = quality === 0 ? -1 : hls.levels.findIndex(level => level.height === quality);
-            }
-        };
+        return new module.TextTrack({
+            src: subtitle.url,
+            kind: 'subtitles',
+            label: subtitle.label,
+            language,
+            type: 'vtt',
+            default: index === defaultIndex
+        });
     });
 }
 
-function playSource(source, subtitles, shouldPlay = false) {
+function setPlayerLoading(isLoading, status = 'Connecting to vexio-main') {
     const wrap = document.getElementById('playerWrap');
-    const video = document.getElementById('vexioPlyrVideo');
-    const player = initVexioPlyr();
-    if (!wrap || !video || !player || !source?.url) return false;
+    const statusNode = document.getElementById('vexioLoaderStatus');
+    if (statusNode) statusNode.textContent = status;
+    wrap?.classList.toggle('is-loading', isLoading);
+}
 
-    addSubtitles(video, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
-
-    if (vexioHls) {
-        vexioHls.destroy();
-        vexioHls = null;
+async function loadVidstackModule() {
+    if (!vidstackModule) {
+        vidstackModule = await import('https://cdn.vidstack.io/player');
     }
+    return vidstackModule;
+}
+
+async function createVidstackPlayer(source, subtitles) {
+    const wrap = document.getElementById('playerWrap');
+    const target = document.getElementById('vexioPlayerTarget');
+    if (!wrap || !target || !source?.url) return null;
+
+    const module = await loadVidstackModule();
+    const { VidstackPlayer, VidstackPlayerLayout } = module;
+
+    if (vexioVideo) {
+        try { vexioVideo.pause?.(); } catch (_error) {}
+    }
+    target.replaceChildren();
 
     const mimeType = sourceMimeType(source);
+    const tracks = createVidstackTracks(module, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
+    const defaultTrack = tracks.find(track => track.default);
+    if (defaultTrack) {
+        try { defaultTrack.mode = 'showing'; } catch (_error) {}
+    }
+    const player = await VidstackPlayer.create({
+        target,
+        src: { src: source.url, type: mimeType },
+        title: target.dataset.title || wrap.dataset.title || '',
+        poster: target.dataset.poster || '',
+        tracks,
+        layout: new VidstackPlayerLayout({ colorScheme: 'dark' }),
+        viewType: 'video',
+        streamType: 'on-demand',
+        preload: 'metadata',
+        playsinline: true,
+        crossOrigin: 'anonymous',
+        logLevel: 'warn'
+    });
+
+    vexioVideo = player;
+    return player;
+}
+
+async function playSource(source, subtitles, shouldPlay = false) {
+    const wrap = document.getElementById('playerWrap');
+    if (!wrap || !source?.url) return false;
+
     const compatibilityMessage = sourceCompatibilityMessage(source);
+    streamLoaded = false;
+    wrap.classList.remove('is-ready');
+    setPlayerLoading(true, 'Preparing vexio-main');
+    clearTimeout(streamStartTimer);
+    const player = await createVidstackPlayer(source, subtitles);
+    if (!player) return false;
+
     const startPlayback = () => {
+        if (streamLoaded) return;
+        clearTimeout(streamStartTimer);
         streamLoaded = true;
         wrap.classList.add('is-ready');
+        setPlayerLoading(false);
         if (compatibilityMessage) showToast(compatibilityMessage);
         if (shouldPlay) Promise.resolve(player.play()).catch(() => {});
     };
+    const tryNextSource = async () => {
+        clearTimeout(streamStartTimer);
+        if (streamLoaded) return;
+        const nextSource = streamSources[streamSourceIndex + 1];
+        if (!nextSource) {
+            setPlayerLoading(false);
+            showToast(compatibilityMessage || 'This stream is taking too long to start');
+            return;
+        }
+        streamSourceIndex += 1;
+        setPlayerLoading(true, 'Trying vexio-main fallback');
+        showToast('Trying another stream');
+        await playSource(nextSource, subtitles, shouldPlay);
+    };
 
-    if (mimeType.includes('mpegurl') && window.Hls && Hls.isSupported()) {
-        vexioHls = new Hls({ enableWorker: true });
-        applyHlsQualityLevels(player, vexioHls);
-        vexioHls.loadSource(source.url);
-        vexioHls.attachMedia(video);
-        vexioHls.on(Hls.Events.MANIFEST_PARSED, startPlayback);
-        vexioHls.on(Hls.Events.ERROR, (_event, data) => {
-            if (data?.fatal) showToast('Stream playback failed');
-        });
-    } else {
-        video.addEventListener('error', () => {
-            showToast(compatibilityMessage || 'This stream format is not supported by your browser');
-        }, { once: true });
-        video.src = source.url;
-        video.type = mimeType;
-        video.addEventListener('loadedmetadata', startPlayback, { once: true });
-        video.load();
-    }
+    player.addEventListener('can-play', startPlayback, { once: true });
+    player.addEventListener('loaded-metadata', startPlayback, { once: true });
+    player.addEventListener('error', tryNextSource, { once: true });
+    streamStartTimer = setTimeout(tryNextSource, 15000);
 
     return true;
 }
 
 async function loadVexioStream(shouldPlay = false) {
     if (streamLoaded) {
-        if (shouldPlay) Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
+        if (shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => {});
         return true;
     }
 
     if (streamLoading) {
         const loaded = await streamLoading;
-        if (loaded && shouldPlay) Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
+        if (loaded && shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => {});
         return loaded;
     }
 
@@ -188,16 +208,20 @@ async function loadVexioStream(shouldPlay = false) {
 
     streamLoading = (async () => {
         try {
+            setPlayerLoading(true, 'Connecting to vexio-main');
             showToast('Loading stream');
             const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
             const data = await response.json();
             if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
 
-            const source = (Array.isArray(data.sources) ? data.sources : []).find(item => item?.url);
+            streamSources = (Array.isArray(data.sources) ? data.sources : []).filter(item => item?.url);
+            streamSourceIndex = 0;
+            const source = streamSources[streamSourceIndex];
             if (!source) throw new Error('No playable stream found');
 
-            return playSource(source, data.subtitles || [], shouldPlay);
+            return await playSource(source, data.subtitles || [], shouldPlay);
         } catch (error) {
+            setPlayerLoading(false);
             showToast(error.message || 'Unable to load stream');
             return false;
         } finally {
@@ -211,11 +235,18 @@ async function loadVexioStream(shouldPlay = false) {
 function initPlay() { loadVexioStream(true); }
 function togglePlay() { loadVexioStream(true); }
 function seekVideo() {}
-function skipBack() { vexioPlyr?.rewind?.(10); }
-function skipFwd() { vexioPlyr?.forward?.(10); }
-function toggleMute() { if (vexioPlyr) vexioPlyr.muted = !vexioPlyr.muted; }
+function skipBack() { if (vexioVideo) vexioVideo.currentTime = Math.max(0, vexioVideo.currentTime - 10); }
+function skipFwd() { if (vexioVideo) vexioVideo.currentTime = Math.min(vexioVideo.duration || Infinity, vexioVideo.currentTime + 10); }
+function toggleMute() { if (vexioVideo) vexioVideo.muted = !vexioVideo.muted; }
 function setVolume() {}
-function toggleFullscreen() { vexioPlyr?.fullscreen?.toggle?.(); }
+function toggleFullscreen() {
+    const wrap = document.getElementById('playerWrap');
+    if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+    } else {
+        wrap?.requestFullscreen?.();
+    }
+}
 
 function switchTab(id, btn) {
     document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
@@ -269,10 +300,10 @@ function showToast(msg) {
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        initVexioPlyr();
+        initVexioVideo();
         loadVexioStream(false);
     });
 } else {
-    initVexioPlyr();
+    initVexioVideo();
     loadVexioStream(false);
 }

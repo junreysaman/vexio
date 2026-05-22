@@ -39,6 +39,19 @@ class EmbedStreamController
                 ->json($cachedPayload);
         }
 
+        $cineProPayload = $this->fetchCineProCorePayload($type, $tmdbId, $season, $episode);
+        if ($cineProPayload !== null) {
+            $normalizedPayload = $this->normalizeSourcePayload($cineProPayload, 'cinepro-core', false);
+            if (($normalizedPayload['sources'] ?? []) !== []) {
+                $this->cache->set($cacheKey, $normalizedPayload, $this->sourceCacheTtl());
+
+                return $response
+                    ->header('X-Vexio-Stream-Cache', 'miss')
+                    ->header('X-Vexio-Stream-Provider', 'cinepro-core')
+                    ->json($normalizedPayload);
+            }
+        }
+
         [$path, $query] = $this->embedApiSourceRequest($type, $tmdbId, $season, $episode);
 
         try {
@@ -60,11 +73,12 @@ class EmbedStreamController
                 ], 502);
             }
 
-            $normalizedPayload = $this->normalizeSourcePayload($payload);
+            $normalizedPayload = $this->normalizeSourcePayload($payload, 'embed-api', true);
             $this->cache->set($cacheKey, $normalizedPayload, $this->sourceCacheTtl());
 
             return $response
                 ->header('X-Vexio-Stream-Cache', 'miss')
+                ->header('X-Vexio-Stream-Provider', 'embed-api')
                 ->json($normalizedPayload);
         } catch (GuzzleException $exception) {
             return $response->json([
@@ -78,7 +92,7 @@ class EmbedStreamController
 
     private function enabled(): bool
     {
-        return filter_var($_ENV['EMBED_API_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        return $this->cineProCoreEnabled() || filter_var($_ENV['EMBED_API_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function embedApiBaseUrl(): string
@@ -93,7 +107,7 @@ class EmbedStreamController
 
     private function sourceCacheKey(string $type, int $tmdbId, int $season, int $episode): string
     {
-        return 'embed-source:v5:' . implode(':', [$type, $tmdbId, $season, $episode]);
+        return 'embed-source:v7:' . implode(':', [$type, $tmdbId, $season, $episode]);
     }
 
     private function embedApiTimeoutForRequest(): float
@@ -109,6 +123,58 @@ class EmbedStreamController
             : [];
 
         return ['/api/streams/' . $embedType . '/' . $tmdbId, $query];
+    }
+
+    private function cineProCoreEnabled(): bool
+    {
+        return filter_var($_ENV['CINEPRO_CORE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function cineProCoreBaseUrl(): string
+    {
+        return rtrim((string) ($_ENV['CINEPRO_CORE_URL'] ?? 'https://embed.vexio.asia'), '/');
+    }
+
+    private function cineProCoreSourcePath(string $type, int $tmdbId, int $season, int $episode): string
+    {
+        if ($type === 'tv') {
+            return '/v1/tv/' . $tmdbId . '/seasons/' . $season . '/episodes/' . $episode;
+        }
+
+        return '/v1/movies/' . $tmdbId;
+    }
+
+    private function fetchCineProCorePayload(string $type, int $tmdbId, int $season, int $episode): ?array
+    {
+        if (!$this->cineProCoreEnabled()) {
+            return null;
+        }
+
+        try {
+            $client = new Client([
+                'base_uri' => $this->cineProCoreBaseUrl(),
+                'connect_timeout' => (float) ($_ENV['CINEPRO_CORE_CONNECT_TIMEOUT'] ?? 1.2),
+                'timeout' => (float) ($_ENV['CINEPRO_CORE_TIMEOUT'] ?? 9),
+                'http_errors' => false,
+            ]);
+
+            $apiResponse = $client->get($this->cineProCoreSourcePath($type, $tmdbId, $season, $episode), [
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+            ]);
+
+            $status = $apiResponse->getStatusCode();
+            $payload = json_decode((string) $apiResponse->getBody(), true);
+
+            if ($status < 200 || $status >= 300 || !is_array($payload)) {
+                return null;
+            }
+
+            return $payload;
+        } catch (GuzzleException) {
+            return null;
+        }
     }
 
     private function fetchEmbedApiPayload(Client $client, string $path, array $query): ?array
@@ -130,7 +196,7 @@ class EmbedStreamController
         return $payload;
     }
 
-    private function normalizeSourcePayload(array $payload): array
+    private function normalizeSourcePayload(array $payload, string $payloadSource = 'embed-api', bool $proxySubtitles = true): array
     {
         $rawSources = is_array($payload['streams'] ?? null)
             ? $payload['streams']
@@ -159,7 +225,7 @@ class EmbedStreamController
                 $normalized['headers'] = $source['headers'];
             }
 
-            $sourceSubtitles = $this->selectSubtitles($source['subtitles'] ?? $source['tracks'] ?? []);
+            $sourceSubtitles = $this->selectSubtitles($source['subtitles'] ?? $source['tracks'] ?? [], $proxySubtitles);
             if ($sourceSubtitles !== []) {
                 $normalized['subtitles'] = $sourceSubtitles;
             }
@@ -170,11 +236,11 @@ class EmbedStreamController
         }
 
         $sources = $this->topPlayableSources($sources, 5);
-        $subtitles = $this->selectSubtitles($payload['subtitles'] ?? []);
+        $subtitles = $this->selectSubtitles($payload['subtitles'] ?? [], $proxySubtitles);
 
         return [
             'success' => true,
-            'source' => 'embed-api',
+            'source' => $payloadSource,
             'scraperIntegrated' => true,
             'count' => count($sources),
             'sources' => $sources,
@@ -281,13 +347,25 @@ class EmbedStreamController
     {
         $type = strtolower(trim((string) ($source['type'] ?? '')));
         $quality = $this->qualityScore((string) ($source['quality'] ?? ''));
+        $quality = $quality > 1080 ? 980 : $quality;
         $typeScore = match ($type) {
             'hls' => 40,
             'mp4' => 30,
             default => 0,
         };
+        $providerId = strtolower((string) ($source['provider']['id'] ?? ''));
+        $providerScore = match ($providerId) {
+            'cinesu' => 90,
+            'icefy' => 80,
+            'vidapi' => 70,
+            'videasy' => 60,
+            'vidrock' => 50,
+            'vixsrc' => 40,
+            'dahmermovies' => 30,
+            default => 0,
+        };
 
-        return ($quality * 100) + $typeScore;
+        return ($quality * 100) + $typeScore + $providerScore;
     }
 
     private function fallbackSourceScore(array $source): int
@@ -346,7 +424,7 @@ class EmbedStreamController
         return 0;
     }
 
-    private function selectSubtitles(mixed $subtitles): array
+    private function selectSubtitles(mixed $subtitles, bool $proxySubtitles = true): array
     {
         if (!is_array($subtitles)) {
             return [];
@@ -365,14 +443,14 @@ class EmbedStreamController
 
             $format = strtolower(trim((string) ($subtitle['format'] ?? $subtitle['type'] ?? pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION))));
             $deduped[$url] = [
-                'url' => $this->subtitleUrl($url, is_array($subtitle['headers'] ?? null) ? $subtitle['headers'] : []),
+                'url' => $proxySubtitles ? $this->subtitleUrl($url, is_array($subtitle['headers'] ?? null) ? $subtitle['headers'] : []) : $url,
                 'label' => (string) ($subtitle['label'] ?? $subtitle['language'] ?? $subtitle['lang'] ?? 'Subtitle'),
                 'language' => (string) ($subtitle['language'] ?? $subtitle['lang'] ?? $subtitle['srclang'] ?? ''),
                 'format' => $format ?: 'vtt',
             ];
         }
 
-        return array_values($deduped);
+        return array_slice(array_values($deduped), 0, 20);
     }
 
     private function subtitleUrl(string $url, array $headers = []): string

@@ -34,15 +34,22 @@ $sourceUrl = '/api/embed/sources?' . http_build_query([
   data-player-source-url="<?= escape($sourceUrl) ?>"
   data-title="<?= escape($showTitle . ' - S' . $currentSeason . ':E' . $currentEpisode . ' ' . $episodeTitle) ?>"
 >
-  <video
-    class="vexio-plyr-video"
-    id="vexioPlyrVideo"
-    controls
-    playsinline
-    preload="metadata"
-    crossorigin="anonymous"
-    poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
-  ></video>
+  <div
+    class="vexio-vidstack-player"
+    id="vexioPlayerTarget"
+    data-poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
+    data-title="<?= escape($showTitle . ' - S' . $currentSeason . ':E' . $currentEpisode . ' ' . $episodeTitle) ?>"
+  ></div>
+  <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
+    <div class="vexio-loader-ring"></div>
+    <div class="vexio-loader-copy">
+      <span class="vexio-loader-title">Preparing stream</span>
+      <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to vexio-main</span>
+    </div>
+  </div>
+  <div class="vexio-server-selector" aria-label="Server">
+    <button type="button" class="vexio-server-pill active" data-server-id="vexio-main">vexio-main</button>
+  </div>
 
   <div class="next-ep-overlay" id="nextEpOverlay" data-has-next="<?= $nextUrl !== '' ? '1' : '0' ?>" data-next-url="<?= escape($nextUrl) ?>">
     <div style="text-align:center;margin-bottom:8px;">

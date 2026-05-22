@@ -4,6 +4,9 @@
   "private": true,
   "description": "Capacitor mobile wrapper for the Vexio web app.",
   "scripts": {
+    "cinepro:build": "npm --prefix core run build",
+    "cinepro:dev": "npm --prefix core run dev",
+    "cinepro:start": "npm --prefix core run start",
     "mobile:sync": "cap sync",
     "mobile:android": "cap open android",
     "mobile:ios": "cap open ios"
@@ -12,8 +15,7 @@
     "@capacitor/android": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
-    "hls.js": "^1.6.16",
-    "plyr": "^3.8.4"
+    "hls.js": "^1.6.16"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4"
