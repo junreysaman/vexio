@@ -85,6 +85,20 @@ function inferContentType(upstreamCT, targetUrl) {
     return 'application/octet-stream';
 }
 
+function removeHeader(headers, name) {
+    const target = name.toLowerCase();
+    for (const key of Object.keys(headers)) {
+        if (key.toLowerCase() === target) delete headers[key];
+    }
+}
+
+function sanitizeProxyHeaders(headers, options = {}) {
+    const sanitized = { ...(headers || {}) };
+    ['host', 'connection', 'content-length', 'transfer-encoding'].forEach(name => removeHeader(sanitized, name));
+    if (!options.keepRange) removeHeader(sanitized, 'range');
+    return sanitized;
+}
+
 function extractOriginalUrl(proxyUrl) {
     try {
         const url = new URL(proxyUrl);
@@ -160,6 +174,7 @@ function createProxyRoutes(app) {
         try { headers = JSON.parse(req.query.headers || '{}'); } catch {
             // Ignore URL parsing errors
         }
+        headers = sanitizeProxyHeaders(headers);
         try {
             const response = await fetch(targetUrl, { headers: { 'User-Agent': DEFAULT_UA, ...headers } });
             if (!response.ok) return res.status(response.status).json({ error: `M3U8 fetch failed: ${response.status}` });
@@ -195,6 +210,7 @@ function createProxyRoutes(app) {
         let headers = {}; try { headers = JSON.parse(req.query.headers || '{}'); } catch {
             // Ignore URL parsing errors
         }
+        headers = sanitizeProxyHeaders(headers);
         // Pass through Range header for progressive playback / seeking
         const range = req.headers['range'];
         let appliedClamp = false;
@@ -349,22 +365,24 @@ function createProxyRoutes(app) {
             if (!force200 && !effectiveRange && contentLength && !noSynth && req.query.progressiveOpen === '0') {
                 const total = parseInt(contentLength, 10);
                 const desired = initChunkKB * 1024;
-                const chunkSize = Math.min(desired, Math.max(0, total - 1));
-                const syntheticRange = `bytes=0-${chunkSize}`;
-                const resp = await fetch(targetUrl, { headers: { 'User-Agent': DEFAULT_UA, ...headers, 'Range': syntheticRange } });
-                if (resp.status === 206) {
-                    if (debug) console.log('[ts-proxy] synthetic 206', syntheticRange);
-                    const upstreamCT = inferContentType(resp.headers.get('content-type'), targetUrl);
-                    res.status(206);
-                    res.setHeader('Content-Type', upstreamCT);
-                    res.setHeader('Accept-Ranges', upstreamAcceptRanges || 'bytes');
-                    const contentRange = resp.headers.get('content-range');
-                    if (contentRange) res.setHeader('Content-Range', contentRange);
-                    const cl = resp.headers.get('content-length'); if (cl) res.setHeader('Content-Length', cl);
-                    res.setHeader('Cache-Control', 'public, max-age=3600');
-                    res.setHeader('Access-Control-Allow-Origin', '*');
-                    // Pipe first chunk then leave connection open? Simpler: end after chunk; player will request next range.
-                    return resp.body.pipe(res);
+                if (Number.isFinite(total) && total > 0) {
+                    const endByte = Math.min(desired, total) - 1;
+                    const syntheticRange = `bytes=0-${endByte}`;
+                    const resp = await fetch(targetUrl, { headers: { 'User-Agent': DEFAULT_UA, ...headers, 'Range': syntheticRange } });
+                    if (resp.status === 206) {
+                        if (debug) console.log('[ts-proxy] synthetic 206', syntheticRange);
+                        const upstreamCT = inferContentType(resp.headers.get('content-type'), targetUrl);
+                        res.status(206);
+                        res.setHeader('Content-Type', upstreamCT);
+                        res.setHeader('Accept-Ranges', upstreamAcceptRanges || 'bytes');
+                        const contentRange = resp.headers.get('content-range');
+                        if (contentRange) res.setHeader('Content-Range', contentRange);
+                        const cl = resp.headers.get('content-length'); if (cl) res.setHeader('Content-Length', cl);
+                        res.setHeader('Cache-Control', 'public, max-age=3600');
+                        res.setHeader('Access-Control-Allow-Origin', '*');
+                        // Pipe first chunk then leave connection open? Simpler: end after chunk; player will request next range.
+                        return resp.body.pipe(res);
+                    }
                 }
                 // If server ignored range (e.g., returned 200), fall through to normal logic below.
             }
@@ -413,6 +431,7 @@ function createProxyRoutes(app) {
         let headers = {}; try { headers = JSON.parse(req.query.headers || '{}'); } catch {
             // Ignore URL parsing errors
         }
+        headers = sanitizeProxyHeaders(headers);
         try {
             const resp = await fetch(targetUrl, { headers: { 'User-Agent': DEFAULT_UA, ...headers } });
             if (!resp.ok) return res.status(resp.status).json({ error: `subtitle fetch failed: ${resp.status}` });
@@ -429,7 +448,8 @@ function processStreamsForProxy(streams, serverUrl) {
     return streams.map(s => {
         if (!s || !s.url || typeof s.url !== 'string') return s;
         const original = extractOriginalUrl(s.url);
-        const headers = s.headers || {};
+        const headers = sanitizeProxyHeaders(s.headers || {});
+        const proxiedStream = { ...s, headers };
         const hParam = Object.keys(headers).length ? `&headers=${encodeURIComponent(JSON.stringify(headers))}` : '';
         let host = '';
         try {
@@ -439,12 +459,12 @@ function processStreamsForProxy(streams, serverUrl) {
         }
         // Force specific hosts through ts-proxy (direct file style) even without extension
         if (host.includes('pixeldrain.') || host === 'video-downloads.googleusercontent.com') {
-            return { ...s, url: `${serverUrl}/ts-proxy?url=${encodeURIComponent(original)}${hParam}` };
+            return { ...proxiedStream, url: `${serverUrl}/ts-proxy?url=${encodeURIComponent(original)}${hParam}` };
         }
         if (/\.(mp4|mkv)(\?|$)/i.test(original)) {
-            return { ...s, url: `${serverUrl}/ts-proxy?url=${encodeURIComponent(original)}${hParam}` };
+            return { ...proxiedStream, url: `${serverUrl}/ts-proxy?url=${encodeURIComponent(original)}${hParam}` };
         }
-        return { ...s, url: `${serverUrl}/m3u8-proxy?url=${encodeURIComponent(original)}${hParam}` };
+        return { ...proxiedStream, url: `${serverUrl}/m3u8-proxy?url=${encodeURIComponent(original)}${hParam}` };
     });
 }
 

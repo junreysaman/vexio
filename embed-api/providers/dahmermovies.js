@@ -139,8 +139,7 @@ async function getDahmermoviesStreams(tmdbId, mediaType = 'movie', seasonNum = n
             headers: {
                 'User-Agent': REQUEST_HEADERS['User-Agent'],
                 'Referer': `${DAHMER_MOVIES_API}/`,
-                'Accept': '*/*',
-                'Range': 'bytes=0-'
+                'Accept': '*/*'
             }
         });
     }

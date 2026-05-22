@@ -93,7 +93,7 @@ class EmbedStreamController
 
     private function sourceCacheKey(string $type, int $tmdbId, int $season, int $episode): string
     {
-        return 'embed-source:v3:' . implode(':', [$type, $tmdbId, $season, $episode]);
+        return 'embed-source:v4:' . implode(':', [$type, $tmdbId, $season, $episode]);
     }
 
     private function embedApiTimeoutForRequest(): float
