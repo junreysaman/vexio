@@ -491,9 +491,11 @@ class CoreStreamController
     html, body { margin: 0; width: 100%; height: 100%; background: #000; color: var(--text); font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
     .player-shell { position: fixed; inset: 0; background: #000; overflow: hidden; }
     .video-js { width: 100%; height: 100%; background: #000; }
-    .video-js .vjs-big-play-button { left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 74px; line-height: 72px; border-radius: 50%; border-color: rgba(0,200,240,.7); background: rgba(5,7,12,.78); }
+    .video-js .vjs-big-play-button { left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 74px; line-height: 72px; border-radius: 50%; border-color: rgba(0,200,240,.7); background: rgba(5,7,12,.78); box-shadow: 0 0 36px rgba(0,200,240,.18); }
     .video-js:hover .vjs-big-play-button, .video-js .vjs-big-play-button:focus { background: rgba(0,200,240,.2); border-color: var(--cyan); }
-    .video-js .vjs-control-bar { background: linear-gradient(180deg, transparent, rgba(2,5,10,.96)); height: 4.2em; padding: 0 8px 6px; }
+    .video-js .vjs-control-bar { background: linear-gradient(180deg, transparent, rgba(2,5,10,.96)); height: 4.2em; padding: 0 8px 6px; border-top: 1px solid rgba(255,255,255,.08); }
+    .video-js .vjs-button > .vjs-icon-placeholder::before { color: #fff; text-shadow: 0 0 14px rgba(0,200,240,.32); }
+    .video-js .vjs-time-control { color: rgba(247,251,255,.82); font-weight: 700; }
     .video-js .vjs-slider { background: rgba(255,255,255,.2); }
     .video-js .vjs-play-progress, .video-js .vjs-volume-level { background: var(--cyan); }
     .video-js .vjs-load-progress { background: rgba(255,255,255,.25); }
@@ -504,9 +506,24 @@ class CoreStreamController
     .brand strong { font-size: 13px; letter-spacing: 0; white-space: nowrap; }
     .brand span { color: var(--cyan); }
     .meta { min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .watermark { position: absolute; z-index: 4; left: 14px; bottom: 72px; display: inline-flex; align-items: center; gap: 8px; max-width: calc(100% - 28px); padding: 7px 9px; border: 1px solid rgba(255,255,255,.13); border-radius: 6px; background: rgba(5,7,12,.42); opacity: .72; pointer-events: none; }
-    .watermark img { width: 24px; height: 24px; object-fit: contain; flex: 0 0 auto; }
-    .watermark span { font-size: 11px; font-weight: 800; letter-spacing: 0; white-space: nowrap; }
+    .watermark { position: absolute; z-index: 4; display: inline-flex; align-items: center; gap: 5px; max-width: calc(100% - 20px); padding: 4px 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; background: rgba(5,7,12,.34); opacity: .62; pointer-events: none; }
+    .watermark.corner-tl { left: 10px; top: 10px; }
+    .watermark.corner-tr { right: 10px; top: 10px; }
+    .watermark.corner-bl { left: 10px; bottom: 10px; }
+    .watermark.corner-br { right: 10px; bottom: 10px; }
+    .watermark img { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
+    .watermark span { font-size: 9px; font-weight: 800; letter-spacing: 0; white-space: nowrap; }
+    .vexio-toolbar { position: absolute; z-index: 6; right: 12px; bottom: 74px; display: flex; align-items: center; gap: 6px; opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .vx-btn { height: 34px; min-width: 34px; padding: 0 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 6px; background: rgba(8,13,22,.78); color: #fff; font: 800 11px/1 Arial, Helvetica, sans-serif; letter-spacing: 0; cursor: pointer; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+    .vx-btn:hover, .vx-btn:focus-visible { border-color: rgba(0,200,240,.72); color: var(--cyan); outline: none; }
+    .vexio-settings { position: absolute; z-index: 7; right: 12px; bottom: 116px; width: min(310px, calc(100% - 24px)); padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(5,8,14,.9); box-shadow: 0 18px 60px rgba(0,0,0,.5); backdrop-filter: blur(14px); }
+    .vexio-settings.hidden { display: none; }
+    .vx-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #fff; font-size: 12px; font-weight: 900; }
+    .vx-panel-head span { color: var(--cyan); }
+    .vx-setting { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 10px; margin-top: 8px; }
+    .vx-setting label { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .vx-setting select { width: 100%; height: 34px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: rgba(13,20,32,.96); color: #fff; padding: 0 8px; font-size: 12px; }
+    .vx-setting select:focus { border-color: var(--cyan); outline: none; }
     .state { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; background: radial-gradient(circle at center, rgba(0, 200, 240, .15), transparent 40%), rgba(5,7,12,.96); }
     .state { z-index: 5; }
     .state-card { width: min(560px, 100%); }
@@ -526,8 +543,15 @@ class CoreStreamController
       .brand img { width: 28px; height: 28px; }
       .brand strong { font-size: 12px; }
       .meta { font-size: 11px; }
-      .watermark { left: 10px; bottom: 64px; padding: 6px 8px; }
-      .watermark img { width: 20px; height: 20px; }
+      .watermark { padding: 3px 5px; }
+      .watermark.corner-tl { left: 8px; top: 8px; }
+      .watermark.corner-tr { right: 8px; top: 8px; }
+      .watermark.corner-bl { left: 8px; bottom: 8px; }
+      .watermark.corner-br { right: 8px; bottom: 8px; }
+      .watermark img { width: 14px; height: 14px; }
+      .watermark span { font-size: 8px; }
+      .vexio-toolbar { right: 8px; left: 8px; bottom: 82px; justify-content: flex-end; flex-wrap: wrap; }
+      .vexio-settings { right: 8px; bottom: 128px; width: calc(100% - 16px); }
       .video-js .vjs-control-bar { height: 4.8em; }
     }
   </style>
@@ -545,6 +569,33 @@ class CoreStreamController
     <div class="watermark">
       <img src="/favicon.png" alt="">
       <span>VEXIO</span>
+    </div>
+    <div class="vexio-toolbar" id="vexioToolbar">
+      <button class="vx-btn" type="button" id="rewindBtn" aria-label="Back 10 seconds">-10</button>
+      <button class="vx-btn" type="button" id="forwardBtn" aria-label="Forward 10 seconds">+10</button>
+      <button class="vx-btn" type="button" id="settingsToggle" aria-label="Playback settings">Settings</button>
+    </div>
+    <div class="vexio-settings hidden" id="settingsPanel">
+      <div class="vx-panel-head">Vexio Controls <span id="panelServerLabel">{$serverLabel}</span></div>
+      <div class="vx-setting">
+        <label for="qualitySelect">Quality</label>
+        <select id="qualitySelect"><option value="auto">Auto</option></select>
+      </div>
+      <div class="vx-setting">
+        <label for="subtitleSelect">Subtitles</label>
+        <select id="subtitleSelect"><option value="off">Off</option></select>
+      </div>
+      <div class="vx-setting">
+        <label for="speedSelect">Speed</label>
+        <select id="speedSelect">
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+        </select>
+      </div>
     </div>
     <div class="state" id="state">
       <div class="state-card">
@@ -576,6 +627,15 @@ class CoreStreamController
     const sourceCount = document.getElementById('sourceCount');
     const scanText = document.getElementById('scanText');
     const providerList = document.getElementById('providerList');
+    const toolbar = document.getElementById('vexioToolbar');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const settingsToggle = document.getElementById('settingsToggle');
+    const qualitySelect = document.getElementById('qualitySelect');
+    const subtitleSelect = document.getElementById('subtitleSelect');
+    const speedSelect = document.getElementById('speedSelect');
+    const rewindBtn = document.getElementById('rewindBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    const watermark = document.querySelector('.watermark');
     const player = videojs('vexioVideo', {
       autoplay: false,
       controls: true,
@@ -583,6 +643,7 @@ class CoreStreamController
       fill: true,
       responsive: true,
       liveui: true,
+      playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
       html5: {
         vhs: {
           overrideNative: true,
@@ -596,6 +657,28 @@ class CoreStreamController
     });
     let scanTimer;
     let scanIndex = 0;
+    let subtitleTracks = [];
+    let qualityTimer;
+
+    function placeWatermark() {
+      if (!watermark) return;
+      const corners = ['corner-tl', 'corner-tr', 'corner-bl', 'corner-br'];
+      watermark.classList.remove(...corners);
+      watermark.classList.add(corners[Math.floor(Math.random() * corners.length)]);
+    }
+
+    function toggleSettings(forceOpen = null) {
+      const shouldOpen = forceOpen === null ? settingsPanel.classList.contains('hidden') : forceOpen;
+      settingsPanel.classList.toggle('hidden', !shouldOpen);
+      toolbar.classList.toggle('is-open', shouldOpen);
+    }
+
+    function skipBy(seconds) {
+      const duration = player.duration();
+      const current = player.currentTime() || 0;
+      const next = Math.max(0, Math.min(Number.isFinite(duration) ? duration : current + seconds, current + seconds));
+      player.currentTime(next);
+    }
 
     function setState(title, text, loading = false) {
       stateTitle.textContent = title;
@@ -658,18 +741,69 @@ class CoreStreamController
     }
 
     function addSubtitles(subtitles) {
+      subtitleTracks = [];
+      subtitleSelect.innerHTML = '<option value="off">Off</option>';
       const usable = subtitles
         .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
         .slice(0, 14);
 
       usable.forEach((subtitle, index) => {
-        player.addRemoteTextTrack({
+        const remote = player.addRemoteTextTrack({
           kind: 'subtitles',
           src: subtitle.url,
           label: subtitle.label || 'Subtitle',
           srclang: subtitleLanguage(subtitle),
-          default: index === 0 && /english|eng/i.test(String(subtitle.label || subtitle.language || ''))
+          default: false
         }, false);
+        subtitleTracks.push(remote.track);
+
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = subtitle.label || 'Subtitle';
+        subtitleSelect.appendChild(option);
+      });
+    }
+
+    function setSubtitle(value) {
+      subtitleTracks.forEach((track, index) => {
+        track.mode = String(index) === value ? 'showing' : 'disabled';
+      });
+    }
+
+    function getRepresentations() {
+      try {
+        return player.tech({ IWillNotUseThisInPlugins: true })?.vhs?.representations?.() || [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function populateQualityOptions() {
+      const reps = getRepresentations();
+      const seen = new Set();
+      const levels = reps
+        .map((rep, index) => ({
+          index,
+          height: Number(rep.height || 0),
+          bandwidth: Number(rep.bandwidth || 0)
+        }))
+        .filter((level) => level.height > 0 && !seen.has(level.height) && seen.add(level.height))
+        .sort((a, b) => b.height - a.height);
+
+      qualitySelect.innerHTML = '<option value="auto">Auto</option>';
+      levels.forEach((level) => {
+        const option = document.createElement('option');
+        option.value = String(level.height);
+        option.textContent = level.height + 'p';
+        qualitySelect.appendChild(option);
+      });
+      qualitySelect.disabled = levels.length === 0;
+    }
+
+    function setQuality(value) {
+      const reps = getRepresentations();
+      reps.forEach((rep) => {
+        rep.enabled(value === 'auto' || String(rep.height || '') === value);
       });
     }
 
@@ -681,6 +815,8 @@ class CoreStreamController
         : 'application/x-mpegURL';
       player.src({ src: source.url, type: mimeType });
       hideState();
+      window.clearTimeout(qualityTimer);
+      qualityTimer = window.setTimeout(populateQualityOptions, 1200);
       player.ready(() => player.play()?.catch(() => {}));
     }
 
@@ -717,8 +853,20 @@ class CoreStreamController
       }
       if (event.key.toLowerCase() === 'f') player.requestFullscreen();
       if (event.key.toLowerCase() === 'm') player.muted(!player.muted());
+      if (event.key === 'ArrowLeft') skipBy(-10);
+      if (event.key === 'ArrowRight') skipBy(10);
+      if (event.key === 'Escape') toggleSettings(false);
     });
 
+    settingsToggle.addEventListener('click', () => toggleSettings());
+    rewindBtn.addEventListener('click', () => skipBy(-10));
+    forwardBtn.addEventListener('click', () => skipBy(10));
+    qualitySelect.addEventListener('change', () => setQuality(qualitySelect.value));
+    subtitleSelect.addEventListener('change', () => setSubtitle(subtitleSelect.value));
+    speedSelect.addEventListener('change', () => player.playbackRate(Number(speedSelect.value)));
+    player.on('loadedmetadata', populateQualityOptions);
+    player.on('loadedplaylist', populateQualityOptions);
+    placeWatermark();
     boot();
   </script>
 </body>
