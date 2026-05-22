@@ -14,6 +14,7 @@ services:
       - ENABLE_DAHMERMOVIES_PROVIDER=${ENABLE_DAHMERMOVIES_PROVIDER:-true}
       - ENABLE_4KHDHUB_PROVIDER=${ENABLE_4KHDHUB_PROVIDER:-false}
       - ENABLE_PROXY=${ENABLE_PROXY:-true}
+      - LOCK_PROVIDER_CONFIG=${LOCK_PROVIDER_CONFIG:-true}
       # FebBox cookies (comma separated) if you want Showbox immediately functional
       - FEBBOX_COOKIES=${FEBBOX_COOKIES:-}
     ports:

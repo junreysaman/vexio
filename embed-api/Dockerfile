@@ -23,6 +23,11 @@ WORKDIR /app
 ENV NODE_ENV=production \
     API_PORT=8787 \
     BIND_HOST=0.0.0.0 \
+    DEFAULT_PROVIDERS=dahmermovies \
+    ENABLE_DAHMERMOVIES_PROVIDER=true \
+    ENABLE_4KHDHUB_PROVIDER=false \
+    ENABLE_PROXY=true \
+    LOCK_PROVIDER_CONFIG=true \
     APP_VERSION=${VERSION}
 
 # Create non-root user

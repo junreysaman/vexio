@@ -29,6 +29,14 @@ function parseCookies(raw) {
   return Array.from(new Set(arr.map(c => c.replace(/^ui=/,'').trim()).filter(Boolean)));
 }
 
+function parseProviderList(raw) {
+  return (raw || '').split(/[\s,]+/).map(p=>p.trim().toLowerCase()).filter(Boolean);
+}
+
+function truthyEnv(raw) {
+  return ['1', 'true', 'yes', 'on'].includes(String(raw || '').trim().toLowerCase());
+}
+
 function readOverrideFile() {
   try {
     if (fs.existsSync(OVERRIDE_PATH)) {
@@ -158,14 +166,15 @@ function applyConfigToEnv(cfg){
 
 function loadConfig() {
   // Start with env for backward compat, then override with user-config.json
+  const providerNames = getProviderNames();
   const envCfg = {
     port: Number(process.env.API_PORT) || 8787,
     defaultRegion: process.env.DEFAULT_REGION || process.env.FEBBOX_REGION || null,
-  defaultProviders: (process.env.DEFAULT_PROVIDERS || '').split(/[\s,]+/).map(p=>p.trim().toLowerCase()).filter(Boolean),
+    defaultProviders: parseProviderList(process.env.DEFAULT_PROVIDERS),
     minQualitiesRaw: process.env.MIN_QUALITIES || null,
     excludeCodecsRaw: process.env.EXCLUDE_CODECS || null,
     tmdbApiKey: process.env.TMDB_API_KEY || null,
-  tmdbApiKeys: parseJsonMaybe(process.env.TMDB_API_KEYS) || null,
+    tmdbApiKeys: parseJsonMaybe(process.env.TMDB_API_KEYS) || null,
     febboxCookies: parseCookies(process.env.FEBBOX_COOKIES),
     // Extended advanced config (may not exist in env)
     disableCache: process.env.DISABLE_CACHE,
@@ -178,14 +187,31 @@ function loadConfig() {
   };
   
   // Dynamic provider enable flags from env
-  const providerNames = getProviderNames();
   providerNames.forEach(name => {
     const envName = `ENABLE_${name.toUpperCase()}_PROVIDER`;
     envCfg[`enable${name.charAt(0).toUpperCase() + name.slice(1)}Provider`] = process.env[envName];
   });
   
   const override = readOverrideFile();
-  const merged = { ...envCfg, ...override };
+  let merged = { ...envCfg, ...override };
+
+  if (truthyEnv(process.env.LOCK_PROVIDER_CONFIG)) {
+    if (process.env.DEFAULT_PROVIDERS !== undefined) {
+      merged.defaultProviders = parseProviderList(process.env.DEFAULT_PROVIDERS);
+    }
+
+    providerNames.forEach(name => {
+      const envName = `ENABLE_${name.toUpperCase()}_PROVIDER`;
+      if (process.env[envName] !== undefined) {
+        merged[`enable${name.charAt(0).toUpperCase() + name.slice(1)}Provider`] = process.env[envName];
+      }
+    });
+
+    if (process.env.ENABLE_PROXY !== undefined) {
+      merged.enableProxy = process.env.ENABLE_PROXY;
+    }
+  }
+
   const normalized = normalizeConfig(merged);
   applyConfigToEnv(normalized); // ensure providers see updated process.env values
   return normalized;
