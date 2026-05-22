@@ -41,12 +41,7 @@ class CoreStreamController
         }
 
         $coreBaseUrl = $this->coreBaseUrl();
-        $pathPrefix = $providers === []
-            ? '/v1'
-            : '/v1/filtered/' . rawurlencode(implode(',', $providers));
-        $path = $type === 'tv'
-            ? "{$pathPrefix}/tv/{$tmdbId}/seasons/{$season}/episodes/{$episode}"
-            : "{$pathPrefix}/movies/{$tmdbId}";
+        $path = $this->coreSourcePath($type, $tmdbId, $season, $episode, $providers);
 
         try {
             $client = new Client([
@@ -56,23 +51,18 @@ class CoreStreamController
                 'http_errors' => false,
             ]);
 
-            $coreResponse = $client->get($path, [
-                'headers' => [
-                    'Accept' => 'application/json',
-                ],
-            ]);
+            $payload = $this->fetchCorePayload($client, $path);
 
-            $status = $coreResponse->getStatusCode();
-            $payload = json_decode((string) $coreResponse->getBody(), true);
-
-            if ($status < 200 || $status >= 300 || !is_array($payload)) {
+            if ($payload === null) {
                 return $response->json([
                     'error' => [
                         'message' => 'Vexio streaming did not return a usable response.',
-                        'status' => $status,
+                        'status' => 502,
                     ],
                 ], 502);
             }
+
+            $payload = $this->mergeSubtitleFallback($client, $payload, $type, $tmdbId, $season, $episode, $server);
 
             return $response->json($this->normalizeSourcePayload($payload, $coreBaseUrl, $this->vexioProxyBaseUrl()));
         } catch (GuzzleException $exception) {
@@ -168,6 +158,80 @@ class CoreStreamController
             'vexio-s5' => ['vixsrc'],
             default => [],
         };
+    }
+
+    private function subtitleFallbackProvidersForServer(string $server): array
+    {
+        return match ($server) {
+            'vexio-s1' => ['vidrock'],
+            default => [],
+        };
+    }
+
+    private function coreSourcePath(string $type, int $tmdbId, int $season, int $episode, array $providers): string
+    {
+        $pathPrefix = $providers === []
+            ? '/v1'
+            : '/v1/filtered/' . rawurlencode(implode(',', $providers));
+
+        return $type === 'tv'
+            ? "{$pathPrefix}/tv/{$tmdbId}/seasons/{$season}/episodes/{$episode}"
+            : "{$pathPrefix}/movies/{$tmdbId}";
+    }
+
+    private function fetchCorePayload(Client $client, string $path): ?array
+    {
+        $coreResponse = $client->get($path, [
+            'headers' => [
+                'Accept' => 'application/json',
+            ],
+        ]);
+
+        $status = $coreResponse->getStatusCode();
+        $payload = json_decode((string) $coreResponse->getBody(), true);
+
+        if ($status < 200 || $status >= 300 || !is_array($payload)) {
+            return null;
+        }
+
+        return $payload;
+    }
+
+    private function mergeSubtitleFallback(
+        Client $client,
+        array $payload,
+        string $type,
+        int $tmdbId,
+        int $season,
+        int $episode,
+        string $server
+    ): array {
+        if (!empty($payload['subtitles']) || $this->subtitleFallbackProvidersForServer($server) === []) {
+            return $payload;
+        }
+
+        try {
+            $fallbackPayload = $this->fetchCorePayload(
+                $client,
+                $this->coreSourcePath($type, $tmdbId, $season, $episode, $this->subtitleFallbackProvidersForServer($server))
+            );
+        } catch (GuzzleException) {
+            return $payload;
+        }
+
+        if ($fallbackPayload === null || empty($fallbackPayload['subtitles']) || !is_array($fallbackPayload['subtitles'])) {
+            return $payload;
+        }
+
+        $payload['subtitles'] = $fallbackPayload['subtitles'];
+        $payload['diagnostics'][] = [
+            'code' => 'SUBTITLE_FALLBACK',
+            'message' => 'Subtitles loaded from fallback provider.',
+            'field' => 'subtitles',
+            'severity' => 'info',
+        ];
+
+        return $payload;
     }
 
     private function normalizeSourcePayload(array $payload, string $coreBaseUrl, string $proxyBaseUrl): array
@@ -493,7 +557,7 @@ class CoreStreamController
     .video-js { width: 100%; height: 100%; background: #000; }
     .video-js .vjs-big-play-button { left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 74px; line-height: 72px; border-radius: 50%; border-color: rgba(0,200,240,.7); background: rgba(5,7,12,.78); box-shadow: 0 0 36px rgba(0,200,240,.18); }
     .video-js:hover .vjs-big-play-button, .video-js .vjs-big-play-button:focus { background: rgba(0,200,240,.2); border-color: var(--cyan); }
-    .video-js .vjs-control-bar { background: linear-gradient(180deg, transparent, rgba(2,5,10,.96)); height: 4.2em; padding: 0 8px 6px; border-top: 1px solid rgba(255,255,255,.08); }
+    .video-js .vjs-control-bar { display: none; }
     .video-js .vjs-button > .vjs-icon-placeholder::before { color: #fff; text-shadow: 0 0 14px rgba(0,200,240,.32); }
     .video-js .vjs-time-control { color: rgba(247,251,255,.82); font-weight: 700; }
     .video-js .vjs-slider { background: rgba(255,255,255,.2); }
@@ -507,16 +571,20 @@ class CoreStreamController
     .brand span { color: var(--cyan); }
     .meta { min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .watermark { position: absolute; z-index: 4; display: inline-flex; align-items: center; gap: 5px; max-width: calc(100% - 20px); padding: 4px 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; background: rgba(5,7,12,.34); opacity: .62; pointer-events: none; }
-    .watermark.corner-tl { left: 10px; top: 10px; }
     .watermark.corner-tr { right: 10px; top: 10px; }
-    .watermark.corner-bl { left: 10px; bottom: 10px; }
-    .watermark.corner-br { right: 10px; bottom: 10px; }
     .watermark img { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
     .watermark span { font-size: 9px; font-weight: 800; letter-spacing: 0; white-space: nowrap; }
-    .vexio-toolbar { position: absolute; z-index: 6; right: 12px; bottom: 74px; display: flex; align-items: center; gap: 6px; opacity: 1; transform: translateY(0); pointer-events: auto; }
-    .vx-btn { height: 34px; min-width: 34px; padding: 0 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 6px; background: rgba(8,13,22,.78); color: #fff; font: 800 11px/1 Arial, Helvetica, sans-serif; letter-spacing: 0; cursor: pointer; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+    .vexio-control-deck { position: absolute; z-index: 6; left: 32px; right: 32px; bottom: 18px; padding: 13px 16px 16px; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background: rgba(2,3,6,.9); box-shadow: 0 18px 70px rgba(0,0,0,.58); pointer-events: auto; }
+    .vx-seek { width: 100%; height: 14px; accent-color: var(--red); cursor: pointer; display: block; margin: 0 0 12px; }
+    .vx-controls-row { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .vx-spacer { flex: 1; min-width: 8px; }
+    .vx-time { color: #fff; font-size: 14px; font-weight: 900; white-space: nowrap; }
+    .vx-btn { height: 38px; min-width: 38px; padding: 0 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 7px; background: rgba(8,13,22,.64); color: #fff; font: 900 12px/1 Arial, Helvetica, sans-serif; letter-spacing: 0; cursor: pointer; }
+    .vx-play { width: 48px; height: 42px; border: 0; background: transparent; font-size: 31px; padding: 0; }
+    .vx-round { width: 39px; height: 39px; border-radius: 50%; padding: 0; font-size: 13px; }
+    .vx-volume { width: 92px; accent-color: var(--cyan); }
     .vx-btn:hover, .vx-btn:focus-visible { border-color: rgba(0,200,240,.72); color: var(--cyan); outline: none; }
-    .vexio-settings { position: absolute; z-index: 7; right: 12px; bottom: 116px; width: min(310px, calc(100% - 24px)); padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(5,8,14,.9); box-shadow: 0 18px 60px rgba(0,0,0,.5); backdrop-filter: blur(14px); }
+    .vexio-settings { position: absolute; z-index: 7; right: 32px; bottom: 132px; width: min(310px, calc(100% - 64px)); padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(5,8,14,.92); box-shadow: 0 18px 60px rgba(0,0,0,.5); backdrop-filter: blur(14px); }
     .vexio-settings.hidden { display: none; }
     .vx-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #fff; font-size: 12px; font-weight: 900; }
     .vx-panel-head span { color: var(--cyan); }
@@ -544,15 +612,14 @@ class CoreStreamController
       .brand strong { font-size: 12px; }
       .meta { font-size: 11px; }
       .watermark { padding: 3px 5px; }
-      .watermark.corner-tl { left: 8px; top: 8px; }
       .watermark.corner-tr { right: 8px; top: 8px; }
-      .watermark.corner-bl { left: 8px; bottom: 8px; }
-      .watermark.corner-br { right: 8px; bottom: 8px; }
       .watermark img { width: 14px; height: 14px; }
       .watermark span { font-size: 8px; }
-      .vexio-toolbar { right: 8px; left: 8px; bottom: 82px; justify-content: flex-end; flex-wrap: wrap; }
-      .vexio-settings { right: 8px; bottom: 128px; width: calc(100% - 16px); }
-      .video-js .vjs-control-bar { height: 4.8em; }
+      .vexio-control-deck { left: 8px; right: 8px; bottom: 8px; padding: 10px; }
+      .vx-controls-row { gap: 8px; flex-wrap: wrap; }
+      .vx-time { font-size: 12px; order: 2; width: 100%; text-align: center; }
+      .vx-volume { width: 74px; }
+      .vexio-settings { right: 8px; bottom: 118px; width: calc(100% - 16px); }
     }
   </style>
 </head>
@@ -570,10 +637,21 @@ class CoreStreamController
       <img src="/favicon.png" alt="">
       <span>VEXIO</span>
     </div>
-    <div class="vexio-toolbar" id="vexioToolbar">
-      <button class="vx-btn" type="button" id="rewindBtn" aria-label="Back 10 seconds">-10</button>
-      <button class="vx-btn" type="button" id="forwardBtn" aria-label="Forward 10 seconds">+10</button>
-      <button class="vx-btn" type="button" id="settingsToggle" aria-label="Playback settings">Settings</button>
+    <div class="vexio-control-deck" id="vexioToolbar">
+      <input class="vx-seek" id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Seek">
+      <div class="vx-controls-row">
+        <button class="vx-btn vx-play" type="button" id="customPlayBtn" aria-label="Play or pause">▶</button>
+        <button class="vx-btn vx-round" type="button" id="rewindBtn" aria-label="Back 10 seconds">10</button>
+        <button class="vx-btn vx-round" type="button" id="forwardBtn" aria-label="Forward 10 seconds">10</button>
+        <button class="vx-btn" type="button" id="muteBtn" aria-label="Mute">Vol</button>
+        <input class="vx-volume" id="volumeBar" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
+        <span class="vx-time" id="timeLabel">00:00 / 00:00</span>
+        <span class="vx-spacer"></span>
+        <button class="vx-btn" type="button" id="captionBtn" aria-label="Subtitles">CC</button>
+        <button class="vx-btn" type="button" id="settingsToggle" aria-label="Playback settings">⚙</button>
+        <button class="vx-btn" type="button" id="pipBtn" aria-label="Picture in picture">PiP</button>
+        <button class="vx-btn" type="button" id="fullscreenBtn" aria-label="Fullscreen">□</button>
+      </div>
     </div>
     <div class="vexio-settings hidden" id="settingsPanel">
       <div class="vx-panel-head">Vexio Controls <span id="panelServerLabel">{$serverLabel}</span></div>
@@ -630,6 +708,14 @@ class CoreStreamController
     const toolbar = document.getElementById('vexioToolbar');
     const settingsPanel = document.getElementById('settingsPanel');
     const settingsToggle = document.getElementById('settingsToggle');
+    const customPlayBtn = document.getElementById('customPlayBtn');
+    const seekBar = document.getElementById('seekBar');
+    const volumeBar = document.getElementById('volumeBar');
+    const timeLabel = document.getElementById('timeLabel');
+    const muteBtn = document.getElementById('muteBtn');
+    const captionBtn = document.getElementById('captionBtn');
+    const pipBtn = document.getElementById('pipBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
     const qualitySelect = document.getElementById('qualitySelect');
     const subtitleSelect = document.getElementById('subtitleSelect');
     const speedSelect = document.getElementById('speedSelect');
@@ -662,9 +748,7 @@ class CoreStreamController
 
     function placeWatermark() {
       if (!watermark) return;
-      const corners = ['corner-tl', 'corner-tr', 'corner-bl', 'corner-br'];
-      watermark.classList.remove(...corners);
-      watermark.classList.add(corners[Math.floor(Math.random() * corners.length)]);
+      watermark.classList.add('corner-tr');
     }
 
     function toggleSettings(forceOpen = null) {
@@ -678,6 +762,32 @@ class CoreStreamController
       const current = player.currentTime() || 0;
       const next = Math.max(0, Math.min(Number.isFinite(duration) ? duration : current + seconds, current + seconds));
       player.currentTime(next);
+    }
+
+    function formatTime(value) {
+      if (!Number.isFinite(value) || value < 0) return '00:00';
+      const total = Math.floor(value);
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const seconds = String(total % 60).padStart(2, '0');
+      return hours > 0
+        ? hours + ':' + String(minutes).padStart(2, '0') + ':' + seconds
+        : String(minutes).padStart(2, '0') + ':' + seconds;
+    }
+
+    function updateTimeUi() {
+      const duration = player.duration() || 0;
+      const current = player.currentTime() || 0;
+      seekBar.value = duration ? String(Math.round((current / duration) * 1000)) : '0';
+      timeLabel.textContent = formatTime(current) + ' / ' + formatTime(duration);
+    }
+
+    function updatePlayUi() {
+      customPlayBtn.textContent = player.paused() ? '▶' : 'Ⅱ';
+    }
+
+    function togglePlay() {
+      player.paused() ? player.play()?.catch(() => {}) : player.pause();
     }
 
     function setState(title, text, loading = false) {
@@ -747,6 +857,7 @@ class CoreStreamController
         .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
         .slice(0, 14);
 
+      let preferredSubtitleIndex = -1;
       usable.forEach((subtitle, index) => {
         const remote = player.addRemoteTextTrack({
           kind: 'subtitles',
@@ -761,7 +872,18 @@ class CoreStreamController
         option.value = String(index);
         option.textContent = subtitle.label || 'Subtitle';
         subtitleSelect.appendChild(option);
+
+        if (preferredSubtitleIndex === -1 && /english|eng|^en$/i.test(String(subtitle.label || subtitle.language || ''))) {
+          preferredSubtitleIndex = index;
+        }
       });
+
+      if (preferredSubtitleIndex >= 0) {
+        window.setTimeout(() => {
+          subtitleSelect.value = String(preferredSubtitleIndex);
+          setSubtitle(String(preferredSubtitleIndex));
+        }, 250);
+      }
     }
 
     function setSubtitle(value) {
@@ -849,7 +971,7 @@ class CoreStreamController
     document.addEventListener('keydown', event => {
       if (event.key === ' ') {
         event.preventDefault();
-        player.paused() ? player.play()?.catch(() => {}) : player.pause();
+        togglePlay();
       }
       if (event.key.toLowerCase() === 'f') player.requestFullscreen();
       if (event.key.toLowerCase() === 'm') player.muted(!player.muted());
@@ -858,12 +980,43 @@ class CoreStreamController
       if (event.key === 'Escape') toggleSettings(false);
     });
 
+    customPlayBtn.addEventListener('click', togglePlay);
     settingsToggle.addEventListener('click', () => toggleSettings());
+    captionBtn.addEventListener('click', () => {
+      toggleSettings(true);
+      subtitleSelect.focus();
+    });
     rewindBtn.addEventListener('click', () => skipBy(-10));
     forwardBtn.addEventListener('click', () => skipBy(10));
+    seekBar.addEventListener('input', () => {
+      const duration = player.duration();
+      if (duration) player.currentTime((Number(seekBar.value) / 1000) * duration);
+    });
+    volumeBar.addEventListener('input', () => {
+      player.volume(Number(volumeBar.value));
+      player.muted(Number(volumeBar.value) === 0);
+    });
+    muteBtn.addEventListener('click', () => player.muted(!player.muted()));
+    pipBtn.addEventListener('click', () => {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(() => {});
+        return;
+      }
+      const videoEl = document.querySelector('#vexioVideo_html5_api');
+      videoEl?.requestPictureInPicture?.().catch(() => {});
+    });
+    fullscreenBtn.addEventListener('click', () => player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen());
     qualitySelect.addEventListener('change', () => setQuality(qualitySelect.value));
     subtitleSelect.addEventListener('change', () => setSubtitle(subtitleSelect.value));
     speedSelect.addEventListener('change', () => player.playbackRate(Number(speedSelect.value)));
+    player.on('play', updatePlayUi);
+    player.on('pause', updatePlayUi);
+    player.on('timeupdate', updateTimeUi);
+    player.on('durationchange', updateTimeUi);
+    player.on('volumechange', () => {
+      volumeBar.value = player.muted() ? '0' : String(player.volume());
+      muteBtn.textContent = player.muted() || player.volume() === 0 ? 'Mute' : 'Vol';
+    });
     player.on('loadedmetadata', populateQualityOptions);
     player.on('loadedplaylist', populateQualityOptions);
     placeWatermark();
