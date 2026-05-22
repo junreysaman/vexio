@@ -1,7 +1,10 @@
 <?php
 use App\Support\MediaImage;
 
-$embedUrl = (string) ($item['embedUrl'] ?? $item['embed_url'] ?? '');
+$sourceUrl = '/api/embed/sources?' . http_build_query([
+    'type' => 'movie',
+    'tmdbId' => (int) ($item['tmdb_id'] ?? 0),
+]);
 $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
 ?>
 <div class="watch-layout">
@@ -10,18 +13,16 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
     <div class="watch-main">
 
       <!-- VIDEO PLAYER -->
-      <div class="player-wrap" id="playerWrap" data-player-embed-url="<?= escape($embedUrl) ?>">
-        <?php if ($embedUrl !== ''): ?>
-          <iframe
-            class="embedded-player-frame"
-            id="embeddedPlayerFrame"
-            title="<?= escape((string) ($item['title'] ?? 'Movie')) ?> player"
-            loading="lazy"
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-            allowfullscreen
-            referrerpolicy="origin"
-          ></iframe>
-        <?php endif; ?>
+      <div class="player-wrap" id="playerWrap" data-player-source-url="<?= escape($sourceUrl) ?>">
+        <video
+          class="vexio-plyr-video"
+          id="vexioPlyrVideo"
+          controls
+          playsinline
+          preload="metadata"
+          crossorigin="anonymous"
+          poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
+        ></video>
         <!-- Cinematic backdrop -->
         <div class="player-bg">
           <div class="player-backdrop">

@@ -14,7 +14,7 @@ use App\Controllers\PublicSeoController;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\AuthPageController;
 use App\Controllers\Search\SearchController;
-use App\Controllers\Watch\CoreStreamController;
+use App\Controllers\Watch\EmbedStreamController;
 use App\Controllers\Watch\WatchMovieController;
 use App\Controllers\Watch\WatchTvController;
 use App\Controllers\Watch\CommentController;
@@ -64,7 +64,7 @@ return [
     UserController::class => fn($container) => $container->resolve(UserController::class),
     AdminCommentController::class => fn($container) => $container->resolve(AdminCommentController::class),
     SearchController::class => fn($container) => $container->resolve(SearchController::class),
-    CoreStreamController::class => fn($container) => $container->resolve(CoreStreamController::class),
+    EmbedStreamController::class => fn($container) => $container->resolve(EmbedStreamController::class),
     WatchMovieController::class => fn($container) => $container->resolve(WatchMovieController::class),
     WatchTvController::class => fn($container) => $container->resolve(WatchTvController::class),
     CommentController::class => fn($container) => $container->resolve(CommentController::class),

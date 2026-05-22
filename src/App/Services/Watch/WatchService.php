@@ -412,13 +412,6 @@ class WatchService
 
         $servers = [];
 
-        if ($this->cineProCoreEnabled()) {
-            $servers = [
-                ...$servers,
-                ...$this->vexioCoreMovieServers($item),
-            ];
-        }
-
         /*
         $servers = [
             ...$servers,
@@ -475,13 +468,6 @@ class WatchService
 
         $servers = [];
 
-        if ($this->cineProCoreEnabled()) {
-            $servers = [
-                ...$servers,
-                ...$this->vexioCoreTvServers($show, $episode),
-            ];
-        }
-
         /*
         $servers = [
             ...$servers,
@@ -525,62 +511,4 @@ class WatchService
         return $servers;
     }
 
-    private function cineProCoreEnabled(): bool
-    {
-        return filter_var($_ENV['CINEPRO_CORE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    private function vexioCoreMovieServers(array $item): array
-    {
-        return array_map(function (array $server) use ($item): array {
-            return [
-                'key' => $server['key'],
-                'name' => $server['name'],
-                'url' => $this->cineProMoviePlayerUrl($item, $server['key']),
-                'default' => $server['key'] === 'vexio-s1',
-            ];
-        }, $this->vexioCoreServers());
-    }
-
-    private function vexioCoreTvServers(array $show, array $episode): array
-    {
-        return array_map(function (array $server) use ($show, $episode): array {
-            return [
-                'key' => $server['key'],
-                'name' => $server['name'],
-                'url' => $this->cineProTvPlayerUrl($show, $episode, $server['key']),
-                'default' => $server['key'] === 'vexio-s1',
-            ];
-        }, $this->vexioCoreServers());
-    }
-
-    private function vexioCoreServers(): array
-    {
-        return [
-            ['key' => 'vexio-s1', 'name' => 'vexio-s1'],
-            ['key' => 'vexio-s2', 'name' => 'vexio-s2'],
-            ['key' => 'vexio-s3', 'name' => 'vexio-s3'],
-            ['key' => 'vexio-s4', 'name' => 'vexio-s4'],
-            ['key' => 'vexio-s5', 'name' => 'vexio-s5'],
-            ['key' => 'vexio-multi', 'name' => 'vexio-multi'],
-        ];
-    }
-
-    private function cineProMoviePlayerUrl(array $item, string $server = 'vexio-s1'): string
-    {
-        return '/core-player/movie/' . (int) ($item['tmdb_id'] ?? 0) . '?' . http_build_query([
-            'title' => (string) ($item['title'] ?? 'Movie'),
-            'server' => $server,
-        ]);
-    }
-
-    private function cineProTvPlayerUrl(array $show, array $episode, string $server = 'vexio-s1'): string
-    {
-        return '/core-player/tv/' . (int) ($show['tmdb_id'] ?? 0) . '?' . http_build_query([
-            'season' => max(1, (int) ($episode['season_number'] ?? 1)),
-            'episode' => max(1, (int) ($episode['episode_number'] ?? 1)),
-            'title' => (string) ($show['title'] ?? 'TV Show'),
-            'server' => $server,
-        ]);
-    }
 }

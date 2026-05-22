@@ -1,205 +1,185 @@
-/* ─── PARTICLES ─────────────────────────────────── */
 function spawnParticles() {
     const container = document.getElementById('particles');
     if (!container || container.children.length) return;
     const colors = ['#e8173f', '#00c8f0', '#8b5cf6', '#ffc340', '#ff5e7d'];
     for (let i = 0; i < 18; i++) {
         const p = document.createElement('div');
-        p.className = 'particle';
         const size = Math.random() * 4 + 2;
-        p.style.cssText = `
-      width:${size}px;height:${size}px;
-      left:${Math.random() * 100}%;
-      background:${colors[Math.floor(Math.random() * colors.length)]};
-      animation-duration:${Math.random() * 8 + 6}s;
-      animation-delay:${Math.random() * 8}s;
-    `;
+        p.className = 'particle';
+        p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random() * 100}%;background:${colors[Math.floor(Math.random() * colors.length)]};animation-duration:${Math.random() * 8 + 6}s;animation-delay:${Math.random() * 8}s;`;
         container.appendChild(p);
     }
 }
-spawnParticles();
 
-/* ─── PLAYER STATE ───────────────────────────────── */
-let isPlaying = false;
-let isMuted = false;
-let volume = 0.8;
-let progress = 34; // percent
-let isFullscreen = false;
 let userRating = 0;
+let vexioPlyr = null;
+let vexioHls = null;
+let streamLoaded = false;
 
-function mountEmbeddedPlayer() {
+function initVexioPlyr() {
+    const video = document.getElementById('vexioPlyrVideo');
+    if (!video || !window.Plyr) return null;
+    if (vexioPlyr) return vexioPlyr;
+
+    vexioPlyr = new Plyr(video, {
+        iconUrl: '/assets/vendor/plyr/plyr.svg',
+        controls: ['play-large', 'play', 'rewind', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+        settings: ['captions', 'quality', 'speed'],
+        seekTime: 10
+    });
+
+    return vexioPlyr;
+}
+
+function sourceMimeType(source) {
+    const type = String(source?.type || '').toLowerCase();
+    const url = String(source?.url || '').toLowerCase();
+    return type === 'mp4' || url.includes('.mp4') ? 'video/mp4' : 'application/vnd.apple.mpegurl';
+}
+
+function subtitleLanguage(subtitle) {
+    const label = String(subtitle.label || subtitle.language || '').toLowerCase();
+    if (label.includes('english') || label === 'eng') return 'en';
+    if (label.includes('spanish') || label === 'spa') return 'es';
+    if (label.includes('french') || label === 'fre') return 'fr';
+    if (label.includes('german') || label === 'ger') return 'de';
+    return label.replace(/[^a-z-]/g, '').slice(0, 12) || 'sub';
+}
+
+function addSubtitles(video, subtitles) {
+    video.querySelectorAll('track').forEach(track => track.remove());
+    (Array.isArray(subtitles) ? subtitles : [])
+        .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
+        .slice(0, 14)
+        .forEach((subtitle, index) => {
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.src = subtitle.url;
+            track.label = subtitle.label || 'Subtitle';
+            track.srclang = subtitleLanguage(subtitle);
+            track.default = index === 0 && /english|eng|^en$/i.test(String(subtitle.label || subtitle.language || ''));
+            video.appendChild(track);
+        });
+}
+
+function playSource(source, subtitles) {
     const wrap = document.getElementById('playerWrap');
-    const frame = document.getElementById('embeddedPlayerFrame');
-    const embedUrl = wrap?.dataset.playerEmbedUrl || '';
+    const video = document.getElementById('vexioPlyrVideo');
+    const player = initVexioPlyr();
+    if (!wrap || !video || !player || !source?.url) return false;
 
-    if (!wrap || !frame || !embedUrl) return false;
+    addSubtitles(video, subtitles);
 
-    if (!frame.src) {
-        frame.src = embedUrl;
+    if (vexioHls) {
+        vexioHls.destroy();
+        vexioHls = null;
     }
 
-    wrap.classList.add('has-embed');
-    return true;
-}
-
-function loadEmbedUrl(embedUrl) {
-    const wrap = document.getElementById('playerWrap');
-    const frame = document.getElementById('embeddedPlayerFrame');
-
-    if (!wrap || !frame || !embedUrl) return false;
-
-    wrap.dataset.playerEmbedUrl = embedUrl;
-    if (wrap.classList.contains('has-embed') && frame.src !== embedUrl) {
-        frame.src = embedUrl;
-    }
-    return true;
-}
-
-function initPlay() {
-    if (mountEmbeddedPlayer()) {
-        isPlaying = true;
-        updatePlayBtn();
-        showToast('Loading stream');
-        return;
-    }
-
-    isPlaying = true;
-    updatePlayBtn();
-    showToast('▶ Playing Neon Requiem (2024) · 4K HDR');
-    simulateProgress();
-}
-
-function togglePlay() {
-    if (mountEmbeddedPlayer()) {
-        isPlaying = true;
-        updatePlayBtn();
-        showToast('Use the embedded player controls');
-        return;
-    }
-
-    isPlaying = !isPlaying;
-    updatePlayBtn();
-    showToast(isPlaying ? '▶ Playing' : '⏸ Paused');
-    if (isPlaying) simulateProgress();
-}
-
-function updatePlayBtn() {
-    const icon = document.getElementById('playIcon');
-    if (isPlaying) {
-        icon.setAttribute('viewBox', '0 0 24 24');
-        icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    const mimeType = sourceMimeType(source);
+    if (mimeType.includes('mpegurl') && window.Hls && Hls.isSupported()) {
+        vexioHls = new Hls({ enableWorker: true });
+        vexioHls.loadSource(source.url);
+        vexioHls.attachMedia(video);
+        vexioHls.on(Hls.Events.MANIFEST_PARSED, () => {
+            wrap.classList.add('is-ready');
+            Promise.resolve(player.play()).catch(() => {});
+        });
+        vexioHls.on(Hls.Events.ERROR, (_event, data) => {
+            if (data?.fatal) showToast('Stream playback failed');
+        });
     } else {
-        icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+        video.src = source.url;
+        video.type = mimeType;
+        wrap.classList.add('is-ready');
+        video.addEventListener('loadedmetadata', () => Promise.resolve(player.play()).catch(() => {}), { once: true });
+    }
+
+    streamLoaded = true;
+    showToast('Loading stream');
+    return true;
+}
+
+async function loadVexioStream() {
+    if (streamLoaded) {
+        Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
+        return true;
+    }
+
+    const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
+    if (!endpoint) return false;
+
+    try {
+        showToast('Loading stream');
+        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
+
+        const source = (Array.isArray(data.sources) ? data.sources : []).find(item => item?.url);
+        if (!source) throw new Error('No playable stream found');
+
+        return playSource(source, data.subtitles || []);
+    } catch (error) {
+        showToast(error.message || 'Unable to load stream');
+        return false;
     }
 }
 
-let progressInterval;
-function simulateProgress() {
-    clearInterval(progressInterval);
-    if (!isPlaying) return;
-    progressInterval = setInterval(() => {
-        if (!isPlaying) { clearInterval(progressInterval); return; }
-        progress = Math.min(progress + 0.1, 100);
-        document.getElementById('progressFill').style.width = progress + '%';
-        // Update time display
-        const totalSecs = 138 * 60 + 4;
-        const curSecs = Math.floor(totalSecs * progress / 100);
-        const m = Math.floor(curSecs / 60);
-        const s = curSecs % 60;
-        document.getElementById('curTime').textContent = m + ':' + String(s).padStart(2, '0');
-        if (progress >= 100) { clearInterval(progressInterval); isPlaying = false; updatePlayBtn(); }
-    }, 300);
+function initPlay() { loadVexioStream(); }
+function togglePlay() {
+    if (!streamLoaded) {
+        loadVexioStream();
+        return;
+    }
+    vexioPlyr?.togglePlay?.();
 }
+function seekVideo() {}
+function skipBack() { vexioPlyr?.rewind?.(10); }
+function skipFwd() { vexioPlyr?.forward?.(10); }
+function toggleMute() { if (vexioPlyr) vexioPlyr.muted = !vexioPlyr.muted; }
+function setVolume() {}
+function toggleFullscreen() { vexioPlyr?.fullscreen?.toggle?.(); }
 
-function seekVideo(e) {
-    const bar = e.currentTarget;
-    const rect = bar.getBoundingClientRect();
-    progress = Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100));
-    document.getElementById('progressFill').style.width = progress + '%';
-    showToast('Seeked to ' + Math.round(progress) + '%');
-}
-
-function skipBack() { progress = Math.max(0, progress - 5); document.getElementById('progressFill').style.width = progress + '%'; showToast('⏮ -10s'); }
-function skipFwd() { progress = Math.min(100, progress + 5); document.getElementById('progressFill').style.width = progress + '%'; showToast('⏭ +10s'); }
-
-function toggleMute() {
-    isMuted = !isMuted;
-    document.getElementById('volFill').style.width = isMuted ? '0%' : (volume * 100) + '%';
-    showToast(isMuted ? '🔇 Muted' : '🔊 Unmuted');
-}
-function setVolume(e) {
-    const track = e.currentTarget;
-    const rect = track.getBoundingClientRect();
-    volume = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    document.getElementById('volFill').style.width = (volume * 100) + '%';
-    isMuted = volume === 0;
-}
-
-function toggleFullscreen() {
-    isFullscreen = !isFullscreen;
-    showToast(isFullscreen ? '⛶ Fullscreen On' : '⛶ Fullscreen Off');
-}
-
-/* ─── SERVER / LANG ──────────────────────────────── */
-function selectServer(el, name) {
-    name = name || el.dataset.serverName || 'Server';
-    document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    loadEmbedUrl(el.dataset.embedUrl || '');
-    showToast('Server: ' + name + ' selected');
-}
-function selectLang(el, type) {
-    document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    showToast(type === 'sub' ? '🔤 Subtitled (SUB) selected' : '🎙 Dubbed (DUB) selected');
-}
-
-/* ─── TABS ───────────────────────────────────────── */
 function switchTab(id, btn) {
     document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('tab-' + id).classList.add('active');
+    document.getElementById('tab-' + id)?.classList.add('active');
 }
 
-/* ─── LIKE ───────────────────────────────────────── */
 function toggleLike() {
     const btn = document.getElementById('likeBtn');
-    btn.classList.toggle('liked');
-    showToast(btn.classList.contains('liked') ? '❤️ Added to favorites' : '🤍 Removed from favorites');
+    btn?.classList.toggle('liked');
+    showToast(btn?.classList.contains('liked') ? 'Added to favorites' : 'Removed from favorites');
 }
 
-/* ─── RATING ─────────────────────────────────────── */
 function rateMovie(n) {
     userRating = n;
     document.querySelectorAll('.user-star').forEach((s, i) => {
         s.classList.toggle('active', i < n);
     });
-    showToast('⭐ You rated this ' + n + '/5 — Thanks!');
+    showToast('You rated this ' + n + '/5');
 }
 
-/* ─── SEARCH ─────────────────────────────────────── */
-document.getElementById('searchOpen').addEventListener('click', () => {
-    document.getElementById('search-overlay').classList.add('open');
-    setTimeout(() => document.getElementById('searchInput').focus(), 150);
+document.getElementById('searchOpen')?.addEventListener('click', () => {
+    document.getElementById('search-overlay')?.classList.add('open');
+    setTimeout(() => document.getElementById('searchInput')?.focus(), 150);
 });
-document.getElementById('mobileSearchOpen').addEventListener('click', () => {
-    document.getElementById('search-overlay').classList.add('open');
-    setTimeout(() => document.getElementById('searchInput').focus(), 150);
+document.getElementById('mobileSearchOpen')?.addEventListener('click', () => {
+    document.getElementById('search-overlay')?.classList.add('open');
+    setTimeout(() => document.getElementById('searchInput')?.focus(), 150);
 });
-document.getElementById('searchClose').addEventListener('click', () => {
-    document.getElementById('search-overlay').classList.remove('open');
+document.getElementById('searchClose')?.addEventListener('click', () => {
+    document.getElementById('search-overlay')?.classList.remove('open');
 });
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.getElementById('search-overlay').classList.remove('open');
+    if (e.key === 'Escape') document.getElementById('search-overlay')?.classList.remove('open');
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        document.getElementById('search-overlay').classList.add('open');
-        setTimeout(() => document.getElementById('searchInput').focus(), 150);
+        document.getElementById('search-overlay')?.classList.add('open');
+        setTimeout(() => document.getElementById('searchInput')?.focus(), 150);
     }
 });
 
-/* ─── TOAST ──────────────────────────────────────── */
 function showToast(msg) {
     const t = document.getElementById('toast');
     if (!t) return;
@@ -208,3 +188,6 @@ function showToast(msg) {
     clearTimeout(window.watchMovieToastTimer);
     window.watchMovieToastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
+
+spawnParticles();
+initVexioPlyr();

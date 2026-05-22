@@ -12,7 +12,8 @@
     "@capacitor/android": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
-    "video.js": "^8.23.7"
+    "hls.js": "^1.6.16",
+    "plyr": "^3.8.4"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4"

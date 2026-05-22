@@ -23,20 +23,23 @@ foreach ($episodeRows as $idx => $row) {
 $nextUrl = (string) ($nextEpisode['watchUrl'] ?? $nextEpisode['watch_url'] ?? '');
 $prevUrl = (string) ($prevEpisode['watchUrl'] ?? $prevEpisode['watch_url'] ?? '');
 $nextTitle = (string) (($nextEpisode['episode_name'] ?? '') ?: ($nextEpisode['title'] ?? 'Next episode'));
-$embedUrl = (string) ($episode['embedUrl'] ?? $episode['embed_url'] ?? '');
+$sourceUrl = '/api/embed/sources?' . http_build_query([
+    'type' => 'tv',
+    'tmdbId' => (int) ($show['tmdb_id'] ?? 0),
+    'season' => $currentSeason,
+    'episode' => $currentEpisode,
+]);
 ?>
-<div class="player-wrap" id="playerWrap" data-player-embed-url="<?= escape($embedUrl) ?>">
-  <?php if ($embedUrl !== ''): ?>
-    <iframe
-      class="embedded-player-frame"
-      id="embeddedPlayerFrame"
-      title="<?= escape($showTitle . ' - ' . $episodeTitle) ?> player"
-      loading="lazy"
-      allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-      allowfullscreen
-      referrerpolicy="origin"
-    ></iframe>
-  <?php endif; ?>
+<div class="player-wrap" id="playerWrap" data-player-source-url="<?= escape($sourceUrl) ?>">
+  <video
+    class="vexio-plyr-video"
+    id="vexioPlyrVideo"
+    controls
+    playsinline
+    preload="metadata"
+    crossorigin="anonymous"
+    poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
+  ></video>
   <div class="player-bg">
     <div class="player-backdrop">
       <?php echo $this->includePartial('/frontend/partials/media-image', [

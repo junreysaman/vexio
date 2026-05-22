@@ -74,23 +74,22 @@ This creates the database and imports `database.sql`. Default admin login:
 
 ## Vexio Streaming Scraper
 
-Vexio can use the scraper in `public/core` as the default watch-page server named **Vexio**. Run it beside the PHP app:
+Vexio uses the scraper in `embed-api` as the default watch-page stream source. Run it beside the PHP app:
 
 ```bash
-cd public/core
+cd embed-api
 npm install
-npm run dev
+npm run start:dev
 ```
 
 The bridge is configured with these `.env` values:
 
 ```env
-CINEPRO_CORE_ENABLED=true
-CINEPRO_CORE_URL=http://127.0.0.1:3000
-CINEPRO_CORE_PUBLIC_URL=https://vexio.asia
-CINEPRO_CORE_CONNECT_TIMEOUT=5
-CINEPRO_CORE_TIMEOUT=180
-CINEPRO_CORE_PROXY_TIMEOUT=0
+EMBED_API_ENABLED=true
+EMBED_API_URL=https://embed.vexio.asia
+EMBED_API_CONNECT_TIMEOUT=5
+EMBED_API_TIMEOUT=180
+EMBED_API_SOURCE_CACHE_TTL=1800
 ```
 
 ---

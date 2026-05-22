@@ -17,14 +17,12 @@ function initEpisodeList() {
         const normalizedNumberTerm = term.match(/\d+/)?.[0] || '';
         const matches = rows.filter(row => {
             if (!term) return true;
-
             if (isNumericTerm && normalizedNumberTerm) {
                 return (` ${row.dataset.numberSearch || ''} `).includes(` ${normalizedNumberTerm} `)
                     || (` ${row.dataset.numberSearch || ''} `).includes(` 0${normalizedNumberTerm} `)
                     || (` ${row.dataset.numberSearch || ''} `).includes(` episode ${normalizedNumberTerm} `)
                     || (` ${row.dataset.numberSearch || ''} `).includes(` e${normalizedNumberTerm} `);
             }
-
             return (row.dataset.search || '').includes(term)
                 || (row.dataset.numberSearch || '').includes(term);
         });
@@ -32,21 +30,13 @@ function initEpisodeList() {
         rows.forEach(row => {
             row.hidden = true;
         });
-
         matches.slice(0, visibleLimit).forEach(row => {
             row.hidden = false;
         });
 
-        if (loadMore) {
-            loadMore.hidden = matches.length <= visibleLimit;
-        }
-        if (loadMoreWrap) {
-            loadMoreWrap.hidden = matches.length <= visibleLimit;
-        }
-
-        if (count) {
-            count.textContent = `${Math.min(matches.length, visibleLimit).toLocaleString()} of ${matches.length.toLocaleString()} episodes`;
-        }
+        if (loadMore) loadMore.hidden = matches.length <= visibleLimit;
+        if (loadMoreWrap) loadMoreWrap.hidden = matches.length <= visibleLimit;
+        if (count) count.textContent = `${Math.min(matches.length, visibleLimit).toLocaleString()} of ${matches.length.toLocaleString()} episodes`;
 
         list?.classList.toggle('is-empty', matches.length === 0);
         panel.querySelector('.ep-empty')?.toggleAttribute('hidden', matches.length !== 0);
@@ -56,19 +46,11 @@ function initEpisodeList() {
         visibleLimit = pageSize;
         render();
     });
-
     loadMore?.addEventListener('click', () => {
         visibleLimit += pageSize;
         render();
     });
-
     render();
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEpisodeList);
-} else {
-    initEpisodeList();
 }
 
 function initSidebarEpisodeList() {
@@ -85,10 +67,7 @@ function initSidebarEpisodeList() {
         rows.forEach((row, index) => {
             row.hidden = index >= visibleLimit;
         });
-
-        if (sentinel) {
-            sentinel.hidden = visibleLimit >= rows.length;
-        }
+        if (sentinel) sentinel.hidden = visibleLimit >= rows.length;
     };
 
     const revealMore = () => {
@@ -99,16 +78,12 @@ function initSidebarEpisodeList() {
 
     if ('IntersectionObserver' in window && sentinel) {
         const observer = new IntersectionObserver((entries) => {
-            if (entries.some(entry => entry.isIntersecting)) {
-                revealMore();
-            }
+            if (entries.some(entry => entry.isIntersecting)) revealMore();
         }, { root: scroller, rootMargin: '160px 0px' });
         observer.observe(sentinel);
     } else {
         scroller.addEventListener('scroll', () => {
-            if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 160) {
-                revealMore();
-            }
+            if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 160) revealMore();
         }, { passive: true });
     }
 
@@ -116,48 +91,133 @@ function initSidebarEpisodeList() {
     rows[currentIndex]?.scrollIntoView({ block: 'nearest' });
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSidebarEpisodeList);
-} else {
-    initSidebarEpisodeList();
-}
-
-
-const EPISODE_TOTAL_SECONDS = 45 * 60;
-let tvIsPlaying = false;
-let tvIsMuted = false;
-let tvVolume = 0.8;
-let tvProgress = 0;
-let tvProgressTimer;
+let vexioPlyr = null;
+let vexioHls = null;
+let streamLoaded = false;
 let tvCountdownTimer;
 
-function mountEmbeddedPlayer() {
+function initVexioPlyr() {
+    const video = document.getElementById('vexioPlyrVideo');
+    if (!video || !window.Plyr) return null;
+    if (vexioPlyr) return vexioPlyr;
+
+    vexioPlyr = new Plyr(video, {
+        iconUrl: '/assets/vendor/plyr/plyr.svg',
+        controls: ['play-large', 'play', 'rewind', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+        settings: ['captions', 'quality', 'speed'],
+        seekTime: 10
+    });
+    video.addEventListener('ended', triggerNextEp);
+    return vexioPlyr;
+}
+
+function sourceMimeType(source) {
+    const type = String(source?.type || '').toLowerCase();
+    const url = String(source?.url || '').toLowerCase();
+    return type === 'mp4' || url.includes('.mp4') ? 'video/mp4' : 'application/vnd.apple.mpegurl';
+}
+
+function subtitleLanguage(subtitle) {
+    const label = String(subtitle.label || subtitle.language || '').toLowerCase();
+    if (label.includes('english') || label === 'eng') return 'en';
+    if (label.includes('spanish') || label === 'spa') return 'es';
+    if (label.includes('french') || label === 'fre') return 'fr';
+    if (label.includes('german') || label === 'ger') return 'de';
+    return label.replace(/[^a-z-]/g, '').slice(0, 12) || 'sub';
+}
+
+function addSubtitles(video, subtitles) {
+    video.querySelectorAll('track').forEach(track => track.remove());
+    (Array.isArray(subtitles) ? subtitles : [])
+        .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
+        .slice(0, 14)
+        .forEach((subtitle, index) => {
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.src = subtitle.url;
+            track.label = subtitle.label || 'Subtitle';
+            track.srclang = subtitleLanguage(subtitle);
+            track.default = index === 0 && /english|eng|^en$/i.test(String(subtitle.label || subtitle.language || ''));
+            video.appendChild(track);
+        });
+}
+
+function playSource(source, subtitles) {
     const wrap = document.getElementById('playerWrap');
-    const frame = document.getElementById('embeddedPlayerFrame');
-    const embedUrl = wrap?.dataset.playerEmbedUrl || '';
+    const video = document.getElementById('vexioPlyrVideo');
+    const player = initVexioPlyr();
+    if (!wrap || !video || !player || !source?.url) return false;
 
-    if (!wrap || !frame || !embedUrl) return false;
+    addSubtitles(video, subtitles);
 
-    if (!frame.src) {
-        frame.src = embedUrl;
+    if (vexioHls) {
+        vexioHls.destroy();
+        vexioHls = null;
     }
 
-    wrap.classList.add('has-embed');
+    const mimeType = sourceMimeType(source);
+    if (mimeType.includes('mpegurl') && window.Hls && Hls.isSupported()) {
+        vexioHls = new Hls({ enableWorker: true });
+        vexioHls.loadSource(source.url);
+        vexioHls.attachMedia(video);
+        vexioHls.on(Hls.Events.MANIFEST_PARSED, () => {
+            wrap.classList.add('is-ready');
+            Promise.resolve(player.play()).catch(() => {});
+        });
+        vexioHls.on(Hls.Events.ERROR, (_event, data) => {
+            if (data?.fatal) showToast('Stream playback failed');
+        });
+    } else {
+        video.src = source.url;
+        video.type = mimeType;
+        wrap.classList.add('is-ready');
+        video.addEventListener('loadedmetadata', () => Promise.resolve(player.play()).catch(() => {}), { once: true });
+    }
+
+    streamLoaded = true;
+    showToast('Loading stream');
     return true;
 }
 
-function loadEmbedUrl(embedUrl) {
-    const wrap = document.getElementById('playerWrap');
-    const frame = document.getElementById('embeddedPlayerFrame');
-
-    if (!wrap || !frame || !embedUrl) return false;
-
-    wrap.dataset.playerEmbedUrl = embedUrl;
-    if (wrap.classList.contains('has-embed') && frame.src !== embedUrl) {
-        frame.src = embedUrl;
+async function loadVexioStream() {
+    if (streamLoaded) {
+        Promise.resolve(vexioPlyr?.play?.()).catch(() => {});
+        return true;
     }
-    return true;
+
+    const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
+    if (!endpoint) return false;
+
+    try {
+        showToast('Loading stream');
+        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
+
+        const source = (Array.isArray(data.sources) ? data.sources : []).find(item => item?.url);
+        if (!source) throw new Error('No playable stream found');
+
+        return playSource(source, data.subtitles || []);
+    } catch (error) {
+        showToast(error.message || 'Unable to load stream');
+        return false;
+    }
 }
+
+function initPlay() { loadVexioStream(); }
+function togglePlay() {
+    if (!streamLoaded) {
+        loadVexioStream();
+        return;
+    }
+    vexioPlyr?.togglePlay?.();
+}
+function seekVideo() {}
+function skipBack() { vexioPlyr?.rewind?.(10); }
+function skipFwd() { vexioPlyr?.forward?.(10); }
+function toggleMute() { if (vexioPlyr) vexioPlyr.muted = !vexioPlyr.muted; }
+function setVolume() {}
+function toggleFullscreen() { vexioPlyr?.fullscreen?.toggle?.(); }
 
 function spawnTvParticles() {
     const container = document.getElementById('particles');
@@ -172,80 +232,9 @@ function spawnTvParticles() {
     }
 }
 
-function updatePlayBtn() {
-    const icon = document.getElementById('playIcon');
-    if (!icon) return;
-    icon.innerHTML = tvIsPlaying
-        ? '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>'
-        : '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
-}
-
-function initPlay() {
-    if (mountEmbeddedPlayer()) {
-        tvIsPlaying = true;
-        updatePlayBtn();
-        showToast('Loading stream');
-        return;
-    }
-
-    tvIsPlaying = true;
-    updatePlayBtn();
-    showToast('Playing episode');
-    simulateProgress();
-}
-
-function togglePlay() {
-    if (mountEmbeddedPlayer()) {
-        tvIsPlaying = true;
-        updatePlayBtn();
-        showToast('Use the embedded player controls');
-        return;
-    }
-
-    tvIsPlaying = !tvIsPlaying;
-    updatePlayBtn();
-    showToast(tvIsPlaying ? 'Playing' : 'Paused');
-    if (tvIsPlaying) simulateProgress();
-}
-
-function simulateProgress() {
-    clearInterval(tvProgressTimer);
-    tvProgressTimer = setInterval(() => {
-        if (!tvIsPlaying) {
-            clearInterval(tvProgressTimer);
-            return;
-        }
-        tvProgress = Math.min(tvProgress + 0.05, 100);
-        const fill = document.getElementById('progressFill');
-        const time = document.getElementById('curTime');
-        if (fill) fill.style.width = tvProgress + '%';
-        if (time) {
-            const curSecs = Math.floor(EPISODE_TOTAL_SECONDS * tvProgress / 100);
-            time.textContent = Math.floor(curSecs / 60) + ':' + String(curSecs % 60).padStart(2, '0');
-        }
-        if (tvProgress >= 98) triggerNextEp();
-    }, 300);
-}
-
-function seekVideo(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    tvProgress = Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100));
-    document.getElementById('progressFill').style.width = tvProgress + '%';
-    showToast('Seeked to ' + Math.round(tvProgress) + '%');
-}
-
-function skipBack() { tvProgress = Math.max(0, tvProgress - 4); document.getElementById('progressFill').style.width = tvProgress + '%'; showToast('-10s'); }
-function skipFwd() { tvProgress = Math.min(100, tvProgress + 4); document.getElementById('progressFill').style.width = tvProgress + '%'; showToast('+10s'); }
-function toggleMute() { tvIsMuted = !tvIsMuted; document.getElementById('volFill').style.width = tvIsMuted ? '0%' : (tvVolume * 100) + '%'; showToast(tvIsMuted ? 'Muted' : 'Unmuted'); }
-function setVolume(e) { const rect = e.currentTarget.getBoundingClientRect(); tvVolume = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)); document.getElementById('volFill').style.width = (tvVolume * 100) + '%'; tvIsMuted = tvVolume === 0; }
-function toggleFullscreen() { showToast('Fullscreen toggled'); }
-
 function triggerNextEp() {
     const overlay = document.getElementById('nextEpOverlay');
-    if (!overlay || overlay.dataset.hasNext !== '1') {
-        showToast('No next episode available');
-        return;
-    }
+    if (!overlay || overlay.dataset.hasNext !== '1') return;
     overlay.classList.add('show');
     let count = 5;
     document.getElementById('nextCountdown').textContent = count;
@@ -259,8 +248,7 @@ function triggerNextEp() {
 
 function playNextEpisode() {
     clearInterval(tvCountdownTimer);
-    const overlay = document.getElementById('nextEpOverlay');
-    const url = overlay ? overlay.dataset.nextUrl : '';
+    const url = document.getElementById('nextEpOverlay')?.dataset.nextUrl || '';
     if (url) window.location.href = url;
 }
 
@@ -270,9 +258,43 @@ function cancelNextEp() {
     showToast('Autoplay cancelled');
 }
 
-function selectServer(el, name) { name = name || el.dataset.serverName || 'Server'; document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); loadEmbedUrl(el.dataset.embedUrl || ''); showToast('Server: ' + name + ' selected'); }
-function switchTab(id, btn) { document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-' + id)?.classList.add('active'); }
-function toggleLike() { const btn = document.getElementById('likeBtn'); btn?.classList.toggle('liked'); showToast(btn?.classList.contains('liked') ? 'Added to favorites' : 'Removed from favorites'); }
-function rateEp(n) { document.querySelectorAll('.user-star').forEach((s, i) => s.classList.toggle('active', i < n)); showToast('You rated this episode ' + n + '/5'); }
+function switchTab(id, btn) {
+    document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + id)?.classList.add('active');
+}
 
-spawnTvParticles();
+function toggleLike() {
+    const btn = document.getElementById('likeBtn');
+    btn?.classList.toggle('liked');
+    showToast(btn?.classList.contains('liked') ? 'Added to favorites' : 'Removed from favorites');
+}
+
+function rateEp(n) {
+    document.querySelectorAll('.user-star').forEach((s, i) => s.classList.toggle('active', i < n));
+    showToast('You rated this episode ' + n + '/5');
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window.watchTvToastTimer);
+    window.watchTvToastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initEpisodeList();
+        initSidebarEpisodeList();
+        spawnTvParticles();
+        initVexioPlyr();
+    });
+} else {
+    initEpisodeList();
+    initSidebarEpisodeList();
+    spawnTvParticles();
+    initVexioPlyr();
+}

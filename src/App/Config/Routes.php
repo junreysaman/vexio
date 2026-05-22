@@ -12,7 +12,7 @@ use App\Controllers\Auth\AuthController;
 use App\Controllers\Auth\AuthPageController;
 use App\Controllers\Search\SearchController;
 use App\Controllers\Watch\CommentController;
-use App\Controllers\Watch\CoreStreamController;
+use App\Controllers\Watch\EmbedStreamController;
 use App\Controllers\Watch\WatchMovieController;
 use App\Controllers\Watch\WatchTvController;
 use App\Controllers\AppController;
@@ -91,11 +91,8 @@ function registerRoutes(App $app): void
         ['GET', '/advertise', [SupportPageController::class, 'advertise']],
         // API Routes
         ['GET', '/api/search', [SearchController::class, 'index']],
-        ['GET', '/api/core/sources', [CoreStreamController::class, 'sources']],
-        ['GET', '/api/core/proxy', [CoreStreamController::class, 'proxy']],
+        ['GET', '/api/embed/sources', [EmbedStreamController::class, 'sources']],
         ['POST', '/api/comments', [CommentController::class, 'store']],
-        // Vexio stream player
-        ['GET', '/core-player/{type}/{tmdbId}', [CoreStreamController::class, 'player']],
         // Watch/Movie Routes
         ['GET', '/movie/{tmdbId}', [WatchMovieController::class, 'index']],
         ['GET', '/watch/movie/{tmdbId}', [WatchMovieController::class, 'index']],
