@@ -111,7 +111,7 @@ function normalizeConfig(base) {
   if (cfg.disableCache === undefined) cfg.disableCache = false;
   if (cfg.enablePStreamApi === undefined) cfg.enablePStreamApi = true;
   if (cfg.enableProxy === undefined) cfg.enableProxy = true;
-  // Proxy features removed; always use direct connections
+  // Keep the stream proxy enabled by default for browser playback.
   if (cfg.disableUrlValidation === undefined) cfg.disableUrlValidation = false;
   if (cfg.disable4khdhubUrlValidation === undefined) cfg.disable4khdhubUrlValidation = false;
   return cfg;

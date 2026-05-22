@@ -130,6 +130,10 @@ docker compose up -d --build
 Environment variables can be supplied via a `.env` file in the same directory (Compose automatically loads it). Example `.env`:
 ```
 TMDB_API_KEY=first_key
+DEFAULT_PROVIDERS=dahmermovies
+ENABLE_DAHMERMOVIES_PROVIDER=true
+ENABLE_4KHDHUB_PROVIDER=false
+ENABLE_PROXY=true
 ```
 
 To stop & remove:
@@ -199,9 +203,11 @@ Saving in the UI writes only changed keys. Setting a field to empty removes the 
 **Override File:** `utils/user-config.json`
 ```json
 {
-  "defaultProviders": ["4khdhub","moviesmod"],
+  "defaultProviders": ["dahmermovies"],
   "tmdbApiKeys": ["KEY_A","KEY_B"],
-  "enable4khdhubProvider": true
+  "enableDahmermoviesProvider": true,
+  "enable4khdhubProvider": false,
+  "enableProxy": true
 }
 ```
 
@@ -325,7 +331,7 @@ Filtering passes through `applyFilters` to enforce min quality + codec exclusion
 |------|---------|---------|
 | disableCache | false | Disables internal caches |\n| disableUrlValidation | false | Skip general URL pattern validation checks |
 | disable4khdhubUrlValidation | false | Skip 4khdhub-specific URL validation |
-| enableProxy | false | Mounts proxy routes and rewrites stream URLs through them |
+| enableProxy | true | Mounts proxy routes and rewrites stream URLs through them |
 
 Toggle `enableProxy` to activate the internal proxy. This adds lightweight playlist/segment/subtitle rewriting without modifying provider code. Disable it to return direct upstream URLs.
 
