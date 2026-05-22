@@ -62,7 +62,7 @@ class CoreStreamController
                 ], 502);
             }
 
-            $payload = $this->mergeSubtitleFallback($client, $payload, $type, $tmdbId, $season, $episode, $server);
+            $payload = $this->withDeferredSubtitleFallback($payload, $type, $tmdbId, $season, $episode, $server);
 
             return $response->json($this->normalizeSourcePayload($payload, $coreBaseUrl, $this->vexioProxyBaseUrl()));
         } catch (GuzzleException $exception) {
@@ -151,9 +151,9 @@ class CoreStreamController
     private function providersForServer(string $server): array
     {
         return match ($server) {
-            'vexio-s1' => ['cinesu'],
+            'vexio-s1' => ['vidrock'],
             'vexio-s2' => ['02moviedownloader'],
-            'vexio-s3' => ['vidrock'],
+            'vexio-s3' => ['cinesu'],
             'vexio-s4' => ['videasy'],
             'vexio-s5' => ['vixsrc'],
             default => [],
@@ -163,7 +163,7 @@ class CoreStreamController
     private function subtitleFallbackProvidersForServer(string $server): array
     {
         return match ($server) {
-            'vexio-s1' => ['vidrock'],
+            'vexio-s3' => ['vidrock'],
             default => [],
         };
     }
@@ -197,39 +197,20 @@ class CoreStreamController
         return $payload;
     }
 
-    private function mergeSubtitleFallback(
-        Client $client,
-        array $payload,
-        string $type,
-        int $tmdbId,
-        int $season,
-        int $episode,
-        string $server
-    ): array {
+    private function withDeferredSubtitleFallback(array $payload, string $type, int $tmdbId, int $season, int $episode, string $server): array
+    {
         if (!empty($payload['subtitles']) || $this->subtitleFallbackProvidersForServer($server) === []) {
             return $payload;
         }
 
-        try {
-            $fallbackPayload = $this->fetchCorePayload(
-                $client,
-                $this->coreSourcePath($type, $tmdbId, $season, $episode, $this->subtitleFallbackProvidersForServer($server))
-            );
-        } catch (GuzzleException) {
-            return $payload;
-        }
-
-        if ($fallbackPayload === null || empty($fallbackPayload['subtitles']) || !is_array($fallbackPayload['subtitles'])) {
-            return $payload;
-        }
-
-        $payload['subtitles'] = $fallbackPayload['subtitles'];
-        $payload['diagnostics'][] = [
-            'code' => 'SUBTITLE_FALLBACK',
-            'message' => 'Subtitles loaded from fallback provider.',
-            'field' => 'subtitles',
-            'severity' => 'info',
-        ];
+        $payload['subtitleFallbackUrl'] = '/api/core/sources?' . http_build_query([
+            'type' => $type,
+            'tmdbId' => $tmdbId,
+            'season' => $season,
+            'episode' => $episode,
+            'server' => 'vexio-s3',
+            'subtitlesOnly' => '1',
+        ]);
 
         return $payload;
     }
@@ -647,7 +628,6 @@ class CoreStreamController
         <input class="vx-volume" id="volumeBar" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
         <span class="vx-time" id="timeLabel">00:00 / 00:00</span>
         <span class="vx-spacer"></span>
-        <button class="vx-btn" type="button" id="captionBtn" aria-label="Subtitles">CC</button>
         <button class="vx-btn" type="button" id="settingsToggle" aria-label="Playback settings">⚙</button>
         <button class="vx-btn" type="button" id="pipBtn" aria-label="Picture in picture">PiP</button>
         <button class="vx-btn" type="button" id="fullscreenBtn" aria-label="Fullscreen">□</button>
@@ -690,9 +670,9 @@ class CoreStreamController
     const endpoint = {$this->jsonForScript($sourceUrl)};
     const serverKey = {$this->jsonForScript($server)};
     const providerGroups = {
-      'vexio-s1': ['CineSu'],
+      'vexio-s1': ['VidRock'],
       'vexio-s2': ['02MovieDownloader'],
-      'vexio-s3': ['VidRock'],
+      'vexio-s3': ['CineSu'],
       'vexio-s4': ['Videasy'],
       'vexio-s5': ['VixSrc'],
       'vexio-multi': ['02MovieDownloader', 'CineSu', 'VidRock', 'Videasy', 'VixSrc', 'VidApi']
@@ -713,7 +693,6 @@ class CoreStreamController
     const volumeBar = document.getElementById('volumeBar');
     const timeLabel = document.getElementById('timeLabel');
     const muteBtn = document.getElementById('muteBtn');
-    const captionBtn = document.getElementById('captionBtn');
     const pipBtn = document.getElementById('pipBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const qualitySelect = document.getElementById('qualitySelect');
@@ -942,6 +921,19 @@ class CoreStreamController
       player.ready(() => player.play()?.catch(() => {}));
     }
 
+    async function loadSubtitleFallback(fallbackUrl) {
+      if (!fallbackUrl || subtitleTracks.length > 0) return;
+
+      try {
+        const response = await fetch(fallbackUrl, { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+        const subtitles = Array.isArray(data.subtitles) ? data.subtitles : [];
+        if (subtitles.length) addSubtitles(subtitles);
+      } catch (error) {
+        // Subtitle fallback is best-effort and should never slow or stop playback.
+      }
+    }
+
     async function boot() {
       startScanning();
       setState('Finding best stream', 'Asking ' + serverKey + ' for one high quality playable source.', true);
@@ -962,6 +954,9 @@ class CoreStreamController
         addSubtitles(Array.isArray(data.subtitles) ? data.subtitles : []);
         sourceCount.textContent = serverKey + ' - ' + sourceLabel(sources[0]);
         playSource(sources[0]);
+        if (!Array.isArray(data.subtitles) || data.subtitles.length === 0) {
+          loadSubtitleFallback(data.subtitleFallbackUrl || '');
+        }
       } catch (error) {
         stopScanning();
         setState('Vexio is unavailable', error.message || 'Unable to load streams from Vexio.');
@@ -982,10 +977,6 @@ class CoreStreamController
 
     customPlayBtn.addEventListener('click', togglePlay);
     settingsToggle.addEventListener('click', () => toggleSettings());
-    captionBtn.addEventListener('click', () => {
-      toggleSettings(true);
-      subtitleSelect.focus();
-    });
     rewindBtn.addEventListener('click', () => skipBy(-10));
     forwardBtn.addEventListener('click', () => skipBy(10));
     seekBar.addEventListener('input', () => {
