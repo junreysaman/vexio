@@ -1,5 +1,5 @@
 import { OMSSServer } from '@omss/framework';
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { knownThirdPartyProxies } from './thirdPartyProxies.js';
@@ -7,6 +7,8 @@ import { streamPatterns } from './streamPatterns.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+const SCRAPER_PUBLIC_URL = normalizePublicUrl(process.env.PUBLIC_URL);
 
 async function main() {
     const server = new OMSSServer({
@@ -16,7 +18,7 @@ async function main() {
         // Network
         host: process.env.HOST ?? 'localhost',
         port: Number(process.env.PORT ?? 3000),
-        publicUrl: process.env.PUBLIC_URL,
+        publicUrl: SCRAPER_PUBLIC_URL,
 
         // Cache (memory for dev, Redis for prod)
         cache: {
@@ -83,9 +85,7 @@ async function main() {
 
     await server.start();
 
-    const publicUrl =
-        process.env.PUBLIC_URL ??
-        `http://${process.env.HOST ?? 'localhost'}:${process.env.PORT ?? 3000}`;
+    const publicUrl = SCRAPER_PUBLIC_URL;
 
     const uiUrl = `https://ui.cinepro.cc/?omssurl=${encodeURIComponent(publicUrl)}`;
 
@@ -139,6 +139,16 @@ function applyProviderAllowlist(registry: ReturnType<OMSSServer['getRegistry']>)
     console.log(
         `[ProviderRegistry] Provider allowlist enabled: ${registry.listProviders().join(', ')}`
     );
+}
+
+function normalizePublicUrl(value?: string): string {
+    const publicUrl = (value ?? '').trim().replace(/\/+$/, '');
+
+    if (publicUrl === '' || publicUrl === 'https://vexio.asia' || publicUrl === 'http://vexio.asia') {
+        return 'https://proxy.vexio.asia';
+    }
+
+    return publicUrl;
 }
 
 function registerFilteredSourceRoutes(server: OMSSServer) {
