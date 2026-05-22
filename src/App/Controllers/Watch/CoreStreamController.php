@@ -270,9 +270,10 @@ class CoreStreamController
             $sources[] = $source;
         }
 
-        $bestSource = $this->bestPlayableSource($sources);
+        // Return top 3 sources for player fallback (avoid re-scraping on first failure)
+        $topSources = $this->topPlayableSources($sources, 3);
 
-        $payload['sources'] = $bestSource ? [$bestSource] : [];
+        $payload['sources'] = $topSources;
         $payload['subtitles'] = $this->selectSubtitles(
             $this->normalizeUrlList($payload['subtitles'] ?? [], $coreBaseUrl, $proxyBaseUrl)
         );
@@ -280,22 +281,30 @@ class CoreStreamController
         return $payload;
     }
 
-    private function bestPlayableSource(array $sources): ?array
+    private function topPlayableSources(array $sources, int $count = 3): array
     {
         $playable = array_values(array_filter($sources, fn (array $source): bool => $this->isBrowserPlayableSource($source)));
 
         if ($playable === []) {
-            return null;
+            return [];
         }
 
         usort($playable, fn (array $a, array $b): int => $this->sourceScore($b) <=> $this->sourceScore($a));
 
+        // Prioritize high-quality sources (1080p+)
         $preferred = array_values(array_filter(
             $playable,
             fn (array $source): bool => $this->qualityScore((string) ($source['quality'] ?? '')) >= 1080
         ));
 
-        return $preferred[0] ?? $playable[0];
+        // Build result: prefer high-quality, fill remaining with others
+        $result = [];
+        $result = array_merge($result, array_slice($preferred, 0, $count));
+        if (count($result) < $count) {
+            $result = array_merge($result, array_slice($playable, 0, $count - count($result)));
+        }
+
+        return array_slice($result, 0, $count);
     }
 
     private function isBrowserPlayableSource(array $source): bool

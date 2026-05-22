@@ -68,47 +68,54 @@ export class PoprProvider extends BaseProvider {
         serverName: string
     ): Promise<{ isValid: boolean; type: SourceType }> {
         try {
-            const res = await fetch(url, {
+            // First try HEAD request for metadata (fast)
+            const headRes = await fetch(url, {
+                method: 'HEAD',
                 headers: { ...this.HEADERS, ...headers },
-                signal: AbortSignal.timeout(5000),
+                signal: AbortSignal.timeout(3000),
+                redirect: 'follow'
+            }).catch(() => null);
+
+            if (headRes?.ok) {
+                const contentType = headRes.headers.get('content-type') || '';
+                if (
+                    contentType.includes('video/mp4') ||
+                    contentType.includes('video/webm')
+                ) {
+                    return { isValid: true, type: 'mp4' };
+                }
+                if (
+                    contentType.includes('application/vnd.apple.mpegurl') ||
+                    contentType.includes('application/x-mpegURL')
+                ) {
+                    return { isValid: true, type: 'hls' };
+                }
+            }
+
+            // If HEAD doesn't give us enough info, fetch with Range (small buffer for sniffing)
+            const rangeRes = await fetch(url, {
+                headers: {
+                    ...this.HEADERS,
+                    ...headers,
+                    Range: 'bytes=0-1024' // Only first 1KB for manifest check
+                },
+                signal: AbortSignal.timeout(2000),
                 redirect: 'follow'
             });
 
-            if (!res.ok) {
+            if (!rangeRes.ok && rangeRes.status !== 206) {
                 return { isValid: false, type: 'mp4' };
             }
 
-            const contentType = res.headers.get('content-type') || '';
-            if (
-                contentType.includes('video/mp4') ||
-                contentType.includes('video/webm')
-            ) {
-                return { isValid: true, type: 'mp4' };
-            }
-
-            const text = await res.text();
+            const text = await rangeRes.text();
             const trimmed = text.trim();
 
+            // Check for HLS manifest signature
             if (trimmed.startsWith('#EXTM3U')) {
-                const segmentLines = trimmed.split('\n').filter((l) => {
-                    const t = l.trim();
-                    return t && !t.startsWith('#');
-                });
-
-                if (segmentLines.length === 0) {
-                    return { isValid: false, type: 'hls' };
-                }
-
                 return { isValid: true, type: 'hls' };
             }
 
-            if (
-                trimmed.toLowerCase().includes('<!doctype html>') ||
-                trimmed.toLowerCase().includes('<html')
-            ) {
-                return { isValid: false, type: 'mp4' };
-            }
-
+            // If no manifest header, assume mp4
             return { isValid: true, type: 'mp4' };
         } catch (error) {
             return { isValid: false, type: 'mp4' };

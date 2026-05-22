@@ -46,7 +46,7 @@ export class VidZeeProvider extends BaseProvider {
     }
 
     /**
-     * Main scraping logic - Parallel servers + FULL parallel decryption
+     * Main scraping logic - Early-exit: return on first successful server
      */
     private async getSources(
         media: ProviderMediaObject,
@@ -63,59 +63,68 @@ export class VidZeeProvider extends BaseProvider {
                 );
             }
 
+            // Race all 14 servers, return first success (early-exit)
             const serverPromises = Array.from({ length: 14 }, (_, serverId) =>
                 this.fetchServer(tmdbId, serverId, params)
             );
 
-            const results = await Promise.allSettled(serverPromises);
-            const successfulResponses: StreamResponse[] = [];
+            let successResponse: StreamResponse | null = null;
 
-            for (const result of results) {
-                if (result.status === 'fulfilled' && result.value) {
-                    successfulResponses.push(result.value);
-                }
+            // Use Promise.any to race servers and return first successful
+            try {
+                const successPromise = Promise.any(
+                    serverPromises.map((p) =>
+                        p.then((res) => {
+                            if (res && res.url.length > 0) return res;
+                            throw new Error('No URLs in response');
+                        })
+                    )
+                );
+
+                // Set a timeout: if no server succeeds within 12s, give up early
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Server timeout')), 12000)
+                );
+
+                successResponse = await Promise.race([
+                    successPromise,
+                    timeoutPromise
+                ]).catch(() => null);
+            } catch {
+                // All servers failed
             }
 
-            if (successfulResponses.length === 0) {
+            if (!successResponse) {
                 return this.emptyResult('No working servers', media);
             }
 
-            const decryptPromises = successfulResponses.map((response) =>
-                Promise.all(
-                    response.url.map((u) => decrypt(u.link, decKey))
-                ).then((decryptedLinks) => ({
-                    response,
-                    decryptedLinks
-                }))
+            // Decrypt only the first successful server's links
+            const decryptedLinks = await Promise.all(
+                successResponse.url.map((u) => decrypt(u.link, decKey))
             );
-            const decryptionResults = await Promise.all(decryptPromises);
 
-            const allDecryptedLinks: string[] = [];
             const allSubtitles = new Map<string, Subtitle>();
 
-            for (const { response, decryptedLinks } of decryptionResults) {
-                allDecryptedLinks.push(...decryptedLinks);
+            // Process subtitles from successful response
+            for (const track of successResponse.tracks) {
+                if (track.url && track.lang) {
+                    const proxySubUrl = this.createProxyUrl(
+                        track.url,
+                        this.HEADERS
+                    );
+                    const subKey = `${track.lang}_${successResponse.serverInfo.number}`;
 
-                for (const track of response.tracks) {
-                    if (track.url && track.lang) {
-                        const proxySubUrl = this.createProxyUrl(
-                            track.url,
-                            this.HEADERS
-                        );
-                        const subKey = `${track.lang}_${response.serverInfo.number}`;
-
-                        if (!allSubtitles.has(subKey)) {
-                            allSubtitles.set(subKey, {
-                                url: proxySubUrl,
-                                label: track.lang.replace(/\d+/g, '').trim(),
-                                format: 'vtt'
-                            });
-                        }
+                    if (!allSubtitles.has(subKey)) {
+                        allSubtitles.set(subKey, {
+                            url: proxySubUrl,
+                            label: track.lang.replace(/\d+/g, '').trim(),
+                            format: 'vtt'
+                        });
                     }
                 }
             }
 
-            const uniqueLinks = [...new Set(allDecryptedLinks)].filter(
+            const uniqueLinks = [...new Set(decryptedLinks)].filter(
                 (link) => link && link.startsWith('http')
             );
 
