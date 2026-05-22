@@ -79,6 +79,7 @@ async function main() {
     const registry = server.getRegistry();
     await registry.discoverProviders(path.join(__dirname, './providers/'));
     applyProviderAllowlist(registry);
+    registerFilteredSourceRoutes(server);
 
     await server.start();
 
@@ -138,4 +139,114 @@ function applyProviderAllowlist(registry: ReturnType<OMSSServer['getRegistry']>)
     console.log(
         `[ProviderRegistry] Provider allowlist enabled: ${registry.listProviders().join(', ')}`
     );
+}
+
+function registerFilteredSourceRoutes(server: OMSSServer) {
+    const app = server.getInstance();
+    const sourceService = server as unknown as {
+        sourceService: {
+            tmdbValidator: {
+                validateMovie(tmdbId: string): Promise<void>;
+                validateTVEpisode(tmdbId: string, season: number, episode: number): Promise<void>;
+            };
+            tmdbService: {
+                getMediaObject(
+                    type: 'movie' | 'tv',
+                    tmdbId: string,
+                    season?: number,
+                    episode?: number
+                ): Promise<Record<string, unknown>>;
+                getImdbId(tmdbId: string, type: 'movie' | 'tv'): Promise<string | null>;
+            };
+            buildResponse(results: Array<{ sources: unknown[]; subtitles: unknown[]; diagnostics: unknown[] }>): unknown;
+        };
+    };
+
+    app.get('/v1/filtered/:providers/movies/:id', async (request, reply) => {
+        const { providers, id } = request.params as { providers: string; id: string };
+        await sourceService.sourceService.tmdbValidator.validateMovie(id);
+        const media = await sourceService.sourceService.tmdbService.getMediaObject('movie', id);
+        media.imdbId = (await sourceService.sourceService.tmdbService.getImdbId(id, 'movie')) ?? '';
+        const results = await fetchFromSelectedProviders(server, 'movie', media, providers);
+        return reply.code(200).send(sourceService.sourceService.buildResponse(results));
+    });
+
+    app.get('/v1/filtered/:providers/tv/:id/seasons/:s/episodes/:e', async (request, reply) => {
+        const { providers, id, s, e } = request.params as {
+            providers: string;
+            id: string;
+            s: string;
+            e: string;
+        };
+        const season = parseInt(s, 10);
+        const episode = parseInt(e, 10);
+        await sourceService.sourceService.tmdbValidator.validateTVEpisode(id, season, episode);
+        const media = await sourceService.sourceService.tmdbService.getMediaObject('tv', id, season, episode);
+        media.imdbId = (await sourceService.sourceService.tmdbService.getImdbId(id, 'tv')) ?? '';
+        const results = await fetchFromSelectedProviders(server, 'tv', media, providers);
+        return reply.code(200).send(sourceService.sourceService.buildResponse(results));
+    });
+}
+
+async function fetchFromSelectedProviders(
+    server: OMSSServer,
+    type: 'movie' | 'tv',
+    media: Record<string, unknown>,
+    providerParam: string
+) {
+    const selectedIds = providerParam
+        .split(',')
+        .map((provider) => provider.trim().toLowerCase())
+        .filter(Boolean);
+    const selected = new Set(selectedIds);
+    const providers = server
+        .getRegistry()
+        .getProviders()
+        .filter((provider) => selected.has(provider.id.toLowerCase()))
+        .filter((provider) =>
+            provider.capabilities.supportedContentTypes.includes(type === 'movie' ? 'movies' : 'tv')
+        )
+        .filter((provider) => provider.enabled);
+
+    if (providers.length === 0) {
+        return [];
+    }
+
+    const results = await Promise.allSettled(
+        providers.map(async (provider) => {
+            try {
+                const result =
+                    type === 'movie'
+                        ? await provider.getMovieSources(media as never)
+                        : await provider.getTVSources(media as never);
+
+                console.log(
+                    `[FilteredSource] Provider '${provider.name}' returned ${result.sources.length} source(s)`
+                );
+
+                return result;
+            } catch (error) {
+                console.error(`[FilteredSource] Provider '${provider.name}' failed:`, error);
+
+                return {
+                    sources: [],
+                    subtitles: [],
+                    diagnostics: [
+                        {
+                            code: 'PROVIDER_ERROR',
+                            message: `Provider '${provider.name}' failed: ${
+                                error instanceof Error ? error.message : 'Unknown error'
+                            }`,
+                            field: '',
+                            severity: 'error'
+                        }
+                    ]
+                };
+            }
+        })
+    );
+
+    return results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => result.value);
 }

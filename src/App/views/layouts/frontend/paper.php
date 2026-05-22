@@ -1,3 +1,6 @@
+<?php
+$pageLoaderEnabled = filter_var($_ENV['PAGE_LOADER_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN);
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,15 +26,19 @@
     <title><?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?></title>
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/frontend/css/paper.css">
+    <?php if ($pageLoaderEnabled): ?>
     <link rel="stylesheet" href="/assets/frontend/css/page-loader.css">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/frontend/css/global-views.css?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/css/global-views.css') ?>">
     <?= $this->section('styles') ?>
 </head>
 
-<body class="<?= escape($body_class ?? 'paper-frontend') ?>">
+<body class="<?= escape(trim(($body_class ?? 'paper-frontend') . ($pageLoaderEnabled ? '' : ' loaded'))) ?>">
 
+    <?php if ($pageLoaderEnabled): ?>
     <?= $this->includePartial('frontend/partials/page-loader') ?>
-    <div id="app" class="vexio-app-shell">
+    <?php endif; ?>
+    <div id="app" class="vexio-app-shell<?= $pageLoaderEnabled ? '' : ' visible' ?>">
     <?= $this->includePartial('frontend/partials/navbar') ?>
     <?= $this->includePartial('frontend/partials/search') ?>
      <!-- $this->includePartial('frontend/archive/trending-page/ad/trending-interstitial')
@@ -43,7 +50,9 @@
     </div>
     <script src="/assets/frontend/js/app.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/app.js') ?>"></script>
     <script src="/assets/frontend/js/search.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/search.js') ?>"></script>
+    <?php if ($pageLoaderEnabled): ?>
     <script src="/assets/frontend/js/page-loader.js?v=<?= filemtime(dirname(__DIR__, 5) . '/public/assets/frontend/js/page-loader.js') ?>"></script>
+    <?php endif; ?>
     <?= $this->section('scripts') ?>
 </body>
 

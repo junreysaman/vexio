@@ -18,8 +18,9 @@ class CoreStreamController
         $season = max(1, (int) $request->query('season', 1));
         $episode = max(1, (int) $request->query('episode', 1));
         $title = trim((string) $request->query('title', 'Vexio'));
+        $server = $this->normalizeServerKey((string) $request->query('server', 'vexio-s1'));
 
-        return $response->html($this->playerHtml($type, (int) $tmdbId, $season, $episode, $title));
+        return $response->html($this->playerHtml($type, (int) $tmdbId, $season, $episode, $title, $server));
     }
 
     public function sources(Request $request, Response $response): Response
@@ -32,15 +33,20 @@ class CoreStreamController
         $tmdbId = (int) $request->query('tmdbId', 0);
         $season = max(1, (int) $request->query('season', 1));
         $episode = max(1, (int) $request->query('episode', 1));
+        $server = $this->normalizeServerKey((string) $request->query('server', 'vexio-s1'));
+        $providers = $this->providersForServer($server);
 
         if (!in_array($type, ['movie', 'tv'], true) || $tmdbId < 1) {
             return $response->error('Invalid Core source request.', 422);
         }
 
         $coreBaseUrl = $this->coreBaseUrl();
+        $pathPrefix = $providers === []
+            ? '/v1'
+            : '/v1/filtered/' . rawurlencode(implode(',', $providers));
         $path = $type === 'tv'
-            ? "/v1/tv/{$tmdbId}/seasons/{$season}/episodes/{$episode}"
-            : "/v1/movies/{$tmdbId}";
+            ? "{$pathPrefix}/tv/{$tmdbId}/seasons/{$season}/episodes/{$episode}"
+            : "{$pathPrefix}/movies/{$tmdbId}";
 
         try {
             $client = new Client([
@@ -135,7 +141,33 @@ class CoreStreamController
 
     private function vexioProxyBaseUrl(): string
     {
-        return rtrim((string) ($_ENV['APP_URL'] ?? ''), '/') . '/api/core/proxy';
+        $proxyOrigin = trim((string) ($_ENV['CINEPRO_CORE_PROXY_PUBLIC_URL'] ?? ''));
+        if ($proxyOrigin === '') {
+            $proxyOrigin = 'https://proxy.vexio.asia';
+        }
+
+        return rtrim($proxyOrigin, '/') . '/api/core/proxy';
+    }
+
+    private function normalizeServerKey(string $server): string
+    {
+        $server = strtolower(trim($server));
+
+        return in_array($server, ['vexio-s1', 'vexio-s2', 'vexio-s3', 'vexio-s4', 'vexio-s5', 'vexio-multi'], true)
+            ? $server
+            : 'vexio-s1';
+    }
+
+    private function providersForServer(string $server): array
+    {
+        return match ($server) {
+            'vexio-s1' => ['02moviedownloader'],
+            'vexio-s2' => ['cinesu'],
+            'vexio-s3' => ['vidrock'],
+            'vexio-s4' => ['videasy'],
+            'vexio-s5' => ['vixsrc'],
+            default => [],
+        };
     }
 
     private function normalizeSourcePayload(array $payload, string $coreBaseUrl, string $proxyBaseUrl): array
@@ -359,6 +391,10 @@ class CoreStreamController
 
         $response->status($coreResponse->getStatusCode())
             ->header('Content-Type', $contentType)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Range, Accept, Content-Type')
+            ->header('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges')
             ->body($body);
 
         foreach (['Accept-Ranges', 'Content-Range', 'ETag', 'Last-Modified'] as $header) {
@@ -376,6 +412,10 @@ class CoreStreamController
         if (!headers_sent()) {
             http_response_code($coreResponse->getStatusCode());
             header('Content-Type: ' . $contentType, true);
+            header('Access-Control-Allow-Origin: *', true);
+            header('Access-Control-Allow-Methods: GET, OPTIONS', true);
+            header('Access-Control-Allow-Headers: Range, Accept, Content-Type', true);
+            header('Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges', true);
 
             foreach (['Content-Length', 'Accept-Ranges', 'Content-Range', 'ETag', 'Last-Modified', 'Cache-Control'] as $header) {
                 $value = $coreResponse->getHeaderLine($header);
@@ -423,7 +463,7 @@ class CoreStreamController
         return str_replace($needles, $proxyBaseUrl, $body);
     }
 
-    private function playerHtml(string $type, int $tmdbId, int $season, int $episode, string $title): string
+    private function playerHtml(string $type, int $tmdbId, int $season, int $episode, string $title, string $server): string
     {
         $title = htmlspecialchars($title !== '' ? $title : 'Vexio', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $sourceUrl = '/api/core/sources?' . http_build_query([
@@ -431,7 +471,9 @@ class CoreStreamController
             'tmdbId' => $tmdbId,
             'season' => $season,
             'episode' => $episode,
+            'server' => $server,
         ]);
+        $serverLabel = htmlspecialchars($server, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return <<<HTML
 <!doctype html>
@@ -440,40 +482,31 @@ class CoreStreamController
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{$title}</title>
+  <link rel="stylesheet" href="/assets/vendor/videojs/video-js.min.css">
   <style>
-    :root { color-scheme: dark; --bg: #05070c; --panel: #0b111b; --panel2: rgba(9, 14, 23, .82); --line: rgba(255,255,255,.12); --text: #f7fbff; --muted: #a5afbf; --cyan: #00c8f0; --red: #e8173f; --gold: #ffc340; }
+    :root { color-scheme: dark; --bg: #05070c; --line: rgba(255,255,255,.12); --text: #f7fbff; --muted: #a5afbf; --cyan: #00c8f0; --red: #e8173f; }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: #000; color: var(--text); font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
-    button, select, input { font: inherit; }
-    .player { position: fixed; inset: 0; background: #000; overflow: hidden; }
-    video { width: 100%; height: 100%; background: #000; display: block; }
-    .shade { pointer-events: none; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.52), transparent 22%, transparent 58%, rgba(0,0,0,.82)); opacity: 0; transition: opacity .2s ease; }
-    .player.show-ui .shade, .player.paused .shade { opacity: 1; }
-    .topbar { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
-    .player.show-ui .topbar, .player.paused .topbar { opacity: 1; pointer-events: auto; }
+    html, body { margin: 0; width: 100%; height: 100%; background: #000; color: var(--text); font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+    .player-shell { position: fixed; inset: 0; background: #000; overflow: hidden; }
+    .video-js { width: 100%; height: 100%; background: #000; }
+    .video-js .vjs-big-play-button { left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 74px; line-height: 72px; border-radius: 50%; border-color: rgba(0,200,240,.7); background: rgba(5,7,12,.78); }
+    .video-js:hover .vjs-big-play-button, .video-js .vjs-big-play-button:focus { background: rgba(0,200,240,.2); border-color: var(--cyan); }
+    .video-js .vjs-control-bar { background: linear-gradient(180deg, transparent, rgba(2,5,10,.96)); height: 4.2em; padding: 0 8px 6px; }
+    .video-js .vjs-slider { background: rgba(255,255,255,.2); }
+    .video-js .vjs-play-progress, .video-js .vjs-volume-level { background: var(--cyan); }
+    .video-js .vjs-load-progress { background: rgba(255,255,255,.25); }
+    .video-js .vjs-menu-button-popup .vjs-menu { width: 16em; left: -7em; }
+    .topbar { position: absolute; z-index: 4; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.62), transparent); }
     .brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
-    .brand img { width: 34px; height: 34px; object-fit: contain; border-radius: 7px; }
-    .brand strong { font-size: 14px; letter-spacing: 0; }
+    .brand img { width: 32px; height: 32px; object-fit: contain; border-radius: 7px; }
+    .brand strong { font-size: 13px; letter-spacing: 0; white-space: nowrap; }
     .brand span { color: var(--cyan); }
     .meta { min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .watermark { position: absolute; right: 18px; top: 72px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 6px; background: rgba(5,7,12,.38); opacity: .72; pointer-events: none; }
-    .watermark img { width: 24px; height: 24px; object-fit: contain; }
-    .watermark span { font-size: 11px; font-weight: 800; letter-spacing: 0; }
-    .center-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 74px; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(5,7,12,.72); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; cursor: pointer; opacity: 0; transition: opacity .2s ease, transform .2s ease; }
-    .player.paused .center-play, .player.show-ui .center-play:focus-visible { opacity: 1; }
-    .center-play:hover { transform: translate(-50%, -50%) scale(1.04); border-color: var(--cyan); }
-    .controls { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px 14px; background: linear-gradient(180deg, transparent, rgba(3,5,10,.94)); opacity: 0; transition: opacity .2s ease; pointer-events: none; }
-    .player.show-ui .controls, .player.paused .controls { opacity: 1; pointer-events: auto; }
-    .timeline { width: 100%; height: 18px; display: flex; align-items: center; }
-    .timeline input { width: 100%; accent-color: var(--cyan); cursor: pointer; }
-    .control-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
-    .cluster { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .icon-btn { min-width: 42px; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(15,22,34,.86); color: #fff; display: grid; place-items: center; cursor: pointer; font-size: 12px; font-weight: 800; }
-    .icon-btn:hover, .icon-btn:focus-visible { border-color: var(--cyan); color: var(--cyan); outline: none; }
-    .time { color: var(--muted); font-size: 12px; white-space: nowrap; }
-    .volume { width: 96px; accent-color: var(--cyan); }
-    .select { min-width: 132px; max-width: 210px; height: 38px; border: 1px solid var(--line); border-radius: 6px; background: rgba(15,22,34,.92); color: #fff; padding: 0 8px; }
+    .watermark { position: absolute; z-index: 4; left: 14px; bottom: 72px; display: inline-flex; align-items: center; gap: 8px; max-width: calc(100% - 28px); padding: 7px 9px; border: 1px solid rgba(255,255,255,.13); border-radius: 6px; background: rgba(5,7,12,.42); opacity: .72; pointer-events: none; }
+    .watermark img { width: 24px; height: 24px; object-fit: contain; flex: 0 0 auto; }
+    .watermark span { font-size: 11px; font-weight: 800; letter-spacing: 0; white-space: nowrap; }
     .state { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; background: radial-gradient(circle at center, rgba(0, 200, 240, .15), transparent 40%), rgba(5,7,12,.96); }
+    .state { z-index: 5; }
     .state-card { width: min(560px, 100%); }
     .spinner { width: 46px; height: 46px; border: 3px solid rgba(255,255,255,.14); border-top-color: var(--cyan); border-radius: 50%; margin: 0 auto 18px; animation: spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -487,66 +520,53 @@ class CoreStreamController
     .provider-pill.done { color: #fff; border-color: rgba(255,255,255,.18); }
     .hidden { display: none; }
     @media (max-width: 700px) {
-      .watermark { right: 10px; top: 62px; }
-      .topbar { padding: 12px; }
-      .controls { padding: 10px; }
-      .control-row { grid-template-columns: 1fr; gap: 10px; }
-      .cluster { justify-content: center; flex-wrap: wrap; }
-      .volume { width: 82px; }
-      .select { flex: 1; min-width: 112px; }
+      .topbar { padding: 10px; }
+      .brand img { width: 28px; height: 28px; }
+      .brand strong { font-size: 12px; }
+      .meta { font-size: 11px; }
+      .watermark { left: 10px; bottom: 64px; padding: 6px 8px; }
+      .watermark img { width: 20px; height: 20px; }
+      .video-js .vjs-control-bar { height: 4.8em; }
     }
   </style>
 </head>
 <body>
-  <div class="player paused show-ui" id="player">
-    <video id="video" playsinline preload="metadata"></video>
-    <div class="shade"></div>
+  <div class="player-shell" id="playerShell">
+    <video id="vexioVideo" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="metadata" crossorigin="anonymous"></video>
     <div class="topbar">
       <div class="brand">
         <img src="/favicon.png" alt="">
         <strong>VEXIO<span>HD</span></strong>
       </div>
-      <div class="meta" id="sourceCount">Preparing Vexio stream</div>
+      <div class="meta" id="sourceCount">Preparing {$serverLabel}</div>
     </div>
     <div class="watermark">
       <img src="/favicon.png" alt="">
       <span>VEXIO</span>
     </div>
-    <button class="center-play" id="centerPlay" type="button" aria-label="Play or pause">Play</button>
     <div class="state" id="state">
       <div class="state-card">
         <div class="spinner" id="spinner"></div>
         <h1 id="stateTitle">Finding best stream</h1>
-        <p id="stateText">Asking Vexio for one high quality playable source.</p>
-        <div class="scan-line"><span class="scan-dot"></span><span id="scanText">Scanning provider 02MovieDownloader</span></div>
+        <p id="stateText">Asking {$serverLabel} for one high quality playable source.</p>
+        <div class="scan-line"><span class="scan-dot"></span><span id="scanText">Scanning provider</span></div>
         <div class="provider-list" id="providerList"></div>
       </div>
     </div>
-    <div class="controls" id="controls">
-      <div class="timeline">
-        <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek">
-      </div>
-      <div class="control-row">
-        <div class="cluster">
-          <button class="icon-btn" id="playBtn" type="button" aria-label="Play or pause">Play</button>
-          <button class="icon-btn" id="muteBtn" type="button" aria-label="Mute">Vol</button>
-          <input class="volume" id="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
-          <span class="time" id="timeText">0:00 / 0:00</span>
-        </div>
-        <div></div>
-        <div class="cluster">
-          <select class="select" id="subtitleSelect" aria-label="Subtitles"><option value="">English</option></select>
-          <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Fullscreen">Full</button>
-        </div>
-      </div>
-    </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script src="/assets/vendor/videojs/video.min.js"></script>
   <script>
     const endpoint = {$this->jsonForScript($sourceUrl)};
-    const providerNames = ['02MovieDownloader', 'CineSu', 'VidRock', 'Videasy', 'VixSrc', 'VidApi'];
-    const player = document.getElementById('player');
-    const video = document.getElementById('video');
+    const serverKey = {$this->jsonForScript($server)};
+    const providerGroups = {
+      'vexio-s1': ['02MovieDownloader'],
+      'vexio-s2': ['CineSu'],
+      'vexio-s3': ['VidRock'],
+      'vexio-s4': ['Videasy'],
+      'vexio-s5': ['VixSrc'],
+      'vexio-multi': ['02MovieDownloader', 'CineSu', 'VidRock', 'Videasy', 'VixSrc', 'VidApi']
+    };
+    const providerNames = providerGroups[serverKey] || providerGroups['vexio-s1'];
     const state = document.getElementById('state');
     const stateTitle = document.getElementById('stateTitle');
     const stateText = document.getElementById('stateText');
@@ -554,16 +574,24 @@ class CoreStreamController
     const sourceCount = document.getElementById('sourceCount');
     const scanText = document.getElementById('scanText');
     const providerList = document.getElementById('providerList');
-    const centerPlay = document.getElementById('centerPlay');
-    const playBtn = document.getElementById('playBtn');
-    const muteBtn = document.getElementById('muteBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const seek = document.getElementById('seek');
-    const volume = document.getElementById('volume');
-    const timeText = document.getElementById('timeText');
-    const subtitleSelect = document.getElementById('subtitleSelect');
-    let hls;
-    let uiTimer;
+    const player = videojs('vexioVideo', {
+      autoplay: false,
+      controls: true,
+      fluid: false,
+      fill: true,
+      responsive: true,
+      liveui: true,
+      html5: {
+        vhs: {
+          overrideNative: true,
+          enableLowInitialPlaylist: true
+        }
+      },
+      controlBar: {
+        pictureInPictureToggle: true,
+        volumePanel: { inline: false }
+      }
+    });
     let scanTimer;
     let scanIndex = 0;
 
@@ -618,50 +646,6 @@ class CoreStreamController
       return provider + (quality ? ' ' + quality : '');
     }
 
-    function formatTime(value) {
-      if (!Number.isFinite(value) || value < 0) return '0:00';
-      const total = Math.floor(value);
-      const hours = Math.floor(total / 3600);
-      const minutes = Math.floor((total % 3600) / 60);
-      const seconds = String(total % 60).padStart(2, '0');
-      return hours > 0 ? hours + ':' + String(minutes).padStart(2, '0') + ':' + seconds : minutes + ':' + seconds;
-    }
-
-    function showUi() {
-      player.classList.add('show-ui');
-      window.clearTimeout(uiTimer);
-      if (!video.paused) uiTimer = window.setTimeout(() => player.classList.remove('show-ui'), 3000);
-    }
-
-    function updatePlayState() {
-      player.classList.toggle('paused', video.paused);
-      playBtn.textContent = video.paused ? 'Play' : 'Pause';
-      centerPlay.textContent = video.paused ? 'Play' : 'Pause';
-      showUi();
-    }
-
-    function togglePlay() {
-      if (video.paused) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
-    }
-
-    function updateTime() {
-      const duration = video.duration || 0;
-      const current = video.currentTime || 0;
-      seek.value = duration ? String(Math.round((current / duration) * 1000)) : '0';
-      timeText.textContent = formatTime(current) + ' / ' + formatTime(duration);
-    }
-
-    function setSubtitle(index) {
-      Array.from(video.textTracks).forEach((track, trackIndex) => {
-        track.mode = trackIndex === index ? 'showing' : 'disabled';
-      });
-      subtitleSelect.value = String(index);
-    }
-
     function subtitleLanguage(subtitle) {
       const label = String(subtitle.label || subtitle.language || '').toLowerCase();
       if (label.includes('english') || label === 'eng') return 'en';
@@ -672,66 +656,35 @@ class CoreStreamController
     }
 
     function addSubtitles(subtitles) {
-      video.querySelectorAll('track').forEach(track => track.remove());
-      subtitleSelect.innerHTML = '';
-
       const usable = subtitles
         .filter(subtitle => subtitle?.url && String(subtitle.format || 'vtt').toLowerCase() === 'vtt')
         .slice(0, 14);
 
-      if (!usable.length) {
-        const option = document.createElement('option');
-        option.value = '-1';
-        option.textContent = 'No subtitles';
-        subtitleSelect.appendChild(option);
-        subtitleSelect.disabled = true;
-        return;
-      }
-
-      subtitleSelect.disabled = false;
       usable.forEach((subtitle, index) => {
-        const track = document.createElement('track');
-        track.kind = 'subtitles';
-        track.src = subtitle.url;
-        track.label = subtitle.label || 'Subtitle';
-        track.srclang = subtitleLanguage(subtitle);
-        track.mode = 'disabled';
-        video.appendChild(track);
-
-        const option = document.createElement('option');
-        option.value = String(index);
-        option.textContent = track.label;
-        subtitleSelect.appendChild(option);
+        player.addRemoteTextTrack({
+          kind: 'subtitles',
+          src: subtitle.url,
+          label: subtitle.label || 'Subtitle',
+          srclang: subtitleLanguage(subtitle),
+          default: index === 0 && /english|eng/i.test(String(subtitle.label || subtitle.language || ''))
+        }, false);
       });
-
-      const englishIndex = usable.findIndex(subtitle => /english|eng/i.test(String(subtitle.label || subtitle.language || '')));
-      window.setTimeout(() => setSubtitle(englishIndex >= 0 ? englishIndex : 0), 250);
     }
 
     function playSource(source) {
       if (!source?.url) return;
-      if (hls) {
-        hls.destroy();
-        hls = null;
-      }
-
-      if (source.type === 'hls' && window.Hls && Hls.isSupported()) {
-        hls = new Hls({ enableWorker: true });
-        hls.loadSource(source.url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-      } else {
-        video.src = source.url;
-        video.play().catch(() => {});
-      }
-
+      const sourceType = String(source.type || '').toLowerCase();
+      const mimeType = sourceType === 'mp4' || String(source.url).toLowerCase().includes('.mp4')
+        ? 'video/mp4'
+        : 'application/x-mpegURL';
+      player.src({ src: source.url, type: mimeType });
       hideState();
-      updatePlayState();
+      player.ready(() => player.play()?.catch(() => {}));
     }
 
     async function boot() {
       startScanning();
-      setState('Finding best stream', 'Asking Vexio for one high quality playable source.', true);
+      setState('Finding best stream', 'Asking ' + serverKey + ' for one high quality playable source.', true);
       try {
         const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
         const data = await response.json();
@@ -747,7 +700,7 @@ class CoreStreamController
         }
 
         addSubtitles(Array.isArray(data.subtitles) ? data.subtitles : []);
-        sourceCount.textContent = sourceLabel(sources[0]);
+        sourceCount.textContent = serverKey + ' - ' + sourceLabel(sources[0]);
         playSource(sources[0]);
       } catch (error) {
         stopScanning();
@@ -755,43 +708,13 @@ class CoreStreamController
       }
     }
 
-    playBtn.addEventListener('click', togglePlay);
-    centerPlay.addEventListener('click', togglePlay);
-    video.addEventListener('click', togglePlay);
-    video.addEventListener('play', updatePlayState);
-    video.addEventListener('pause', updatePlayState);
-    video.addEventListener('timeupdate', updateTime);
-    video.addEventListener('loadedmetadata', updateTime);
-    video.addEventListener('durationchange', updateTime);
-    player.addEventListener('mousemove', showUi);
-    player.addEventListener('touchstart', showUi, { passive: true });
-    seek.addEventListener('input', () => {
-      if (video.duration) video.currentTime = (Number(seek.value) / 1000) * video.duration;
-    });
-    volume.addEventListener('input', () => {
-      video.volume = Number(volume.value);
-      video.muted = video.volume === 0;
-      muteBtn.textContent = video.muted ? 'Mute' : 'Vol';
-    });
-    muteBtn.addEventListener('click', () => {
-      video.muted = !video.muted;
-      muteBtn.textContent = video.muted ? 'Mute' : 'Vol';
-    });
-    subtitleSelect.addEventListener('change', () => setSubtitle(Number(subtitleSelect.value)));
-    fullscreenBtn.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      } else {
-        player.requestFullscreen().catch(() => {});
-      }
-    });
     document.addEventListener('keydown', event => {
       if (event.key === ' ') {
         event.preventDefault();
-        togglePlay();
+        player.paused() ? player.play()?.catch(() => {}) : player.pause();
       }
-      if (event.key.toLowerCase() === 'f') fullscreenBtn.click();
-      if (event.key.toLowerCase() === 'm') muteBtn.click();
+      if (event.key.toLowerCase() === 'f') player.requestFullscreen();
+      if (event.key.toLowerCase() === 'm') player.muted(!player.muted());
     });
 
     boot();
