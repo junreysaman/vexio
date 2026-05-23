@@ -1,4 +1,3 @@
-<script>
 function togglePanel(head) {
   head.classList.toggle('open');
   const body = head.nextElementSibling;
@@ -476,4 +475,3 @@ function initArchiveInfiniteScroll() {
 }
 
 document.addEventListener('DOMContentLoaded', initArchivePage);
-</script>
