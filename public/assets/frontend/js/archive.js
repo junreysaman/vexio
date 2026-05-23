@@ -83,28 +83,26 @@ function cardMatches(card, state) {
   return true;
 }
 
-let archiveVisibleLimit = 24;
+let archiveCurrentPage = 1;
 const archivePageSize = 24;
+let archiveTotalPages = 1;
+let archiveIsLoading = false;
+let archiveHasMore = true;
 
 function matchingArchiveCards(state = filterState()) {
   return Array.from(document.querySelectorAll('#cardGrid .trend-card, #cardGrid .acard')).filter((card) => cardMatches(card, state));
 }
 
-function renderArchiveCards(state = filterState()) {
+function renderArchiveCards() {
   const cards = Array.from(document.querySelectorAll('#cardGrid .trend-card, #cardGrid .acard'));
-  const matches = matchingArchiveCards(state);
-  const matchSet = new Set(matches);
-
   cards.forEach((card) => {
-    const matchIndex = matches.indexOf(card);
-    card.hidden = !matchSet.has(card) || matchIndex >= archiveVisibleLimit;
+    card.hidden = false;
   });
 
   const sentinel = document.getElementById('archiveInfiniteSentinel');
-  if (sentinel) sentinel.hidden = matches.length <= archiveVisibleLimit;
+  if (sentinel) sentinel.hidden = !archiveHasMore;
 
-  document.getElementById('resultNum').textContent = matches.length.toLocaleString();
-  document.getElementById('archiveEmpty').hidden = matches.length !== 0;
+  document.getElementById('archiveEmpty').hidden = cards.length !== 0;
 }
 
 function updateActiveFilters(state) {
@@ -139,13 +137,66 @@ function updateFilterBadgeCount() {
   badge.style.display = count ? '' : 'none';
 }
 
-function updateFilters() {
+async function updateFilters() {
   const state = filterState();
-  archiveVisibleLimit = archivePageSize;
-  renderArchiveCards(state);
-  updateActiveFilters(state);
-  updateFilterBadgeCount();
-  sortCards(document.getElementById('sortSelect')?.value || 'popular', false);
+  archiveCurrentPage = 1;
+  archiveHasMore = true;
+  archiveIsLoading = true;
+
+  const grid = document.getElementById('cardGrid');
+  if (grid) {
+    grid.innerHTML = '';
+  }
+
+  const params = new URLSearchParams({
+    page: 1,
+    limit: archivePageSize,
+    type: state.type,
+    rating: state.rating,
+    year_from: state.yearFrom,
+    year_to: state.yearTo,
+  });
+
+  if (state.genres.length > 0) {
+    params.set('genres', state.genres.join(','));
+  }
+
+  if (state.countries.length > 0) {
+    params.set('countries', state.countries.join(','));
+  }
+
+  try {
+    const response = await fetch(`/api/browse/paginate?${params.toString()}`);
+    const data = await response.json();
+
+    if (data.items && data.items.length > 0) {
+      archiveCurrentPage = data.page;
+      archiveTotalPages = data.total_pages;
+      archiveHasMore = archiveCurrentPage < archiveTotalPages;
+
+      if (grid) {
+        data.items.forEach((item) => {
+          const card = createArchiveCard(item);
+          grid.appendChild(card);
+        });
+      }
+    } else {
+      archiveHasMore = false;
+    }
+
+    document.getElementById('resultNum').textContent = data.total.toLocaleString();
+    document.getElementById('archiveEmpty').hidden = data.total !== 0;
+
+    const sentinel = document.getElementById('archiveInfiniteSentinel');
+    if (sentinel) sentinel.hidden = !archiveHasMore;
+
+    updateActiveFilters(state);
+    updateFilterBadgeCount();
+  } catch (error) {
+    console.error('Failed to load filtered items:', error);
+  } finally {
+    archiveIsLoading = false;
+  }
 }
 
 function sortCards(value, notify = true) {
@@ -167,13 +218,13 @@ function sortCards(value, notify = true) {
   if (notify) showToast('Results sorted');
 }
 
-function applyFilters() {
-  updateFilters();
+async function applyFilters() {
+  await updateFilters();
   closeFilterDrawer();
   showToast('Filters applied');
 }
 
-function resetFilters() {
+async function resetFilters() {
   document.querySelectorAll('input[name="genre[]"]').forEach((input) => input.checked = false);
   document.querySelectorAll('input[name="country[]"]').forEach((input) => input.checked = false);
   document.querySelector('input[name="type"][value="all"]')?.click();
@@ -186,11 +237,11 @@ function resetFilters() {
   const to = document.getElementById('yearTo');
   if (from) from.value = '';
   if (to) to.value = '';
-  updateFilters();
+  await updateFilters();
   showToast('Filters reset');
 }
 
-function removeFilter(key, value) {
+async function removeFilter(key, value) {
   if (key === 'type') document.querySelector('input[name="type"][value="all"]')?.click();
   if (key === 'genre') {
     const input = document.querySelector(`input[name="genre[]"][value="${CSS.escape(value)}"]`);
@@ -211,11 +262,11 @@ function removeFilter(key, value) {
     document.getElementById('yearFrom').value = '';
     document.getElementById('yearTo').value = '';
   }
-  updateFilters();
+  await updateFilters();
 }
 
-function clearAllFilters() {
-  resetFilters();
+async function clearAllFilters() {
+  await resetFilters();
 }
 
 function filterGenreList(term) {
@@ -254,7 +305,16 @@ function escapeHtml(value) {
 function initArchivePage() {
   const slider = document.getElementById('ratingSlider');
   if (slider) updateRating(slider);
-  updateFilters();
+
+  // Initialize pagination state from server data
+  if (typeof window.archivePageData !== 'undefined') {
+    archiveCurrentPage = window.archivePageData.current_page || 1;
+    archiveTotalPages = window.archivePageData.total_pages || 1;
+    archiveHasMore = archiveCurrentPage < archiveTotalPages;
+  }
+
+  // Don't call updateFilters on init - let the server-rendered items stay
+  renderArchiveCards();
   initArchiveInfiniteScroll();
 
   const overlay = document.getElementById('search-overlay');
@@ -281,25 +341,136 @@ function initArchivePage() {
   });
 }
 
+async function loadMoreArchiveItems() {
+  if (archiveIsLoading || !archiveHasMore) return;
+
+  archiveIsLoading = true;
+  const sentinel = document.getElementById('archiveInfiniteSentinel');
+  if (sentinel) sentinel.classList.add('loading');
+
+  const state = filterState();
+  const params = new URLSearchParams({
+    page: archiveCurrentPage + 1,
+    limit: archivePageSize,
+    type: state.type,
+    rating: state.rating,
+    year_from: state.yearFrom,
+    year_to: state.yearTo,
+  });
+
+  if (state.genres.length > 0) {
+    params.set('genres', state.genres.join(','));
+  }
+
+  if (state.countries.length > 0) {
+    params.set('countries', state.countries.join(','));
+  }
+
+  try {
+    const response = await fetch(`/api/browse/paginate?${params.toString()}`);
+    const data = await response.json();
+
+    if (data.items && data.items.length > 0) {
+      archiveCurrentPage = data.page;
+      archiveTotalPages = data.total_pages;
+      archiveHasMore = archiveCurrentPage < archiveTotalPages;
+
+      const grid = document.getElementById('cardGrid');
+      if (grid) {
+        data.items.forEach((item) => {
+          const card = createArchiveCard(item);
+          grid.appendChild(card);
+        });
+      }
+
+      renderArchiveCards();
+    } else {
+      archiveHasMore = false;
+    }
+  } catch (error) {
+    console.error('Failed to load more items:', error);
+  } finally {
+    archiveIsLoading = false;
+    if (sentinel) sentinel.classList.remove('loading');
+  }
+}
+
+function createArchiveCard(item) {
+  const type = item.type || 'movie';
+  const typeLabel = item.type_label || (type === 'tv_show' ? 'TV Show' : 'Movie');
+  const year = item.release_year || '';
+  const rating = item.tmdb_rating || null;
+  const views = item.views || 0;
+  const created = item.created_at || '';
+  const releaseDate = item.release_date || '';
+  const isFeatured = !!item.is_featured;
+  const genres = item.genres || [];
+  const genreSlugs = genres.map((g) => g.url ? basename(g.url) : '');
+  const countries = item.countries || [];
+  const countrySlugs = countries.map((c) => c.slug || '');
+
+  const dataAttrs = 'data-title="' + escapeHtml((item.title || '').toLowerCase()) + '"'
+    + ' data-type="' + escapeHtml(type) + '"'
+    + ' data-genres="' + escapeHtml(genreSlugs.join(',')) + '"'
+    + ' data-countries="' + escapeHtml(countrySlugs.filter(Boolean).join(',')) + '"'
+    + ' data-year="' + escapeHtml(String(year)) + '"'
+    + ' data-rating="' + escapeHtml(String(rating || 0)) + '"'
+    + ' data-views="' + escapeHtml(String(views)) + '"'
+    + ' data-release-date="' + escapeHtml(releaseDate) + '"'
+    + ' data-created="' + escapeHtml(created) + '"';
+
+  const card = document.createElement('div');
+  card.className = 'trend-card';
+  card.setAttribute('data-attrs', dataAttrs);
+  card.dataset.title = (item.title || '').toLowerCase();
+  card.dataset.type = type;
+  card.dataset.genres = genreSlugs.join(',');
+  card.dataset.countries = countrySlugs.filter(Boolean).join(',');
+  card.dataset.year = year;
+  card.dataset.rating = rating || 0;
+  card.dataset.views = views;
+  card.dataset.releaseDate = releaseDate;
+  card.dataset.created = created;
+
+  const poster = item.poster || '';
+  const watchUrl = item.watchUrl || '#';
+
+  card.innerHTML = `
+    <a href="${escapeHtml(watchUrl)}" class="card-link">
+      <div class="card-poster">
+        ${poster ? `<img src="${escapeHtml(poster)}" alt="${escapeHtml(item.title || 'Untitled')}" loading="lazy">` : ''}
+        ${isFeatured ? '<span class="card-badge hot">HOT</span>' : ''}
+      </div>
+      <div class="card-info">
+        <h3 class="card-title">${escapeHtml(item.title || 'Untitled')}</h3>
+        <div class="card-meta">
+          <span class="card-label">${escapeHtml(typeLabel)}</span>
+          ${year ? `<span class="card-year">${escapeHtml(String(year))}</span>` : ''}
+          ${rating ? `<span class="card-rating">★ ${escapeHtml(String(rating))}</span>` : ''}
+        </div>
+      </div>
+    </a>
+  `;
+
+  return card;
+}
+
 function initArchiveInfiniteScroll() {
   const sentinel = document.getElementById('archiveInfiniteSentinel');
   if (!sentinel) return;
 
-  const revealMore = () => {
-    const matches = matchingArchiveCards();
-    if (archiveVisibleLimit >= matches.length) return;
-    archiveVisibleLimit = Math.min(matches.length, archiveVisibleLimit + archivePageSize);
-    renderArchiveCards();
+  const loadMore = () => {
+    loadMoreArchiveItems();
   };
 
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) revealMore();
+      if (entries.some((entry) => entry.isIntersecting)) loadMore();
     }, { rootMargin: '360px 0px' });
     observer.observe(sentinel);
   } else {
     window.addEventListener('scroll', () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 360) revealMore();
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 360) loadMore();
     }, { passive: true });
   }
 }

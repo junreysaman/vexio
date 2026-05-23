@@ -14,5 +14,17 @@
 <?= $this->end() ?>
 
 <?= $this->start('scripts') ?>
-<?= $this->includePartial('/frontend/archive/browse/components/scripts') ?>
+<script>
+window.archivePageData = {
+    current_page: <?= (int) ($current_page ?? 1) ?>,
+    total_pages: <?= (int) ($total_pages ?? 1) ?>,
+    page_size: <?= (int) ($page_size ?? 24) ?>
+};
+</script>
+
 <?= $this->end() ?>
+
+<?= $this->start('scripts') ?>
+<script src="<?= asset('assets/frontend/js/archive.js') ?>"></script>
+<?= $this->end() ?>
+

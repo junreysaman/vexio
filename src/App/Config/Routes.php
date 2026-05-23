@@ -18,6 +18,7 @@ use App\Controllers\Watch\WatchTvController;
 use App\Controllers\AppController;
 use App\Controllers\SupportPageController;
 use App\Controllers\PublicSeoController;
+use App\Controllers\Archive\BrowseController;
 use App\Middleware\AdminRequiredMiddleware;
 use App\Middleware\AuthRequiredMiddleware;
 use Framework\App;
@@ -93,6 +94,7 @@ function registerRoutes(App $app): void
         ['GET', '/api/search', [SearchController::class, 'index']],
         ['GET', '/api/embed/sources', [EmbedStreamController::class, 'sources']],
         ['POST', '/api/comments', [CommentController::class, 'store']],
+        ['GET', '/api/browse/paginate', [BrowseController::class, 'paginate']],
         // Watch/Movie Routes
         ['GET', '/movie/{tmdbId}', [WatchMovieController::class, 'index']],
         ['GET', '/watch/movie/{tmdbId}', [WatchMovieController::class, 'index']],

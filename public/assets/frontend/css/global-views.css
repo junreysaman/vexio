@@ -2827,6 +2827,22 @@
   height: 1px;
   grid-column: 1/-1;
 }
+.archive-infinite-sentinel.loading::after {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 32px;
+  margin: 24px auto;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: archiveSentinelSpin 0.8s linear infinite;
+}
+@keyframes archiveSentinelSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ===== Homepage new episodes fallback ===== */
 #new-episodes {

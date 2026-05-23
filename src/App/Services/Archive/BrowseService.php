@@ -99,19 +99,22 @@ class BrowseService
      */
     public function pageData(): array
     {
-        $cacheKey = 'archive:browse:pageData:v2';
+        $cacheKey = 'archive:browse:pageData:v3';
         $cached = $this->cache->get($cacheKey);
         if (is_array($cached)) {
             return $cached;
         }
 
-        $items = $this->getAllItems();
+        $paginatedData = $this->getPaginatedItems(1, 24);
 
         $data = [
             'title' => 'Browse',
             'body_class' => 'paper-archive-browse',
-            'items' => $items,
-            'total_items' => count($items),
+            'items' => $paginatedData['items'],
+            'total_items' => $paginatedData['total'],
+            'total_pages' => $paginatedData['total_pages'],
+            'current_page' => $paginatedData['page'],
+            'page_size' => $paginatedData['limit'],
             'genres' => $this->getAllGenres(),
             'countries' => $this->getAllCountries(),
             'types' => [
@@ -124,6 +127,155 @@ class BrowseService
         $this->cache->set($cacheKey, $data, $this->publicCacheTtl());
 
         return $data;
+    }
+
+    /**
+     * Return paginated items for the browse page.
+     *
+     * @param int $page Page number (1-based)
+     * @param int $limit Items per page
+     * @param array<string, mixed> $filters Filter parameters (type, genres, countries, rating, year_from, year_to)
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, limit: int, total_pages: int}
+     */
+    public function getPaginatedItems(int $page = 1, int $limit = 24, array $filters = []): array
+    {
+        $page = max(1, $page);
+        $limit = max(1, min(100, $limit));
+        $offset = ($page - 1) * $limit;
+
+        $type = $filters['type'] ?? 'all';
+        $genres = $filters['genres'] ?? [];
+        $countries = $filters['countries'] ?? [];
+        $rating = (float) ($filters['rating'] ?? 0);
+        $yearFrom = (int) ($filters['year_from'] ?? 0);
+        $yearTo = (int) ($filters['year_to'] ?? 0);
+
+        $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
+
+        // Build WHERE conditions
+        $whereConditions = ['media_items.status = :status'];
+        $params = ['status' => 'published'];
+
+        if ($type !== 'all') {
+            $whereConditions[] = 'media_items.type = :type';
+            $params['type'] = $type;
+        }
+
+        if ($rating > 0) {
+            $whereConditions[] = 'media_items.tmdb_rating >= :rating';
+            $params['rating'] = $rating;
+        }
+
+        if ($yearFrom > 0) {
+            $whereConditions[] = 'media_items.release_year >= :year_from';
+            $params['year_from'] = $yearFrom;
+        }
+
+        if ($yearTo > 0) {
+            $whereConditions[] = 'media_items.release_year <= :year_to';
+            $params['year_to'] = $yearTo;
+        }
+
+        // Genre filtering
+        if (!empty($genres) && is_array($genres)) {
+            $genrePlaceholders = [];
+            foreach ($genres as $index => $genre) {
+                $paramKey = 'genre_' . $index;
+                $genrePlaceholders[] = ':' . $paramKey;
+                $params[$paramKey] = $genre;
+            }
+            $whereConditions[] = 'EXISTS (
+                SELECT 1 FROM content_term_links
+                INNER JOIN content_terms ON content_terms.id = content_term_links.term_id
+                WHERE content_term_links.owner_type = \'item\'
+                AND content_term_links.owner_id = media_items.id
+                AND content_terms.taxonomy = \'genres\'
+                AND content_terms.slug IN (' . implode(',', $genrePlaceholders) . ')
+            )';
+        }
+
+        // Country filtering
+        if (!empty($countries) && is_array($countries)) {
+            $countryConditions = [];
+            foreach ($countries as $index => $country) {
+                $paramKey = 'country_' . $index;
+                $countryConditions[] = '(media_items.country LIKE :' . $paramKey . ' OR media_items.origin_country LIKE :' . $paramKey . ')';
+                $params[$paramKey] = '%' . $country . '%';
+            }
+            $whereConditions[] = '(' . implode(' OR ', $countryConditions) . ')';
+        }
+
+        $whereClause = implode(' AND ', $whereConditions);
+
+        // Get total count
+        $totalQuery = 'SELECT COUNT(DISTINCT media_items.id) AS total
+                       FROM media_items
+                       WHERE ' . $whereClause;
+        $totalResult = $db->selectOne($totalQuery, $params);
+        $total = (int) ($totalResult['total'] ?? 0);
+
+        // Get paginated items
+        $itemsQuery = 'SELECT media_items.id,
+                    media_items.title,
+                    media_items.slug,
+                    media_items.type,
+                       media_items.synopsis,
+                       media_items.poster_url,
+                       media_items.release_year,
+                    media_items.release_date,
+                    media_items.original_language,
+                    media_items.country,
+                    media_items.origin_country,
+                    media_items.tmdb_id,
+                    media_items.tmdb_rating,
+                    media_items.views,
+                    media_items.is_featured,
+                    media_items.created_at,
+                    GROUP_CONCAT(DISTINCT content_terms.name ORDER BY content_terms.name SEPARATOR \'||\') AS genre_names,
+                    GROUP_CONCAT(DISTINCT content_terms.slug ORDER BY content_terms.name SEPARATOR \'||\') AS genre_slugs
+             FROM media_items
+             LEFT JOIN content_term_links
+                ON content_term_links.owner_type = \'item\'
+                AND content_term_links.owner_id = media_items.id
+             LEFT JOIN content_terms
+                ON content_terms.id = content_term_links.term_id
+                AND content_terms.taxonomy = \'genres\'
+             WHERE ' . $whereClause . '
+             GROUP BY media_items.id,
+                      media_items.title,
+                      media_items.slug,
+                      media_items.type,
+                      media_items.synopsis,
+                       media_items.poster_url,
+                       media_items.release_year,
+                       media_items.release_date,
+                       media_items.original_language,
+                       media_items.country,
+                       media_items.origin_country,
+                       media_items.tmdb_id,
+                      media_items.tmdb_rating,
+                      media_items.views,
+                      media_items.is_featured,
+                      media_items.created_at,
+                      media_items.updated_at
+             ORDER BY media_items.updated_at DESC, media_items.created_at DESC, media_items.id DESC
+             LIMIT :limit OFFSET :offset';
+
+        $params['limit'] = $limit;
+        $params['offset'] = $offset;
+
+        $items = $db->select($itemsQuery, $params);
+
+        $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 0;
+
+        return [
+            'items' => array_map([$this, 'itemPayload'], $items),
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'total_pages' => $totalPages,
+        ];
     }
 
     /**
