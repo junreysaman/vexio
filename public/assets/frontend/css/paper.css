@@ -2106,14 +2106,33 @@ footer{
 .foot-links a:hover::before{color:var(--accent);}
 .foot-disclaimer{
   margin:28px 0 0;
-  padding:14px 16px;
+  padding:14px 16px 14px 44px;
   border-radius:10px;
-  border:1px solid var(--border);
-  background:rgba(0,0,0,.12);
+  border:1px solid rgba(232,23,63,.45);
+  background:linear-gradient(135deg,rgba(232,23,63,.14),rgba(232,23,63,.06));
   font-size:11px;
   line-height:1.65;
-  color:var(--muted2);
-  text-align:center;
+  color:rgba(255,225,230,.88);
+  text-align:left;
+  position:relative;
+  box-shadow:0 12px 30px rgba(232,23,63,.08);
+}
+.foot-disclaimer::before{
+  content:'!';
+  position:absolute;
+  left:16px;
+  top:50%;
+  transform:translateY(-50%);
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--accent);
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
 }
 .foot-bottom{
   border-top:1px solid var(--border);padding-top:24px;

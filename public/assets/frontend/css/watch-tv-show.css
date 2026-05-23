@@ -60,6 +60,23 @@ ul{list-style:none;}
   --media-brand: var(--accent);
   --media-focus-ring-color: var(--cyan);
 }
+.vexio-embed-frame{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:#000;
+}
+.player-wrap.is-embed .player-bg,
+.player-wrap.is-embed .player-controls-overlay,
+.player-wrap.is-embed .vexio-player-loader{
+  opacity:0;
+  pointer-events:none;
+}
+.player-wrap.is-embed .vexio-player-watermark{
+  opacity:.42;
+}
 .vexio-player-loader{
   position:absolute;
   inset:0;
@@ -106,29 +123,83 @@ ul{list-style:none;}
   font-weight:600;
   color:rgba(255,255,255,.62);
 }
-.vexio-server-selector{
+.vexio-player-watermark{
   position:absolute;
   top:14px;
   right:14px;
   z-index:8;
+  width:84px;
+  max-width:18%;
+  opacity:.54;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.45));
+  pointer-events:none;
+}
+.vexio-player-unavailable{
+  position:absolute;
+  inset:0;
+  z-index:7;
   display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  padding:28px;
+  text-align:left;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(0,200,240,.2),transparent 34%),
+    linear-gradient(180deg,rgba(6,9,16,.82),rgba(6,9,16,.96));
 }
-.vexio-server-pill{
-  min-height:30px;
-  padding:0 12px;
-  border-radius:6px;
-  background:rgba(0,0,0,.64);
-  border:1px solid rgba(255,255,255,.18);
-  color:#fff;
-  font-size:11px;
-  font-weight:800;
-  letter-spacing:.6px;
+.vexio-player-unavailable[hidden]{display:none;}
+.vexio-unavailable-icon{
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  color:var(--cyan);
+  background:rgba(0,200,240,.12);
+  border:1px solid rgba(0,200,240,.36);
+  box-shadow:0 0 28px rgba(0,200,240,.18);
+}
+.vexio-unavailable-icon svg{width:30px;height:30px;}
+.vexio-unavailable-copy{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  max-width:440px;
+}
+.vexio-unavailable-kicker{
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.8px;
   text-transform:uppercase;
-  backdrop-filter:blur(8px);
+  color:var(--accent2);
 }
-.vexio-server-pill.active{
-  border-color:rgba(0,200,240,.65);
-  box-shadow:0 0 18px rgba(0,200,240,.16);
+.vexio-unavailable-copy strong{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(28px,4vw,42px);
+  line-height:.95;
+  letter-spacing:2px;
+  color:#fff;
+}
+.vexio-unavailable-copy span:last-child{
+  font-size:13px;
+  line-height:1.55;
+  color:rgba(240,244,255,.68);
+}
+.player-wrap.is-unavailable .vexio-vidstack-player,
+.player-wrap.is-unavailable .player-bg,
+.player-wrap.is-unavailable .player-controls-overlay{
+  opacity:0;
+  pointer-events:none;
+}
+@media(max-width:560px){
+  .vexio-player-watermark{width:68px;top:10px;right:10px;}
+  .vexio-player-unavailable{flex-direction:column;text-align:center;gap:12px;padding:22px;}
+  .vexio-unavailable-icon{width:48px;height:48px;}
+  .vexio-unavailable-icon svg{width:25px;height:25px;}
+  .vexio-unavailable-copy span:last-child{font-size:12px;}
 }
 .player-wrap.is-ready .player-bg,
 .player-wrap.is-ready .player-controls-overlay{opacity:0;pointer-events:none;}

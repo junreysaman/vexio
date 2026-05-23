@@ -8,6 +8,7 @@
 
 <?= $this->includePartial('/frontend/watch/watch-movie/ad/movie-top-leaderboard-ad') ?>
 <?= $this->includePartial('/frontend/watch/watch-movie/components/movie-player') ?>
+<?= $this->includePartial('/frontend/watch/watch-movie/components/server-selector') ?>
 <?= $this->includePartial('/frontend/watch/watch-movie/components/movie-content-area') ?>
 
 <?= $this->includePartial('/frontend/watch/watch-movie/components/movie-sidebar') ?>

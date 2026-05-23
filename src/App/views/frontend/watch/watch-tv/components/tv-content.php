@@ -15,8 +15,14 @@ $genreNames = is_array($show['genre_names'] ?? null)
 $genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : [];
 $networkLinks = is_array($show['network_links'] ?? null) ? $show['network_links'] : [];
 $rating = $show['tmdb_rating'] ?? 'N/A';
-$votes = number_format((int) ($show['tmdb_vote_count'] ?? 0));
-$views = number_format((int) ($show['views'] ?? 0));
+$ratingValue = is_numeric($rating) ? max(0.0, min(10.0, (float) $rating)) : 0.0;
+$ratingPercent = $ratingValue * 10;
+$ratingStars = (int) round($ratingValue / 2);
+$voteCount = (int) ($show['tmdb_vote_count'] ?? 0);
+$showViewCount = (int) ($show['views'] ?? 0);
+$episodeViewCount = (int) ($episode['views'] ?? 0);
+$votes = number_format($voteCount);
+$views = number_format($showViewCount);
 $releaseYear = $show['release_year'] ?? 'N/A';
 $releaseDate = $show['release_date'] ?? $releaseYear;
 $premiered = ($releaseDate && $releaseDate !== 'N/A' && strtotime((string) $releaseDate) !== false)
@@ -140,12 +146,36 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
         <?= $this->includePartial('frontend/watch/watch-tv/ad/tv-midpage-ad') ?>
 
     <div class="content-tabs">
-      <button class="ctab active" onclick="switchTab('episodes',this)">Episodes</button>
+      <button class="ctab active" onclick="switchTab('related',this)">More Like This</button>
+      <button class="ctab" onclick="switchTab('episodes',this)">Episodes</button>
       <button class="ctab" onclick="switchTab('details',this)">Details</button>
-      <button class="ctab" onclick="switchTab('comments',this)">Comments</button>
+      <button class="ctab" onclick="switchTab('comments',this)">Comments <span style="font-size:11px;opacity:.5;">(<?= number_format((int) ($commentCount ?? 0)) ?>)</span></button>
     </div>
 
-    <div class="tab-panel active" id="tab-episodes" data-episode-list data-page-size="10">
+    <div class="tab-panel active" id="tab-related">
+      <div class="trend-grid">
+        <?php foreach (array_slice(($related ?? []), 0, 6) as $item): ?>
+          <?php
+            $rType = (string) ($item['type'] ?? 'tv_show');
+            echo $this->includePartial('/frontend/partials/card', [
+              'cardTitle'    => (string) ($item['title'] ?? 'Untitled'),
+              'cardPosterMedia' => MediaImage::posterFromRow($item, 'card'),
+              'cardPoster'   => (string) ($item['poster_url'] ?? ''),
+              'cardWatchUrl' => (string) ($item['watchUrl'] ?? $item['watch_url'] ?? '#'),
+              'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',
+              'cardBadge'    => '',
+              'cardRating'   => is_numeric($item['tmdb_rating'] ?? null) ? (float) $item['tmdb_rating'] : null,
+              'cardYear'     => (string) ($item['release_year'] ?? ''),
+            ]);
+          ?>
+        <?php endforeach; ?>
+        <?php if (empty($related)): ?>
+          <p style="color:var(--muted2);font-size:13px;grid-column:1/-1;">No related shows found.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-episodes" data-episode-list data-page-size="10">
       <div class="ep-list-controls">
         <input type="search" class="ep-search" placeholder="Search episodes..." data-episode-search autocomplete="off">
         <span class="ep-count-badge"><span data-episode-visible-count><?= number_format(min(10, count($episodes ?? []))) ?> of <?= number_format(count($episodes ?? [])) ?> episodes</span> &middot; Season <?= $currentSeason ?></span>
@@ -228,29 +258,22 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
     </div>
 
     <div class="rating-widget" style="margin-top:28px;">
-      <div class="rating-score-big"><div class="rsb-num"><?= escape((string) $rating) ?></div><div class="rsb-count">S<?= $currentSeason ?> E<?= $currentEpisode ?> &middot; <?= $votes ?> ratings</div></div>
-      <div class="rating-user-wrap"><div class="rating-user-label">Rate this episode</div><div class="user-stars"><?php for ($i = 1; $i <= 5; $i++): ?><div class="user-star" onclick="rateEp(<?= $i ?>)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div><?php endfor; ?></div></div>
-    </div>
-
-    <div class="related-section">
-      <div class="sec-mini-head"><div class="sec-mini-title"><div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>YOU MAY ALSO <span class="accent">LIKE</span></div></div>
-      <div class="trend-grid">
-        <?php foreach (array_slice(($related ?? []), 0, 6) as $item): ?>
-          <?php
-            $rType = (string) ($item['type'] ?? 'tv_show');
-            echo $this->includePartial('/frontend/partials/card', [
-              'cardTitle'    => (string) ($item['title'] ?? 'Untitled'),
-              'cardPosterMedia' => MediaImage::posterFromRow($item, 'card'),
-              'cardPoster'   => (string) ($item['poster_url'] ?? ''),
-              'cardWatchUrl' => (string) ($item['watchUrl'] ?? $item['watch_url'] ?? '#'),
-              'cardLabel'    => $rType === 'tv_show' ? 'TV Show' : 'Movie',
-              'cardBadge'    => '',
-              'cardRating'   => is_numeric($item['tmdb_rating'] ?? null) ? (float) $item['tmdb_rating'] : null,
-              'cardYear'     => (string) ($item['release_year'] ?? ''),
-            ]);
-          ?>
-        <?php endforeach; ?>
+      <div class="rating-score-big">
+        <div class="rsb-num"><?= $ratingValue > 0 ? escape(number_format($ratingValue, 1)) : 'N/A' ?></div>
+        <div class="rsb-stars">
+          <?php for ($i = 1; $i <= 5; $i++): ?>
+            <svg viewBox="0 0 24 24" fill="currentColor"<?= $i > $ratingStars ? ' class="empty"' : '' ?>><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          <?php endfor; ?>
+        </div>
+        <div class="rsb-count"><?= $votes ?> TMDB votes</div>
       </div>
+      <div class="rating-bars">
+        <div class="rbar-row"><span class="rbar-label">Score</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= escape(number_format($ratingPercent, 1, '.', '')) ?>%;"></div></div><span class="rbar-count"><?= $ratingValue > 0 ? escape(number_format($ratingValue, 1)) : 'N/A' ?></span></div>
+        <div class="rbar-row"><span class="rbar-label">Votes</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= $voteCount > 0 ? 100 : 0 ?>%;"></div></div><span class="rbar-count"><?= $votes ?></span></div>
+        <div class="rbar-row"><span class="rbar-label">Views</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= $showViewCount > 0 ? 100 : 0 ?>%;"></div></div><span class="rbar-count"><?= $views ?></span></div>
+        <div class="rbar-row"><span class="rbar-label">Episode</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= $episodeViewCount > 0 ? 100 : 0 ?>%;"></div></div><span class="rbar-count"><?= number_format($episodeViewCount) ?></span></div>
+      </div>
+      <div class="rating-user-wrap"><div class="rating-user-label">Rate this episode</div><div class="user-stars"><?php for ($i = 1; $i <= 5; $i++): ?><div class="user-star" onclick="rateEp(<?= $i ?>)"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div><?php endfor; ?></div></div>
     </div>
   </div>
   <?= $this->includePartial('/frontend/watch/watch-movie/ad/movie-footer-ad') ?>

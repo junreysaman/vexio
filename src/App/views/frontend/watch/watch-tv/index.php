@@ -11,6 +11,7 @@
   <div class="watch-layout">
     <div class="watch-main">
       <?= $this->includePartial('/frontend/watch/watch-tv/components/tv-player') ?>
+        <?= $this->includePartial('/frontend/watch/watch-tv/components/server-selector') ?>
       <?= $this->includePartial('/frontend/watch/watch-tv/components/quick-episode') ?>
       <?= $this->includePartial('/frontend/watch/watch-tv/components/tv-content') ?>
     </div>

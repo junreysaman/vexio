@@ -14,8 +14,13 @@ $genreLinks = is_array($item['genre_links'] ?? null) ? $item['genre_links'] : []
 $networkLinks = is_array($item['network_links'] ?? null) ? $item['network_links'] : [];
 $year = $item['release_year'] ?? 'N/A';
 $rating = $item['tmdb_rating'] ?? 'N/A';
-$votes = number_format((int) ($item['tmdb_vote_count'] ?? 0));
-$views = number_format((int) ($item['views'] ?? 0));
+$ratingValue = is_numeric($rating) ? max(0.0, min(10.0, (float) $rating)) : 0.0;
+$ratingPercent = $ratingValue * 10;
+$ratingStars = (int) round($ratingValue / 2);
+$voteCount = (int) ($item['tmdb_vote_count'] ?? 0);
+$viewCount = (int) ($item['views'] ?? 0);
+$votes = number_format($voteCount);
+$views = number_format($viewCount);
 $runtime = $item['runtime_minutes'] ?? null;
 $releaseDateRaw = $item['release_date'] ?? $item['release_year'] ?? '';
 $releaseDate = 'N/A';
@@ -177,22 +182,18 @@ $revenue = $item['revenue'] ?? null;
           <!-- RATING WIDGET -->
           <div class="rating-widget">
             <div class="rating-score-big">
-              <div class="rsb-num">8.7</div>
+              <div class="rsb-num"><?= $ratingValue > 0 ? escape(number_format($ratingValue, 1)) : 'N/A' ?></div>
               <div class="rsb-stars">
-                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                <svg viewBox="0 0 24 24" fill="currentColor" class="empty" style="color:var(--gold);opacity:.4"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <?php for ($i = 1; $i <= 5; $i++): ?>
+                  <svg viewBox="0 0 24 24" fill="currentColor"<?= $i > $ratingStars ? ' class="empty"' : '' ?>><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <?php endfor; ?>
               </div>
-              <div class="rsb-count">24,891 ratings</div>
+              <div class="rsb-count"><?= $votes ?> TMDB votes</div>
             </div>
             <div class="rating-bars">
-              <div class="rbar-row"><span class="rbar-label">5★</span><div class="rbar-track"><div class="rbar-fill" style="width:68%;"></div></div><span class="rbar-count">16.9k</span></div>
-              <div class="rbar-row"><span class="rbar-label">4★</span><div class="rbar-track"><div class="rbar-fill" style="width:20%;"></div></div><span class="rbar-count">5.0k</span></div>
-              <div class="rbar-row"><span class="rbar-label">3★</span><div class="rbar-track"><div class="rbar-fill" style="width:8%;"></div></div><span class="rbar-count">2.0k</span></div>
-              <div class="rbar-row"><span class="rbar-label">2★</span><div class="rbar-track"><div class="rbar-fill" style="width:3%;"></div></div><span class="rbar-count">0.7k</span></div>
-              <div class="rbar-row"><span class="rbar-label">1★</span><div class="rbar-track"><div class="rbar-fill" style="width:1%;"></div></div><span class="rbar-count">0.2k</span></div>
+              <div class="rbar-row"><span class="rbar-label">Score</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= escape(number_format($ratingPercent, 1, '.', '')) ?>%;"></div></div><span class="rbar-count"><?= $ratingValue > 0 ? escape(number_format($ratingValue, 1)) : 'N/A' ?></span></div>
+              <div class="rbar-row"><span class="rbar-label">Votes</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= $voteCount > 0 ? 100 : 0 ?>%;"></div></div><span class="rbar-count"><?= $votes ?></span></div>
+              <div class="rbar-row"><span class="rbar-label">Views</span><div class="rbar-track"><div class="rbar-fill" style="width:<?= $viewCount > 0 ? 100 : 0 ?>%;"></div></div><span class="rbar-count"><?= $views ?></span></div>
             </div>
             <div class="rating-user-wrap">
               <div class="rating-user-label">Rate this movie</div>
@@ -208,13 +209,13 @@ $revenue = $item['revenue'] ?? null;
 
           <!-- TABS -->
           <div class="content-tabs">
-            <button class="ctab active" onclick="switchTab('comments',this)">💬 Comments <span style="font-size:11px;opacity:.5;">(347)</span></button>
-            <button class="ctab" onclick="switchTab('related',this)">🎬 More Like This</button>
-            <button class="ctab" onclick="switchTab('details',this)">📋 Full Details</button>
+            <button class="ctab active" onclick="switchTab('related',this)">More Like This</button>
+            <button class="ctab" onclick="switchTab('comments',this)">Comments <span style="font-size:11px;opacity:.5;">(<?= number_format((int) ($commentCount ?? 0)) ?>)</span></button>
+            <button class="ctab" onclick="switchTab('details',this)">Full Details</button>
           </div>
 
           <!-- Comments -->
-          <div class="tab-panel active" id="tab-comments">
+          <div class="tab-panel" id="tab-comments">
             <?= $this->includePartial('/frontend/watch/components/comments', [
               'commentOwnerType' => 'item',
               'commentOwnerId' => (int) ($item['id'] ?? 0),
@@ -225,7 +226,7 @@ $revenue = $item['revenue'] ?? null;
           </div>
 
           <!-- RELATED TAB -->
-          <div class="tab-panel" id="tab-related">
+          <div class="tab-panel active" id="tab-related">
             <div class="trend-grid">
               <?php foreach (array_slice(($related ?? []), 0, 6) as $relatedItem): ?>
                 <?php

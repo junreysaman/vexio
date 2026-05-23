@@ -91,6 +91,7 @@ let streamLoading = null;
 let streamSources = [];
 let streamSourceIndex = 0;
 let streamStartTimer = null;
+let streamAttemptId = 0;
 let vidstackModule = null;
 let tvCountdownTimer;
 
@@ -189,6 +190,32 @@ function setPlayerLoading(isLoading, status = 'Connecting to vexio-main') {
     wrap?.classList.toggle('is-loading', isLoading);
 }
 
+function setPlayerUnavailable(message = 'No playable source found') {
+    const wrap = document.getElementById('playerWrap');
+    const unavailable = document.getElementById('vexioPlayerUnavailable');
+    const detail = document.getElementById('vexioUnavailableDetail');
+    const statusNode = document.getElementById('vexioLoaderStatus');
+    clearTimeout(streamStartTimer);
+    streamLoaded = false;
+    wrap?.classList.remove('is-ready', 'is-loading');
+    wrap?.classList.add('is-unavailable');
+    if (statusNode) statusNode.textContent = message;
+    if (detail) detail.textContent = message;
+    if (unavailable) unavailable.hidden = false;
+}
+
+function clearPlayerUnavailable() {
+    const wrap = document.getElementById('playerWrap');
+    const unavailable = document.getElementById('vexioPlayerUnavailable');
+    wrap?.classList.remove('is-unavailable');
+    if (unavailable) unavailable.hidden = true;
+}
+
+function clearEmbedPlayer() {
+    const wrap = document.getElementById('playerWrap');
+    wrap?.classList.remove('is-embed');
+}
+
 async function loadVidstackModule() {
     if (!vidstackModule) {
         vidstackModule = await import('https://cdn.vidstack.io/player');
@@ -239,40 +266,47 @@ async function playSource(source, subtitles, shouldPlay = false) {
     const wrap = document.getElementById('playerWrap');
     if (!wrap || !source?.url) return false;
 
+    const attemptId = ++streamAttemptId;
     const compatibilityMessage = sourceCompatibilityMessage(source);
     streamLoaded = false;
     wrap.classList.remove('is-ready');
-    setPlayerLoading(true, 'Preparing vexio-main');
+    clearPlayerUnavailable();
+    clearEmbedPlayer();
+    setPlayerLoading(true, compatibilityMessage || 'Preparing vexio-main');
     clearTimeout(streamStartTimer);
-    const player = await createVidstackPlayer(source, subtitles);
-    if (!player) return false;
+    let player = null;
+    try {
+        player = await createVidstackPlayer(source, subtitles);
+    } catch (_error) {
+        player = null;
+    }
+    if (!player) {
+        setPlayerUnavailable('Unable to prepare this stream');
+        return false;
+    }
 
     const startPlayback = () => {
-        if (streamLoaded) return;
+        if (streamLoaded || attemptId !== streamAttemptId) return;
         clearTimeout(streamStartTimer);
         streamLoaded = true;
         wrap.classList.add('is-ready');
         setPlayerLoading(false);
-        if (compatibilityMessage) showToast(compatibilityMessage);
         if (shouldPlay) Promise.resolve(player.play()).catch(() => {});
     };
     const tryNextSource = async () => {
         clearTimeout(streamStartTimer);
-        if (streamLoaded) return;
+        if (streamLoaded || attemptId !== streamAttemptId) return;
         const nextSource = streamSources[streamSourceIndex + 1];
         if (!nextSource) {
-            setPlayerLoading(false);
-            showToast(compatibilityMessage || 'This stream is taking too long to start');
+            setPlayerUnavailable('No playable source found for this episode');
             return;
         }
         streamSourceIndex += 1;
         setPlayerLoading(true, 'Trying vexio-main fallback');
-        showToast('Trying another stream');
         await playSource(nextSource, subtitles, shouldPlay);
     };
 
     player.addEventListener('can-play', startPlayback, { once: true });
-    player.addEventListener('loaded-metadata', startPlayback, { once: true });
     player.addEventListener('error', tryNextSource, { once: true });
     streamStartTimer = setTimeout(tryNextSource, 15000);
 
@@ -297,20 +331,23 @@ async function loadVexioStream(shouldPlay = false) {
     streamLoading = (async () => {
         try {
             setPlayerLoading(true, 'Connecting to vexio-main');
-            showToast('Loading stream');
+            clearPlayerUnavailable();
             const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
             const data = await response.json();
             if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
 
-            streamSources = (Array.isArray(data.sources) ? data.sources : []).filter(item => item?.url);
+            streamSources = (Array.isArray(data.sources) ? data.sources : [])
+                .filter(item => item?.url && item.browserPlayable !== false);
             streamSourceIndex = 0;
             const source = streamSources[streamSourceIndex];
-            if (!source) throw new Error('No playable stream found');
+            if (!source) {
+                setPlayerUnavailable('No playable source found for this episode');
+                return false;
+            }
 
             return await playSource(source, data.subtitles || [], shouldPlay);
         } catch (error) {
-            setPlayerLoading(false);
-            showToast(error.message || 'Unable to load stream');
+            setPlayerUnavailable(error.message || 'Unable to load stream');
             return false;
         } finally {
             streamLoading = null;
@@ -333,6 +370,42 @@ function toggleFullscreen() {
         document.exitFullscreen?.();
     } else {
         wrap?.requestFullscreen?.();
+    }
+}
+
+function selectServer(button, _serverKey) {
+    const wrap = document.getElementById('playerWrap');
+    const target = document.getElementById('vexioPlayerTarget');
+    document.querySelectorAll('.server-tab').forEach(tab => tab.classList.remove('active'));
+    button?.classList.add('active');
+
+    const url = button?.dataset?.serverUrl || '';
+    if (url) {
+        clearTimeout(streamStartTimer);
+        streamAttemptId += 1;
+        streamLoaded = false;
+        streamLoading = null;
+        try { vexioVideo?.pause?.(); } catch (_error) {}
+        vexioVideo = null;
+        clearPlayerUnavailable();
+        setPlayerLoading(false);
+        wrap?.classList.remove('is-ready');
+        wrap?.classList.add('is-embed');
+        target?.replaceChildren(Object.assign(document.createElement('iframe'), {
+            className: 'vexio-embed-frame',
+            src: url,
+            title: button?.textContent?.trim() || 'External stream'
+        }));
+        const frame = target?.querySelector('.vexio-embed-frame');
+        frame?.setAttribute('allowfullscreen', '');
+        frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
+        frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    } else {
+        target?.replaceChildren();
+        streamLoaded = false;
+        streamLoading = null;
+        clearEmbedPlayer();
+        initPlay();
     }
 }
 

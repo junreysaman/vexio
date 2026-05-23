@@ -23,7 +23,15 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
           <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to vexio-main</span>
         </div>
       </div>
-      <div class="vexio-server-selector" aria-label="Server">
-        <button type="button" class="vexio-server-pill active" data-server-id="vexio-main">vexio-main</button>
+      <div class="vexio-player-unavailable" id="vexioPlayerUnavailable" hidden>
+        <div class="vexio-unavailable-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M9.75 9.75 14.25 14.25M14.25 9.75 9.75 14.25"></path></svg>
+        </div>
+        <div class="vexio-unavailable-copy">
+          <span class="vexio-unavailable-kicker">Stream unavailable</span>
+          <strong>No playable source found</strong>
+          <span id="vexioUnavailableDetail">This title does not have a browser-ready stream available right now. Please check back later.</span>
+        </div>
       </div>
+      <img class="vexio-player-watermark" src="/brand/vexio-logo-compact.svg" alt="Vexio" loading="eager">
     </div>

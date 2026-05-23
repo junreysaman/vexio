@@ -410,19 +410,18 @@ class WatchService
             return [];
         }
 
-        $servers = [];
-
-        /*
         $servers = [
-            ...$servers,
             [
-                'key' => 'vidfast',
-                'name' => 'VidFast',
+                'key' => 'mx-vidfast',
+                'name' => 'MX-VidFast',
                 'url' => 'https://vidfast.pro/movie/' . $tmdbId . '?' . http_build_query([
                     'autoPlay' => 'false',
                     'theme' => '#e8173f',
                 ]),
             ],
+        ];
+
+        /*
             [
                 'key' => 'vidsrc',
                 'name' => 'VidSrc',
@@ -466,14 +465,10 @@ class WatchService
             return [];
         }
 
-        $servers = [];
-
-        /*
         $servers = [
-            ...$servers,
             [
-                'key' => 'vidfast',
-                'name' => 'VidFast',
+                'key' => 'mx-vidfast',
+                'name' => 'MX-VidFast',
                 'url' => 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber . '?' . http_build_query([
                     'autoPlay' => 'false',
                     'nextButton' => 'true',
@@ -481,6 +476,9 @@ class WatchService
                     'theme' => '#00c8f0',
                 ]),
             ],
+        ];
+
+        /*
             [
                 'key' => 'vidsrc',
                 'name' => 'VidSrc',
