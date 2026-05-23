@@ -476,7 +476,17 @@ async function playSource(source, subtitles, shouldPlay = false) {
 
     player.addEventListener('can-play', startPlayback, { once: true });
     player.addEventListener('error', tryNextSource, { once: true });
-    streamStartTimer = setTimeout(tryNextSource, 15000);
+
+    // If the underlying <video> fails (common when proxy/manifest fetch is flaky),
+    // switch to the next candidate immediately.
+    const targetVideo = target?.querySelector('video');
+    if (targetVideo) {
+        targetVideo.addEventListener('error', tryNextSource, { once: true });
+    }
+
+    // Short trial window: if Vidstack/video never reaches a renderable state,
+    // don't wait the full 15s; switch sources to avoid "no playable source found" on first attempt.
+    streamStartTimer = setTimeout(tryNextSource, 10000);
 
     return true;
 }
