@@ -150,15 +150,32 @@ class WatchService
 
     private function related(string $type, int $excludeId): array
     {
-        return $this->db->select(
-            "SELECT * FROM media_items
-             WHERE status = 'published'
-             AND type = :type
-             AND id <> :id
-             ORDER BY tmdb_rating DESC, tmdb_popularity DESC, views DESC
-             LIMIT 6",
-            ['type' => $type, 'id' => $excludeId]
-        );
+                // Genre-weighted randomization:
+                // 1) Count how many genres each candidate shares with the excluded item
+                // 2) Order by shared genre count DESC, then randomize within the same count
+                return $this->db->select(
+                        "SELECT m.*, COALESCE(shared.shared_count, 0) AS shared_count
+                         FROM media_items m
+                         LEFT JOIN (
+                             SELECT ctl.owner_id, COUNT(DISTINCT ctl.term_id) AS shared_count
+                             FROM content_term_links ctl
+                             INNER JOIN content_terms ct ON ct.id = ctl.term_id AND ct.taxonomy = 'genres'
+                             INNER JOIN (
+                                 SELECT ctl2.term_id
+                                 FROM content_term_links ctl2
+                                 INNER JOIN content_terms ct2 ON ct2.id = ctl2.term_id AND ct2.taxonomy = 'genres'
+                                 WHERE ctl2.owner_type = 'item' AND ctl2.owner_id = :current_id
+                             ) ex ON ex.term_id = ctl.term_id
+                             WHERE ctl.owner_type = 'item'
+                             GROUP BY ctl.owner_id
+                         ) shared ON shared.owner_id = m.id
+                         WHERE m.status = 'published'
+                                AND m.type = :type
+                                AND m.id <> :exclude_id
+                         ORDER BY shared.shared_count DESC, RAND()
+                         LIMIT 6",
+                        ['type' => $type, 'current_id' => $excludeId, 'exclude_id' => $excludeId]
+                );
     }
 
     public function episodeById(int $tmdbId, int $episodeId): ?array

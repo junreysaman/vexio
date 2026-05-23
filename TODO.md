@@ -1,4 +1,3 @@
-- [x] Update player readiness detection to hide real player loader until fully ready
-- [ ] Mirror/verify for TV player JS if separate file exists
-- [ ] Run quick lint/build (if applicable)
-- [ ] Manual test: movie/tv watch pages confirm no flicker during scanning
+- [ ] Modify WatchService::related() to add randomness to ORDER BY for “More Like This”
+- [ ] Ensure related() still returns LIMIT 6 and works for both TV show watch page and movie watch page
+- [ ] Run minimal verification (load watch TV page, confirm list order varies across hard refresh)
