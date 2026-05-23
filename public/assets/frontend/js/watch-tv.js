@@ -362,7 +362,7 @@ async function loadVexioStream(shouldPlay = false) {
 
     streamLoading = (async () => {
         try {
-            setPlayerLoading(true, 'Connecting to vexio-main');
+            setPlayerLoading(true, 'Scanning servers');
             clearPlayerUnavailable();
             const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
             const data = await response.json();

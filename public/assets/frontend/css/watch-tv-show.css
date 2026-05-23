@@ -183,6 +183,13 @@ ul {
   height: 100%;
   background: #000;
 }
+/* Hide the real player UI while our layout is loading or rendering to avoid showing double loaders/posters */
+.player-wrap.is-loading .vexio-vidstack-player,
+.player-wrap.is-player-rendering .vexio-vidstack-player {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 .vexio-vidstack-player media-player {
   --media-brand: var(--accent);
   --media-focus-ring-color: var(--cyan);
