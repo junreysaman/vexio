@@ -2,7 +2,7 @@
 use App\Support\MediaImage;
 
 /**
- * Shared Vexio Vidstack player wrapper (movie + tv)
+ * Shared Vexio player wrapper (movie + tv)
  *
  * Expected variables:
  * - $sourceType: 'movie'|'tv'
@@ -13,9 +13,6 @@ use App\Support\MediaImage;
  * - $episode: (int|null) for tv
  * - $showTitle: string|null (used for title formatting)
  *
- * $episode may also be provided for "up next" overlay elsewhere.
- */
-
 $sourceType = (string) ($sourceType ?? 'movie');
 $tmdbId = (int) ($sourceId ?? 0);
 $title = (string) ($title ?? 'Vexio');
@@ -23,11 +20,23 @@ $posterMedia = $posterRow ?? [];
 $season = $season ?? null;
 $episode = $episode ?? null;
 
+// Build a primary embed URL from known VX providers (do not call external embed API)
+$primaryEmbed = '';
+if ($tmdbId > 0) {
+  if ($sourceType === 'tv' && $season !== null && $episode !== null) {
+    $primaryEmbed = 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episode;
+  } else {
+    $primaryEmbed = 'https://vidfast.pro/movie/' . $tmdbId;
+  }
+}
+
+$sourceUrl = $primaryEmbed;
+
 $params = [
-    'type' => $sourceType,
-    'tmdbId' => $tmdbId,
-    'season' => $season,
-    'episode' => $episode,
+  'type' => $sourceType,
+  'tmdbId' => $tmdbId,
+  'season' => $season,
+  'episode' => $episode,
 ];
 
 // If a global page uses a different key naming convention (tv uses season/episode),
@@ -35,19 +44,17 @@ $params = [
 
 
 foreach ($params as $k => $v) {
-    if ($v === null || $v === '') {
-        unset($params[$k]);
-    }
+  if ($v === null || $v === '') {
+    unset($params[$k]);
+  }
 }
-
-$sourceUrl = '/api/embed/sources?' . http_build_query($params);
 
 $playerBackdrop = MediaImage::backdropFromRow($posterMedia, 'player');
 ?>
 
-<div class="player-wrap" id="playerWrap" data-player-source-url="<?= escape($sourceUrl) ?>" data-title="<?= escape($title) ?>">
+<div class="player-wrap" id="playerWrap" data-player-source-url="<?= escape($sourceUrl) ?>" data-player-embed-url="<?= escape($sourceUrl) ?>" data-title="<?= escape($title) ?>">
   <div
-    class="vexio-vidstack-player"
+    class="vexio-player-target"
     id="vexioPlayerTarget"
     data-poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
     data-title="<?= escape($title) ?>"

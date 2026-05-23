@@ -429,12 +429,25 @@ class WatchService
 
         $servers = [
             [
-                'key' => 'mx-vidfast',
-                'name' => 'MX-VidFast',
-                'url' => 'https://vidfast.pro/movie/' . $tmdbId . '?' . http_build_query([
-                    'autoPlay' => 'false',
-                    'theme' => '#e8173f',
-                ]),
+                'key' => 'vx-vidfast',
+                'name' => 'VX-Vidfast',
+                'url' => 'https://vidfast.pro/movie/' . $tmdbId,
+                'default' => true,
+            ],
+            [
+                'key' => 'vx-vidnest',
+                'name' => 'VX-VidNest',
+                'url' => 'https://vidnest.fun/movie/' . $tmdbId,
+            ],
+            [
+                'key' => 'vx-videasy',
+                'name' => 'VX-VidEasy',
+                'url' => 'https://player.videasy.net/movie/' . $tmdbId,
+            ],
+            [
+                'key' => 'vx-vidup',
+                'name' => 'VX-VidUp',
+                'url' => 'https://vidup.to/movie/' . $tmdbId,
             ],
         ];
 
@@ -457,14 +470,8 @@ class WatchService
         ];
         */
 
-        $custom = trim((string) ($item['stream_link'] ?? ''));
-        if ($custom !== '') {
-            $servers[] = [
-                'key' => 'custom',
-                'name' => 'Custom',
-                'url' => $custom,
-            ];
-        }
+        // No custom or additional servers allowed — only MX-VidFast remains.
+        // Any legacy `stream_link` entries are intentionally ignored to keep watch pages consistent.
 
         return $servers;
     }
@@ -484,14 +491,25 @@ class WatchService
 
         $servers = [
             [
-                'key' => 'mx-vidfast',
-                'name' => 'MX-VidFast',
-                'url' => 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber . '?' . http_build_query([
-                    'autoPlay' => 'false',
-                    'nextButton' => 'true',
-                    'autoNext' => 'false',
-                    'theme' => '#00c8f0',
-                ]),
+                'key' => 'vx-vidfast',
+                'name' => 'VX-Vidfast',
+                'url' => 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
+                'default' => true,
+            ],
+            [
+                'key' => 'vx-vidnest',
+                'name' => 'VX-VidNest',
+                'url' => 'https://vidnest.fun/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
+            ],
+            [
+                'key' => 'vx-videasy',
+                'name' => 'VX-VidEasy',
+                'url' => 'https://player.videasy.net/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
+            ],
+            [
+                'key' => 'vx-vidup',
+                'name' => 'VX-VidUp',
+                'url' => 'https://vidup.to/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber . '?autoPlay=true',
             ],
         ];
 
@@ -514,14 +532,8 @@ class WatchService
         ];
         */
 
-        $custom = trim((string) ($episode['stream_link'] ?? ''));
-        if ($custom !== '') {
-            $servers[] = [
-                'key' => 'custom',
-                'name' => 'Custom',
-                'url' => $custom,
-            ];
-        }
+        // No custom or additional servers allowed — only MX-VidFast remains.
+        // Any legacy `stream_link` entries are intentionally ignored to keep watch pages consistent.
 
         return $servers;
     }

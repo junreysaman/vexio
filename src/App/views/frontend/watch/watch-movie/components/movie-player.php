@@ -1,17 +1,16 @@
 <?php
 use App\Support\MediaImage;
 
-$sourceUrl = '/api/embed/sources?' . http_build_query([
-    'type' => 'movie',
-    'tmdbId' => (int) ($item['tmdb_id'] ?? 0),
-]);
+// Use VX embed links directly (do not call embed API)
+$tmdbIdVal = (int) ($item['tmdb_id'] ?? 0);
+$sourceUrl = $tmdbIdVal > 0 ? ('https://vidfast.pro/movie/' . $tmdbIdVal) : '';
 $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
 ?>
 <div class="watch-layout">
   <div class="watch-main">
-    <div class="player-wrap" id="playerWrap" data-player-source-url="<?= escape($sourceUrl) ?>">
+    <div class="player-wrap" id="playerWrap" data-player-source-url="<?= escape($sourceUrl) ?>" data-player-embed-url="<?= escape($sourceUrl) ?>">
       <div
-        class="vexio-vidstack-player"
+        class="vexio-player-target"
         id="vexioPlayerTarget"
         data-poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
         data-title="<?= escape((string) ($item['title'] ?? 'Movie')) ?>"

@@ -92,7 +92,6 @@ let streamSources = [];
 let streamSourceIndex = 0;
 let streamStartTimer = null;
 let streamAttemptId = 0;
-let vidstackModule = null;
 let tvCountdownTimer;
 
 function initProviderSwitch(sources) {
@@ -184,7 +183,7 @@ function initProviderSwitch(sources) {
 
 function initVexioVideo() {
     if (vexioVideo) return vexioVideo;
-    return document.querySelector('#vexioPlayerTarget media-player');
+    return document.querySelector('#vexioPlayerTarget video');
 }
 
 function sourceMimeType(source) {
@@ -254,19 +253,18 @@ function normalizeSubtitles(subtitles) {
         .slice(0, 14);
 }
 
-function createVidstackTracks(module, subtitles) {
+function createVideoTracks(subtitles) {
     const tracks = normalizeSubtitles(subtitles);
     const defaultIndex = Math.max(0, tracks.findIndex(isEnglishSubtitle));
     return tracks.map((subtitle, index) => {
-        const language = subtitleLanguage(subtitle);
-        return new module.TextTrack({
-            src: subtitle.url,
-            kind: 'subtitles',
-            label: subtitle.label,
-            language,
-            type: 'vtt',
-            default: index === defaultIndex
-        });
+        const track = document.createElement('track');
+        track.src = subtitle.url;
+        track.kind = 'subtitles';
+        track.label = subtitle.label;
+        track.srclang = subtitleLanguage(subtitle);
+        track.type = 'text/vtt';
+        if (index === defaultIndex) track.default = true;
+        return track;
     });
 }
 
@@ -303,51 +301,47 @@ function clearEmbedPlayer() {
     wrap?.classList.remove('is-embed', 'is-player-rendering');
 }
 
-async function loadVidstackModule() {
-    if (!vidstackModule) {
-        vidstackModule = await import('https://cdn.vidstack.io/player');
-    }
-    return vidstackModule;
-}
-
-function createVidstackPlayer(source, subtitles) {
-
+async function createNativePlayer(source, subtitles) {
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
     if (!wrap || !target || !source?.url) return null;
 
-    const module = await loadVidstackModule();
-    const { VidstackPlayer, VidstackPlayerLayout } = module;
-
     if (vexioVideo) {
-        try { vexioVideo.pause?.(); } catch (_error) { }
+        try { vexioVideo.pause(); } catch (_error) { }
     }
     target.replaceChildren();
 
-    const mimeType = sourceMimeType(source);
-    const tracks = createVidstackTracks(module, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
-    const defaultTrack = tracks.find(track => track.default);
-    if (defaultTrack) {
-        try { defaultTrack.mode = 'showing'; } catch (_error) { }
-    }
-    const player = await VidstackPlayer.create({
-        target,
-        src: { src: source.url, type: mimeType },
-        title: target.dataset.title || wrap.dataset.title || '',
-        poster: target.dataset.poster || '',
-        tracks,
-        layout: new VidstackPlayerLayout({ colorScheme: 'dark' }),
-        viewType: 'video',
-        streamType: 'on-demand',
-        preload: 'metadata',
-        playsinline: true,
-        crossOrigin: 'anonymous',
-        logLevel: 'warn'
-    });
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    video.poster = target.dataset.poster || '';
+    video.setAttribute('aria-label', target.dataset.title || wrap.dataset.title || 'Video player');
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'contain';
 
-    player.addEventListener('ended', triggerNextEp);
-    vexioVideo = player;
-    return player;
+    const sourceEl = document.createElement('source');
+    sourceEl.src = source.url;
+    sourceEl.type = sourceMimeType(source);
+    video.appendChild(sourceEl);
+
+    const tracks = createVideoTracks([...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
+    tracks.forEach(track => video.appendChild(track));
+
+    const audioTracks = normalizeAudioTracks(source?.audioTracks || []);
+    const dubMode = inferDubSubModeFromTracks(source?.audioTracks || []);
+
+    if (wrap) {
+        wrap.dataset.dubSubMode = dubMode || '';
+        wrap.dataset.audioTrackCount = String(audioTracks.length);
+    }
+
+    video.addEventListener('ended', triggerNextEp);
+    vexioVideo = video;
+    target.appendChild(video);
+    return video;
 }
 
 async function playSource(source, subtitles, shouldPlay = false) {
@@ -364,7 +358,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
     clearTimeout(streamStartTimer);
     let player = null;
     try {
-        player = await createVidstackPlayer(source, subtitles);
+        player = await createNativePlayer(source, subtitles);
     } catch (_error) {
         player = null;
     }
@@ -436,7 +430,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
         targetVideo.addEventListener('error', tryNextSource, { once: true });
     }
 
-    // Short trial window: if Vidstack/video never reaches a renderable state,
+    // Short trial window: if the video never reaches a renderable state,
     // don't wait the full 15s; switch sources to avoid "no playable source found" on first attempt.
     streamStartTimer = setTimeout(tryNextSource, 10000);
 
@@ -458,16 +452,63 @@ async function loadVexioStream(shouldPlay = false) {
     const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
     if (!endpoint) return false;
 
+    // If endpoint is an absolute URL, load it directly as an embed iframe (no embed API).
+    if (/^https?:\/\//i.test(endpoint)) {
+        const wrap = document.getElementById('playerWrap');
+        const target = document.getElementById('vexioPlayerTarget');
+        clearTimeout(streamStartTimer);
+        streamAttemptId += 1;
+        streamLoaded = false;
+        streamLoading = null;
+        try { vexioVideo?.pause?.(); } catch (_error) { }
+        vexioVideo = null;
+        clearPlayerUnavailable();
+        setPlayerLoading(false);
+        wrap?.classList.remove('is-ready');
+        wrap?.classList.add('is-embed');
+        target?.replaceChildren(Object.assign(document.createElement('iframe'), {
+            className: 'vexio-embed-frame',
+            src: endpoint,
+            title: 'Embedded stream'
+        }));
+        const frame = target?.querySelector('.vexio-embed-frame');
+        frame?.setAttribute('allowfullscreen', '');
+        frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
+        frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        return true;
+    }
+
     streamLoading = (async () => {
         try {
             setPlayerLoading(true, 'Scanning servers');
             clearPlayerUnavailable();
             const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
             const data = await response.json();
+
+            // Debug logging
+            console.log('[Vexio Player] API Response:', { endpoint, status: response.status, ok: response.ok, data });
+
             if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
 
-            streamSources = (Array.isArray(data.sources) ? data.sources : [])
-                .filter(item => item?.url && item.browserPlayable !== false);
+            const allSources = Array.isArray(data.sources) ? data.sources : [];
+            console.log('[Vexio Player] Total sources from API:', allSources.length);
+
+            streamSources = allSources
+                .filter(item => {
+                    const hasUrl = !!item?.url;
+                    const isBrowserPlayable = item.browserPlayable !== false;
+                    console.log('[Vexio Player] Source filter:', {
+                        provider: item?.provider?.name,
+                        quality: item?.quality,
+                        type: item?.type,
+                        hasUrl,
+                        browserPlayable: item?.browserPlayable,
+                        passes: hasUrl && isBrowserPlayable
+                    });
+                    return hasUrl && isBrowserPlayable;
+                });
+
+            console.log('[Vexio Player] Filtered sources (playable):', streamSources.length);
             streamSourceIndex = 0;
 
             // Provider/quality switcher UI

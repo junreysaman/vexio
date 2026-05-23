@@ -174,8 +174,10 @@ ul {
   overflow: hidden;
   cursor: pointer;
 }
-.vexio-vidstack-player,
-.vexio-vidstack-player media-player {
+.vexio-player-target,
+.vexio-player-target media-player,
+.vexio-player-target video,
+.vexio-player-target .video-js {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -183,14 +185,20 @@ ul {
   height: 100%;
   background: #000;
 }
+.vexio-player-target .video-js .vjs-tech {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 /* Hide the real player UI while our layout is loading or rendering to avoid showing double loaders/posters */
-.player-wrap.is-loading .vexio-vidstack-player,
-.player-wrap.is-player-rendering .vexio-vidstack-player {
+.player-wrap.is-loading .vexio-player-target,
+.player-wrap.is-player-rendering .vexio-player-target {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
-.vexio-vidstack-player media-player {
+.vexio-player-target media-player,
+.vexio-player-target video {
   --media-brand: var(--accent);
   --media-focus-ring-color: var(--cyan);
 }
@@ -308,39 +316,30 @@ ul {
   opacity: 1;
 }
 /* Ensure the internal vidstack loading/poster UI stays hidden while our layout loader is visible */
-.player-wrap.is-loading .vexio-vidstack-player media-player .vds-spinner,
-.player-wrap.is-loading .vexio-vidstack-player media-player .vds-loading,
-.player-wrap.is-loading .vexio-vidstack-player media-player .media-loading,
-.player-wrap.is-loading .vexio-vidstack-player media-player .vds-poster,
-.player-wrap.is-loading .vexio-vidstack-player media-player .media-poster,
-.player-wrap.is-loading .vexio-vidstack-player media-player [part~="poster"],
-.player-wrap.is-loading .vexio-vidstack-player media-player [part~="loading"],
+.player-wrap.is-loading .vexio-player-target media-player .vds-spinner,
+.player-wrap.is-loading .vexio-player-target media-player .vds-loading,
+.player-wrap.is-loading .vexio-player-target media-player .media-loading,
+.player-wrap.is-loading .vexio-player-target media-player .vds-poster,
+.player-wrap.is-loading .vexio-player-target media-player .media-poster,
+.player-wrap.is-loading .vexio-player-target media-player [part~="poster"],
+.player-wrap.is-loading .vexio-player-target media-player [part~="loading"],
+.player-wrap.is-player-rendering .vexio-player-target media-player .vds-spinner,
+.player-wrap.is-player-rendering .vexio-player-target media-player .vds-loading,
 .player-wrap.is-player-rendering
-  .vexio-vidstack-player
-  media-player
-  .vds-spinner,
-.player-wrap.is-player-rendering
-  .vexio-vidstack-player
-  media-player
-  .vds-loading,
-.player-wrap.is-player-rendering
-  .vexio-vidstack-player
+  .vexio-player-target
   media-player
   .media-loading,
+.player-wrap.is-player-rendering .vexio-player-target media-player .vds-poster,
 .player-wrap.is-player-rendering
-  .vexio-vidstack-player
-  media-player
-  .vds-poster,
-.player-wrap.is-player-rendering
-  .vexio-vidstack-player
+  .vexio-player-target
   media-player
   .media-poster,
 .player-wrap.is-player-rendering
-  .vexio-vidstack-player
+  .vexio-player-target
   media-player
   [part~="poster"],
 .player-wrap.is-player-rendering
-  .vexio-vidstack-player
+  .vexio-player-target
   media-player
   [part~="loading"] {
   display: none !important;
@@ -406,7 +405,7 @@ ul {
   line-height: 1.55;
   color: rgba(240, 244, 255, 0.68);
 }
-.player-wrap.is-unavailable .vexio-vidstack-player,
+.player-wrap.is-unavailable .vexio-player-target,
 .player-wrap.is-unavailable .player-bg,
 .player-wrap.is-unavailable .player-controls-overlay {
   opacity: 0;
@@ -2882,8 +2881,8 @@ ul {
 .player-wrap {
   cursor: default;
 }
-.vexio-vidstack-player,
-.vexio-vidstack-player media-player {
+.vexio-player-target,
+.vexio-player-target media-player {
   border-radius: 0;
 }
 .player-wrap > .player-ep-nav {

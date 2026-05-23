@@ -1,6 +1,6 @@
 <?= $this->start('styles') ?>
-<link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css">
-<link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css">
+<!-- Video.js offline player -->
+<link rel="stylesheet" href="/assets/vendor/videojs/video-js.min.css">
 <link rel="stylesheet" href="/assets/frontend/css/watch-tv-show.css">
 <?= $this->end() ?>
 
@@ -32,8 +32,8 @@
 <?= $this->end() ?>
 
 <?= $this->start('scripts') ?>
+<script src="/assets/vendor/videojs/video.min.js"></script>
+<script src="/assets/vendor/hls/hls.min.js"></script>
 <script src="/assets/frontend/js/watch-movie.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-movie.js') ?>"></script>
 <script src="/assets/frontend/js/watch-comments.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-comments.js') ?>"></script>
-
-
 <?= $this->end() ?>

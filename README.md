@@ -61,36 +61,22 @@ This creates the database and imports `database.sql`. Default admin login:
 
 ## CLI Commands
 
-| Command | Description |
-|---|---|
-| `php cli.php install` | Create database and import schema |
+| Command                         | Description                                                       |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `php cli.php install`           | Create database and import schema                                 |
 | `php cli.php publish-scheduled` | Reimport and publish scheduled episodes whose air date has passed |
-| `php cli.php create-controller` | Scaffold a new controller |
-| `php cli.php create-middleware` | Scaffold a new middleware |
-| `php cli.php create-service` | Scaffold a new service |
-| `php cli.php help` | Show all available commands |
+| `php cli.php create-controller` | Scaffold a new controller                                         |
+| `php cli.php create-middleware` | Scaffold a new middleware                                         |
+| `php cli.php create-service`    | Scaffold a new service                                            |
+| `php cli.php help`              | Show all available commands                                       |
 
 ---
 
-## Vexio Streaming Scraper
+## Scraper integration
 
-Vexio uses CinePro Core from `core` as the primary watch-page stream source. In production, point the bridge at the scraper subdomain:
-
-```bash
-npm --prefix core install
-npm run cinepro:build
-npm run cinepro:start
-```
-
-The bridge is configured with these `.env` values:
+CinePro Core (scraper) integration has been disabled/removed in this workspace. Watch pages now rely on the embed API and built-in providers (MX-VidFast) by default. Use the following `.env` keys to configure the embed API:
 
 ```env
-CINEPRO_CORE_ENABLED=true
-CINEPRO_CORE_URL=https://embed.vexio.asia
-CINEPRO_CORE_CONNECT_TIMEOUT=1.2
-CINEPRO_CORE_TIMEOUT=9
-CINEPRO_ENABLED_PROVIDERS=cinesu,icefy,vidapi,videasy,vidnest,vidrock,vidsrc,vidzee,vixsrc
-CINEPRO_PROVIDER_TIMEOUT_MS=4500
 EMBED_API_ENABLED=true
 EMBED_API_URL=https://embed.vexio.asia
 EMBED_API_CONNECT_TIMEOUT=5
@@ -175,13 +161,13 @@ To run every hour instead (useful for shows that air throughout the day):
 
 Access the admin panel at `/admin/dashboard` after logging in.
 
-| Section | URL |
-|---|---|
+| Section   | URL                |
+| --------- | ------------------ |
 | Dashboard | `/admin/dashboard` |
-| Content | `/admin/content` |
-| Importer | `/admin/importer` |
-| Users | `/admin/users` |
-| Comments | `/admin/comments` |
+| Content   | `/admin/content`   |
+| Importer  | `/admin/importer`  |
+| Users     | `/admin/users`     |
+| Comments  | `/admin/comments`  |
 
 ---
 

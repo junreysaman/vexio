@@ -1,12 +1,13 @@
 let userRating = 0;
 let vexioVideo = null;
+let vexioVideoJsPlayer = null;
+let vexioVideoElement = null;
 let streamLoaded = false;
 let streamLoading = null;
 let streamSources = [];
 let streamSourceIndex = 0;
 let streamStartTimer = null;
 let streamAttemptId = 0;
-let vidstackModule = null;
 
 function initProviderSwitch(sources) {
     const providerSwitch = document.getElementById('vexioProviderSwitch');
@@ -88,9 +89,20 @@ function initProviderSwitch(sources) {
 }
 
 function initVexioVideo() {
-
     if (vexioVideo) return vexioVideo;
-    return document.querySelector('#vexioPlayerTarget media-player');
+    return document.querySelector('#vexioPlayerTarget video');
+}
+
+function disposeVexioPlayer() {
+    if (vexioVideoJsPlayer && typeof vexioVideoJsPlayer.dispose === 'function') {
+        try {
+            vexioVideoJsPlayer.dispose();
+        } catch (_error) { }
+    }
+
+    vexioVideoJsPlayer = null;
+    vexioVideoElement = null;
+    vexioVideo = null;
 }
 
 function sourceMimeType(source) {
@@ -160,19 +172,18 @@ function normalizeSubtitles(subtitles) {
         .slice(0, 14);
 }
 
-function createVidstackTracks(module, subtitles) {
+function createVideoTracks(subtitles) {
     const tracks = normalizeSubtitles(subtitles);
     const defaultIndex = Math.max(0, tracks.findIndex(isEnglishSubtitle));
     return tracks.map((subtitle, index) => {
-        const language = subtitleLanguage(subtitle);
-        return new module.TextTrack({
-            src: subtitle.url,
-            kind: 'subtitles',
-            label: subtitle.label,
-            language,
-            type: 'vtt',
-            default: index === defaultIndex
-        });
+        const track = document.createElement('track');
+        track.src = subtitle.url;
+        track.kind = 'subtitles';
+        track.label = subtitle.label;
+        track.srclang = subtitleLanguage(subtitle);
+        track.type = 'text/vtt';
+        if (index === defaultIndex) track.default = true;
+        return track;
     });
 }
 
@@ -246,31 +257,34 @@ function clearEmbedPlayer() {
     wrap?.classList.remove('is-embed', 'is-player-rendering');
 }
 
-async function loadVidstackModule() {
-    if (!vidstackModule) {
-        vidstackModule = await import('https://cdn.vidstack.io/player');
-    }
-    return vidstackModule;
-}
-
-async function createVidstackPlayer(source, subtitles) {
+async function createNativePlayer(source, subtitles) {
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
     if (!wrap || !target || !source?.url) return null;
 
-    const module = await loadVidstackModule();
-    const { VidstackPlayer, VidstackPlayerLayout } = module;
-
-    if (vexioVideo) {
-        try { vexioVideo.pause?.(); } catch (_error) { }
-    }
+    disposeVexioPlayer();
     target.replaceChildren();
 
-    const mimeType = sourceMimeType(source);
-    const tracks = createVidstackTracks(module, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
-    const defaultTrack = tracks.find(track => track.default);
+    const video = document.createElement('video');
+    video.className = 'video-js vjs-big-play-centered vjs-default-skin';
+    video.controls = true;
+    video.preload = 'metadata';
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    video.poster = target.dataset.poster || '';
+    video.setAttribute('aria-label', target.dataset.title || wrap.dataset.title || 'Video player');
+    video.setAttribute('data-setup', '{}');
+    video.style.width = '100%';
+    video.style.height = '100%';
 
-    // Attach audio track info to a helper UI (audio switching is provider/manifest-dependent).
+    const sourceEl = document.createElement('source');
+    sourceEl.src = source.url;
+    sourceEl.type = sourceMimeType(source);
+    video.appendChild(sourceEl);
+
+    const tracks = createVideoTracks([...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
+    tracks.forEach(track => video.appendChild(track));
+
     const audioTracks = normalizeAudioTracks(source?.audioTracks || []);
     const dubMode = inferDubSubModeFromTracks(source?.audioTracks || []);
 
@@ -279,27 +293,55 @@ async function createVidstackPlayer(source, subtitles) {
         wrap.dataset.audioTrackCount = String(audioTracks.length);
     }
 
+    vexioVideo = video;
+    vexioVideoElement = video;
+    target.appendChild(video);
 
-    if (defaultTrack) {
-        try { defaultTrack.mode = 'showing'; } catch (_error) { }
+    if (window.videojs && typeof window.videojs === 'function') {
+        try {
+            vexioVideoJsPlayer = window.videojs(video, {
+                controls: true,
+                fluid: true,
+                autoplay: false,
+                preload: 'metadata',
+                playbackRates: [1, 1.25, 1.5, 2],
+                controlBar: {
+                    pictureInPictureToggle: true,
+                    fullscreenToggle: true
+                }
+            });
+        } catch (_error) {
+            vexioVideoJsPlayer = null;
+        }
     }
-    const player = await VidstackPlayer.create({
-        target,
-        src: { src: source.url, type: mimeType },
-        title: target.dataset.title || wrap.dataset.title || '',
-        poster: target.dataset.poster || '',
-        tracks,
-        layout: new VidstackPlayerLayout({ colorScheme: 'dark' }),
-        viewType: 'video',
-        streamType: 'on-demand',
-        preload: 'metadata',
-        playsinline: true,
-        crossOrigin: 'anonymous',
-        logLevel: 'warn'
-    });
+    // Attach HLS fallback when needed (non-Safari browsers)
+    try {
+        console.log('[Vexio Player] createNativePlayer', { url: source?.url, type: source?.type });
+        const isHls = String(source?.type || '').toLowerCase() === 'hls' || String(source?.url || '').toLowerCase().includes('.m3u8');
+        const canPlayHlsNatively = video.canPlayType('application/vnd.apple.mpegurl');
+        if (isHls && !canPlayHlsNatively) {
+            if (window.Hls && typeof window.Hls === 'function') {
+                try {
+                    const hls = new window.Hls();
+                    hls.attachMedia(video);
+                    hls.loadSource(source.url);
+                    // store reference for possible teardown
+                    video._vexio_hls = hls;
+                } catch (err) {
+                    console.warn('[Vexio Player] Hls attach failed', err);
+                }
+            } else {
+                console.warn('[Vexio Player] Hls.js not available for non-native HLS playback');
+            }
+        }
+    } catch (err) {
+        console.warn('[Vexio Player] createNativePlayer error', err);
+    }
 
-    vexioVideo = player;
-    return player;
+    video.addEventListener('error', (ev) => {
+        console.error('[Vexio Player] video error event', ev, video.error);
+    });
+    return video;
 }
 
 async function playSource(source, subtitles, shouldPlay = false) {
@@ -316,7 +358,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
     clearTimeout(streamStartTimer);
     let player = null;
     try {
-        player = await createVidstackPlayer(source, subtitles);
+        player = await createNativePlayer(source, subtitles);
     } catch (_error) {
         player = null;
     }
@@ -335,7 +377,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
         const target = document.getElementById('vexioPlayerTarget');
 
         // Keep the external loader visible until we actually get a rendered frame.
-        // This prevents flicker in production where Vidstack may satisfy readyState/loadeddata early.
+        // This prevents flicker in production where the browser may satisfy readyState/loadeddata early.
         const finalizeReady = () => {
             if (attemptId !== streamAttemptId) return;
             wrap.classList.remove('is-player-rendering');
@@ -343,8 +385,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
             setPlayerLoading(false);
 
             // Best-effort audio presence detection for provider streams that contain no audio.
-            // Vidstack/audio track APIs are not consistent across all manifests/providers,
-            // so we use the rendered <video> element as the source of truth.
+            // The rendered <video> element is the source of truth for audio availability.
             try {
                 const videoEl = target?.querySelector('video');
                 if (videoEl) {
@@ -448,7 +489,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
         if (videoEl) {
             markReadyAfterFrame(videoEl);
         } else {
-            // Wait until vidstack injects the actual <video> element.
+            // Wait until the native <video> element becomes available.
             let checks = 0;
             const checkLoop = () => {
                 if (attemptId !== streamAttemptId) return;
@@ -484,7 +525,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
         targetVideo.addEventListener('error', tryNextSource, { once: true });
     }
 
-    // Short trial window: if Vidstack/video never reaches a renderable state,
+    // Short trial window: if the video never reaches a renderable state,
     // don't wait the full 15s; switch sources to avoid "no playable source found" on first attempt.
     streamStartTimer = setTimeout(tryNextSource, 10000);
 
@@ -507,16 +548,62 @@ async function loadVexioStream(shouldPlay = false) {
     const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
     if (!endpoint) return false;
 
+    if (/^https?:\/\//i.test(endpoint)) {
+        const wrap = document.getElementById('playerWrap');
+        const target = document.getElementById('vexioPlayerTarget');
+        clearTimeout(streamStartTimer);
+        streamAttemptId += 1;
+        streamLoaded = false;
+        streamLoading = null;
+        try { vexioVideo?.pause?.(); } catch (_error) { }
+        vexioVideo = null;
+        clearPlayerUnavailable();
+        setPlayerLoading(false);
+        wrap?.classList.remove('is-ready');
+        wrap?.classList.add('is-embed');
+        target?.replaceChildren(Object.assign(document.createElement('iframe'), {
+            className: 'vexio-embed-frame',
+            src: endpoint,
+            title: 'Embedded stream'
+        }));
+        const frame = target?.querySelector('.vexio-embed-frame');
+        frame?.setAttribute('allowfullscreen', '');
+        frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
+        frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        return true;
+    }
+
     streamLoading = (async () => {
         try {
             setPlayerLoading(true, 'Scanning servers');
             clearPlayerUnavailable();
             const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
             const data = await response.json();
+
+            // Debug logging
+            console.log('[Vexio Player] API Response:', { endpoint, status: response.status, ok: response.ok, data });
+
             if (!response.ok || data.error) throw new Error(data.error?.message || 'Stream request failed');
 
-            streamSources = (Array.isArray(data.sources) ? data.sources : [])
-                .filter(item => item?.url && item.browserPlayable !== false);
+            const allSources = Array.isArray(data.sources) ? data.sources : [];
+            console.log('[Vexio Player] Total sources from API:', allSources.length);
+
+            streamSources = allSources
+                .filter(item => {
+                    const hasUrl = !!item?.url;
+                    const isBrowserPlayable = item.browserPlayable !== false;
+                    console.log('[Vexio Player] Source filter:', {
+                        provider: item?.provider?.name,
+                        quality: item?.quality,
+                        type: item?.type,
+                        hasUrl,
+                        browserPlayable: item?.browserPlayable,
+                        passes: hasUrl && isBrowserPlayable
+                    });
+                    return hasUrl && isBrowserPlayable;
+                });
+
+            console.log('[Vexio Player] Filtered sources (playable):', streamSources.length);
             streamSourceIndex = 0;
 
             // Provider/quality switcher UI
@@ -655,3 +742,23 @@ if (document.readyState === 'loading') {
     initVexioVideo();
     loadVexioStream(false);
 }
+
+// Debugging helpers: surface uncaught errors and unhandled rejections to console/UI
+window.addEventListener('error', (ev) => {
+    try {
+        const err = ev.error || ev.message || ev;
+        console.error('[Vexio Player] Uncaught error:', err, ev.filename, ev.lineno, ev.colno);
+        if (err && err.stack) console.error(err.stack);
+        // show concise message in player UI
+        setPlayerUnavailable(String(err?.message || err || 'Uncaught error'));
+    } catch (_e) { console.error(_e); }
+});
+
+window.addEventListener('unhandledrejection', (ev) => {
+    try {
+        const reason = ev.reason || ev;
+        console.error('[Vexio Player] Unhandled rejection:', reason);
+        if (reason && reason.stack) console.error(reason.stack);
+        setPlayerUnavailable(String(reason?.message || reason || 'Unhandled promise rejection'));
+    } catch (_e) { console.error(_e); }
+});
