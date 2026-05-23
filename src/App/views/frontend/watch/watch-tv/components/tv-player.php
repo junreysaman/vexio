@@ -40,6 +40,7 @@ $sourceUrl = '/api/embed/sources?' . http_build_query([
     data-poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
     data-title="<?= escape($showTitle . ' - S' . $currentSeason . ':E' . $currentEpisode . ' ' . $episodeTitle) ?>"
   ></div>
+  <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
   <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
     <div class="vexio-loader-ring"></div>
     <div class="vexio-loader-copy">

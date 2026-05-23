@@ -110,7 +110,7 @@ function setPlayerUnavailable(message = 'No playable source found') {
     const statusNode = document.getElementById('vexioLoaderStatus');
     clearTimeout(streamStartTimer);
     streamLoaded = false;
-    wrap?.classList.remove('is-ready', 'is-loading');
+    wrap?.classList.remove('is-ready', 'is-loading', 'is-player-rendering');
     wrap?.classList.add('is-unavailable');
     if (statusNode) statusNode.textContent = message;
     if (detail) detail.textContent = message;
@@ -126,7 +126,7 @@ function clearPlayerUnavailable() {
 
 function clearEmbedPlayer() {
     const wrap = document.getElementById('playerWrap');
-    wrap?.classList.remove('is-embed');
+    wrap?.classList.remove('is-embed', 'is-player-rendering');
 }
 
 async function loadVidstackModule() {
@@ -145,7 +145,7 @@ async function createVidstackPlayer(source, subtitles) {
     const { VidstackPlayer, VidstackPlayerLayout } = module;
 
     if (vexioVideo) {
-        try { vexioVideo.pause?.(); } catch (_error) {}
+        try { vexioVideo.pause?.(); } catch (_error) { }
     }
     target.replaceChildren();
 
@@ -153,7 +153,7 @@ async function createVidstackPlayer(source, subtitles) {
     const tracks = createVidstackTracks(module, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
     const defaultTrack = tracks.find(track => track.default);
     if (defaultTrack) {
-        try { defaultTrack.mode = 'showing'; } catch (_error) {}
+        try { defaultTrack.mode = 'showing'; } catch (_error) { }
     }
     const player = await VidstackPlayer.create({
         target,
@@ -201,9 +201,39 @@ async function playSource(source, subtitles, shouldPlay = false) {
         if (streamLoaded || attemptId !== streamAttemptId) return;
         clearTimeout(streamStartTimer);
         streamLoaded = true;
-        wrap.classList.add('is-ready');
-        setPlayerLoading(false);
-        if (shouldPlay) Promise.resolve(player.play()).catch(() => {});
+        // show an intermediate rendering state and wait for actual media frame
+        wrap.classList.add('is-player-rendering');
+
+        const target = document.getElementById('vexioPlayerTarget');
+        const finalizeReady = () => {
+            if (attemptId !== streamAttemptId) return;
+            wrap.classList.remove('is-player-rendering');
+            wrap.classList.add('is-ready');
+            setPlayerLoading(false);
+            if (shouldPlay) Promise.resolve(player.play()).catch(() => { });
+        };
+
+        const videoEl = target?.querySelector('video');
+        if (videoEl) {
+            if (videoEl.readyState >= 3 || videoEl.videoWidth > 0) {
+                finalizeReady();
+            } else {
+                const onRendered = () => { videoEl.removeEventListener('playing', onRendered); videoEl.removeEventListener('loadeddata', onRendered); finalizeReady(); };
+                videoEl.addEventListener('playing', onRendered, { once: true });
+                videoEl.addEventListener('loadeddata', onRendered, { once: true });
+                setTimeout(finalizeReady, 400);
+            }
+        } else {
+            let checks = 0;
+            const checkLoop = () => {
+                const v = target?.querySelector('video');
+                if (v && (v.readyState >= 3 || v.videoWidth > 0)) return finalizeReady();
+                checks += 1;
+                if (checks < 6) return requestAnimationFrame(checkLoop);
+                setTimeout(finalizeReady, 200);
+            };
+            requestAnimationFrame(checkLoop);
+        }
     };
     const tryNextSource = async () => {
         clearTimeout(streamStartTimer);
@@ -227,13 +257,13 @@ async function playSource(source, subtitles, shouldPlay = false) {
 
 async function loadVexioStream(shouldPlay = false) {
     if (streamLoaded) {
-        if (shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => {});
+        if (shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => { });
         return true;
     }
 
     if (streamLoading) {
         const loaded = await streamLoading;
-        if (loaded && shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => {});
+        if (loaded && shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => { });
         return loaded;
     }
 
@@ -271,11 +301,11 @@ async function loadVexioStream(shouldPlay = false) {
 
 function initPlay() { loadVexioStream(true); }
 function togglePlay() { loadVexioStream(true); }
-function seekVideo() {}
+function seekVideo() { }
 function skipBack() { if (vexioVideo) vexioVideo.currentTime = Math.max(0, vexioVideo.currentTime - 10); }
 function skipFwd() { if (vexioVideo) vexioVideo.currentTime = Math.min(vexioVideo.duration || Infinity, vexioVideo.currentTime + 10); }
 function toggleMute() { if (vexioVideo) vexioVideo.muted = !vexioVideo.muted; }
-function setVolume() {}
+function setVolume() { }
 function toggleFullscreen() {
     const wrap = document.getElementById('playerWrap');
     if (document.fullscreenElement) {
@@ -297,7 +327,7 @@ function selectServer(button, _serverKey) {
         streamAttemptId += 1;
         streamLoaded = false;
         streamLoading = null;
-        try { vexioVideo?.pause?.(); } catch (_error) {}
+        try { vexioVideo?.pause?.(); } catch (_error) { }
         vexioVideo = null;
         clearPlayerUnavailable();
         setPlayerLoading(false);

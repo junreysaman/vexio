@@ -16,6 +16,7 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
         data-poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
         data-title="<?= escape((string) ($item['title'] ?? 'Movie')) ?>"
       ></div>
+        <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
       <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
         <div class="vexio-loader-ring"></div>
         <div class="vexio-loader-copy">
