@@ -5,9 +5,11 @@ $showTitle = (string) ($show['title'] ?? 'TV Show');
 $currentSeason = (int) ($episode['season_number'] ?? 1);
 $currentEpisode = (int) ($episode['episode_number'] ?? 1);
 $episodeTitle = (string) (($episode['episode_name'] ?? '') ?: ($episode['title'] ?? 'Episode ' . $currentEpisode));
+
 $playerBackdrop = MediaImage::backdropFromRow(array_merge($show, [
     'backdrop_url' => ($episode['backdrop_url'] ?? '') ?: ($show['backdrop_url'] ?? ''),
 ]), 'player');
+
 $prevEpisode = null;
 $nextEpisode = null;
 $episodeRows = $episodes ?? [];
@@ -18,47 +20,27 @@ foreach ($episodeRows as $idx => $row) {
         break;
     }
 }
+
 $nextUrl = (string) ($nextEpisode['watchUrl'] ?? $nextEpisode['watch_url'] ?? '');
 $prevUrl = (string) ($prevEpisode['watchUrl'] ?? $prevEpisode['watch_url'] ?? '');
 $nextTitle = (string) (($nextEpisode['episode_name'] ?? '') ?: ($nextEpisode['title'] ?? 'Next episode'));
-$sourceUrl = '/api/embed/sources?' . http_build_query([
-    'type' => 'tv',
-    'tmdbId' => (int) ($show['tmdb_id'] ?? 0),
-    'season' => $currentSeason,
-    'episode' => $currentEpisode,
+
+$sharedPosterRow = array_merge($show, [
+    'backdrop_url' => ($episode['backdrop_url'] ?? '') ?: ($show['backdrop_url'] ?? ''),
 ]);
 ?>
-<div
-  class="player-wrap"
-  id="playerWrap"
-  data-player-source-url="<?= escape($sourceUrl) ?>"
-  data-title="<?= escape($showTitle . ' - S' . $currentSeason . ':E' . $currentEpisode . ' ' . $episodeTitle) ?>"
->
-  <div
-    class="vexio-vidstack-player"
-    id="vexioPlayerTarget"
-    data-poster="<?= escape((string) ($playerBackdrop['src'] ?? '')) ?>"
-    data-title="<?= escape($showTitle . ' - S' . $currentSeason . ':E' . $currentEpisode . ' ' . $episodeTitle) ?>"
-  ></div>
-  <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
-  <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
-    <div class="vexio-loader-ring"></div>
-    <div class="vexio-loader-copy">
-      <span class="vexio-loader-title">Preparing stream</span>
-      <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to vexio-main</span>
-    </div>
-  </div>
-  <div class="vexio-player-unavailable" id="vexioPlayerUnavailable" hidden>
-    <div class="vexio-unavailable-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M9.75 9.75 14.25 14.25M14.25 9.75 9.75 14.25"></path></svg>
-    </div>
-    <div class="vexio-unavailable-copy">
-      <span class="vexio-unavailable-kicker">Stream unavailable</span>
-      <strong>No playable source found</strong>
-      <span id="vexioUnavailableDetail">This episode does not have a browser-ready stream available right now. Please check back later.</span>
-    </div>
-  </div>
-  <img class="vexio-player-watermark" src="/brand/vexio-logo-compact.svg" alt="Vexio" loading="eager">
+
+<div>
+  <?php
+  echo $this->includePartial('/frontend/watch/components/player/shared-player', [
+      'sourceType' => 'tv',
+      'sourceId' => (int) ($show['tmdb_id'] ?? 0),
+      'title' => $showTitle . ' - S' . $currentSeason . ':E' . $currentEpisode . ' ' . $episodeTitle,
+      'posterRow' => $sharedPosterRow,
+      'season' => $currentSeason,
+      'episode' => $currentEpisode,
+  ]);
+  ?>
 
   <div class="next-ep-overlay" id="nextEpOverlay" data-has-next="<?= $nextUrl !== '' ? '1' : '0' ?>" data-next-url="<?= escape($nextUrl) ?>">
     <div style="text-align:center;margin-bottom:8px;">
@@ -98,3 +80,4 @@ $sourceUrl = '/api/embed/sources?' . http_build_query([
     <?php endif; ?>
   </div>
 </div>
+

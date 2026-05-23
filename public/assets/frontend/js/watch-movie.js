@@ -8,7 +8,87 @@ let streamStartTimer = null;
 let streamAttemptId = 0;
 let vidstackModule = null;
 
+function initProviderSwitch(sources) {
+    const providerSwitch = document.getElementById('vexioProviderSwitch');
+    const menu = document.getElementById('vexioProviderSwitchMenu');
+    const value = document.getElementById('vexioProviderSwitchValue');
+    if (!providerSwitch || !menu) return;
+
+    if (!Array.isArray(sources) || sources.length < 1) {
+        providerSwitch.hidden = true;
+        return;
+    }
+
+    if (sources.length === 1) {
+        providerSwitch.hidden = true;
+        return;
+    }
+
+    providerSwitch.hidden = false;
+    menu.hidden = false;
+    menu.innerHTML = '';
+
+    const escapeHtml = (v) => String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
+        .replace(/'/g, '&#039;');
+
+    const grouped = new Map();
+    sources.forEach((s, idx) => {
+        const provider = s?.provider?.name || s?.provider?.id || 'Unknown';
+        const quality = s?.quality || '';
+        const type = s?.type || '';
+        const key = `${provider}||${quality}||${type}`;
+        if (!grouped.has(key)) grouped.set(key, { provider, quality, type, items: [] });
+        grouped.get(key).items.push({ idx });
+    });
+
+    const keys = Array.from(grouped.keys()).sort((a, b) => {
+        const ga = grouped.get(a);
+        const gb = grouped.get(b);
+        return String(ga.provider).localeCompare(String(gb.provider));
+    });
+
+    keys.forEach(key => {
+        const g = grouped.get(key);
+
+        const label = `${g.provider}${g.quality ? ' • ' + g.quality : ''}${g.type ? ' • ' + g.type : ''}`;
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'vexio-provider-switch-item';
+        item.innerHTML = `<div class="vexio-provider-switch-item-label">${escapeHtml(label)}</div>`;
+
+        const sourceIdx = g.items[0]?.idx;
+        item.onclick = () => {
+            streamSourceIndex = sourceIdx;
+            if (value) value.textContent = label;
+
+            providerSwitch.hidden = true;
+            menu.hidden = true;
+
+            streamLoaded = false;
+            streamLoading = null;
+            clearTimeout(streamStartTimer);
+            Promise.resolve(loadVexioStream(true)).catch(() => { });
+        };
+
+        menu.appendChild(item);
+    });
+
+    const toggleBtn = document.getElementById('vexioProviderSwitchToggle');
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+            menu.hidden = !menu.hidden;
+        };
+    }
+
+    if (value) value.textContent = 'Auto';
+}
+
 function initVexioVideo() {
+
     if (vexioVideo) return vexioVideo;
     return document.querySelector('#vexioPlayerTarget media-player');
 }
@@ -96,6 +176,43 @@ function createVidstackTracks(module, subtitles) {
     });
 }
 
+function normalizeAudioTracks(audioTracks) {
+    if (!Array.isArray(audioTracks)) return [];
+
+    const seen = new Set();
+    return audioTracks
+        .filter(t => t && typeof t === 'object')
+        .map(t => {
+            const language = String(t.language || t.lang || '').trim();
+            const label = String(t.label || t.language || t.lang || 'Audio').trim();
+            const url = String(t.url || t.src || t.file || '').trim();
+            return { language, label, url };
+        })
+        .filter(t => {
+            const key = `${t.language}|${t.label}|${t.url || 'no-url'}`.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+}
+
+function inferDubSubModeFromTracks(audioTracks) {
+    // Best-effort: if we have one track, assume it's the dubbed/original that the provider selected.
+    // If labels contain "original" => treat as original/subbed; otherwise treat as dubbed.
+    const tracks = normalizeAudioTracks(audioTracks);
+    if (tracks.length === 0) return null;
+
+    const labels = tracks.map(t => String(t.label || '').toLowerCase());
+
+    const hasOriginal = labels.some(l => l.includes('original'));
+    const hasDub = labels.some(l => l.includes('dub') || l.includes('dubbed'));
+
+    if (hasDub) return 'dubbed';
+    if (hasOriginal) return 'original';
+    return tracks.length === 1 ? 'dubbed' : 'dubbed';
+}
+
+
 function setPlayerLoading(isLoading, status = 'Connecting to vexio-main') {
     const wrap = document.getElementById('playerWrap');
     const statusNode = document.getElementById('vexioLoaderStatus');
@@ -152,6 +269,17 @@ async function createVidstackPlayer(source, subtitles) {
     const mimeType = sourceMimeType(source);
     const tracks = createVidstackTracks(module, [...(subtitles || []), ...(source.subtitles || []), ...(source.tracks || [])]);
     const defaultTrack = tracks.find(track => track.default);
+
+    // Attach audio track info to a helper UI (audio switching is provider/manifest-dependent).
+    const audioTracks = normalizeAudioTracks(source?.audioTracks || []);
+    const dubMode = inferDubSubModeFromTracks(source?.audioTracks || []);
+
+    if (wrap) {
+        wrap.dataset.dubSubMode = dubMode || '';
+        wrap.dataset.audioTrackCount = String(audioTracks.length);
+    }
+
+
     if (defaultTrack) {
         try { defaultTrack.mode = 'showing'; } catch (_error) { }
     }
@@ -213,8 +341,59 @@ async function playSource(source, subtitles, shouldPlay = false) {
             wrap.classList.remove('is-player-rendering');
             wrap.classList.add('is-ready');
             setPlayerLoading(false);
+
+            // Best-effort audio presence detection for provider streams that contain no audio.
+            // Vidstack/audio track APIs are not consistent across all manifests/providers,
+            // so we use the rendered <video> element as the source of truth.
+            try {
+                const videoEl = target?.querySelector('video');
+                if (videoEl) {
+                    const markAudio = (available) => {
+                        if (attemptId !== streamAttemptId) return;
+                        wrap.dataset.audioAvailable = available ? '1' : '0';
+                    };
+
+                    // If browser exposes muted/volume and duration signal, audio likely exists.
+                    // This is not perfect, but helps you detect the common "silent" case.
+                    const isProbablySilent = () => {
+                        try {
+                            // If media is renderable but still has no audio, muted may remain true
+                            // and/or audio tracks may not be reported.
+                            // We treat it as silent if volume is 0 and muted and readyState is present.
+                            return (videoEl.muted === true) && (Number(videoEl.volume) === 0);
+                        } catch (_e) {
+                            return false;
+                        }
+                    };
+
+                    // Wait a tick for HLS to attach audio buffers.
+                    setTimeout(() => {
+                        // If audio buffers never appear, duration may still exist.
+                        // Use heuristic: if not muted and volume > 0, treat as available.
+                        const available = (() => {
+                            try {
+                                if (videoEl.muted === true && Number(videoEl.volume) === 0) return false;
+                                return true;
+                            } catch (_e) {
+                                return true;
+                            }
+                        })();
+
+                        // additional heuristic: if our silent heuristic says silent, override.
+                        if (isProbablySilent()) return markAudio(false);
+                        markAudio(available);
+
+                        // show/hide warning UI
+                        const audioWarn = document.getElementById('vexioAudioUnavailable');
+                        if (audioWarn) audioWarn.hidden = !available;
+
+                    }, 1200);
+                }
+            } catch (_e) { }
+
             if (shouldPlay) Promise.resolve(player.play()).catch(() => { });
         };
+
 
         const videoEl = target?.querySelector('video');
 
@@ -303,6 +482,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
 }
 
 async function loadVexioStream(shouldPlay = false) {
+
     if (streamLoaded) {
         if (shouldPlay) Promise.resolve(vexioVideo?.play?.()).catch(() => { });
         return true;
@@ -328,6 +508,10 @@ async function loadVexioStream(shouldPlay = false) {
             streamSources = (Array.isArray(data.sources) ? data.sources : [])
                 .filter(item => item?.url && item.browserPlayable !== false);
             streamSourceIndex = 0;
+
+            // Provider/quality switcher UI
+            initProviderSwitch(streamSources);
+
             const source = streamSources[streamSourceIndex];
             if (!source) {
                 setPlayerUnavailable('No playable source found for this movie');
@@ -365,6 +549,10 @@ function toggleFullscreen() {
 function selectServer(button, _serverKey) {
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
+
+    // Prevent audio warning flash when switching servers
+    const audioWarn = document.getElementById('vexioAudioUnavailable');
+    if (audioWarn) audioWarn.hidden = true;
     document.querySelectorAll('.server-tab').forEach(tab => tab.classList.remove('active'));
     button?.classList.add('active');
 

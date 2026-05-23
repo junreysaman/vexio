@@ -95,6 +95,93 @@ let streamAttemptId = 0;
 let vidstackModule = null;
 let tvCountdownTimer;
 
+function initProviderSwitch(sources) {
+    const wrap = document.getElementById('playerWrap');
+    const providerSwitch = document.getElementById('vexioProviderSwitch');
+    const menu = document.getElementById('vexioProviderSwitchMenu');
+    const value = document.getElementById('vexioProviderSwitchValue');
+    if (!providerSwitch || !menu) return;
+
+    if (!Array.isArray(sources) || sources.length < 1) {
+        providerSwitch.hidden = true;
+        return;
+    }
+
+    // If only 1 source, hide
+    if (sources.length === 1) {
+        providerSwitch.hidden = true;
+        return;
+    }
+
+    providerSwitch.hidden = false;
+    menu.hidden = false;
+    menu.innerHTML = '';
+
+    const escapeHtml = (v) => String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
+        .replace(/'/g, '&#039;');
+
+    // Build dropdown items: provider -> quality -> select by source index
+    const grouped = new Map();
+    sources.forEach((s, idx) => {
+        const provider = s?.provider?.name || s?.provider?.id || 'Unknown';
+        const quality = s?.quality || '';
+        const type = s?.type || '';
+        const key = `${provider}||${quality}||${type}`;
+        if (!grouped.has(key)) grouped.set(key, { provider, quality, type, items: [] });
+        grouped.get(key).items.push({ idx });
+    });
+
+    // sort by provider then quality
+    const keys = Array.from(grouped.keys()).sort((a, b) => {
+        const ga = grouped.get(a);
+        const gb = grouped.get(b);
+        return String(ga.provider).localeCompare(String(gb.provider));
+    });
+
+    keys.forEach(key => {
+        const g = grouped.get(key);
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'vexio-provider-switch-item';
+
+        const label = `${g.provider}${g.quality ? ' • ' + g.quality : ''}${g.type ? ' • ' + g.type : ''}`;
+        item.innerHTML = `<div class="vexio-provider-switch-item-label">${escapeHtml(label)}</div>`;
+
+        // use first source index for this provider/quality/type group
+        const sourceIdx = g.items[0]?.idx;
+        item.onclick = () => {
+            streamSourceIndex = sourceIdx;
+            if (value) {
+                value.textContent = label;
+            }
+            providerSwitch.hidden = true;
+            menu.hidden = true;
+            // reload from selected source
+            streamLoaded = false;
+            streamLoading = null;
+            clearTimeout(streamStartTimer);
+            Promise.resolve(loadVexioStream(true)).catch(() => { });
+        };
+
+        menu.appendChild(item);
+    });
+
+    // toggle menu on click of toggle button
+    const toggleBtn = document.getElementById('vexioProviderSwitchToggle');
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+            const isHidden = menu.hidden;
+            menu.hidden = !isHidden;
+        };
+    }
+
+    if (value) value.textContent = 'Auto';
+}
+
 function initVexioVideo() {
     if (vexioVideo) return vexioVideo;
     return document.querySelector('#vexioPlayerTarget media-player');
@@ -223,7 +310,8 @@ async function loadVidstackModule() {
     return vidstackModule;
 }
 
-async function createVidstackPlayer(source, subtitles) {
+function createVidstackPlayer(source, subtitles) {
+
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
     if (!wrap || !target || !source?.url) return null;
@@ -371,6 +459,10 @@ async function loadVexioStream(shouldPlay = false) {
             streamSources = (Array.isArray(data.sources) ? data.sources : [])
                 .filter(item => item?.url && item.browserPlayable !== false);
             streamSourceIndex = 0;
+
+            // Provider/quality switcher UI
+            initProviderSwitch(streamSources);
+
             const source = streamSources[streamSourceIndex];
             if (!source) {
                 setPlayerUnavailable('No playable source found for this episode');
@@ -408,6 +500,10 @@ function toggleFullscreen() {
 function selectServer(button, _serverKey) {
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
+
+    // Prevent audio warning flash when switching servers
+    const audioWarn = document.getElementById('vexioAudioUnavailable');
+    if (audioWarn) audioWarn.hidden = true;
     document.querySelectorAll('.server-tab').forEach(tab => tab.classList.remove('active'));
     button?.classList.add('active');
 

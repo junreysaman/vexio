@@ -230,6 +230,18 @@ class EmbedStreamController
                 $normalized['subtitles'] = $sourceSubtitles;
             }
 
+            $audioTracks = $this->selectAudioTracks(
+                $source['audioTracks'] ?? $source['audio_tracks'] ?? $source['audio'] ?? $source['tracks'] ?? []
+            );
+
+            if ($audioTracks !== []) {
+                $normalized['audioTracks'] = $audioTracks;
+            }
+
+            $audioLanguage = (string) ($audioTracks[0]['language'] ?? $audioTracks[0]['lang'] ?? $audioTracks[0]['label'] ?? '');
+            $normalized['dubbed'] = $this->inferDubbedFlag($audioTracks, $audioLanguage);
+
+
             $normalized['browserPlayable'] = $this->isBrowserPlayableSource($normalized);
 
             $sources[] = $normalized;
@@ -482,4 +494,74 @@ class EmbedStreamController
         return $this->embedApiBaseUrl() . '/sub-proxy?' . http_build_query($query);
     }
 
+    private function selectAudioTracks(mixed $audioTracks): array
+    {
+        if (!is_array($audioTracks)) {
+            return [];
+        }
+
+        $deduped = [];
+        foreach ($audioTracks as $track) {
+            if (!is_array($track)) {
+                continue;
+            }
+
+            $language = (string) ($track['language'] ?? $track['lang'] ?? $track['label'] ?? $track['name'] ?? '');
+            $label = (string) ($track['label'] ?? $track['name'] ?? $language);
+
+            $url = trim((string) ($track['url'] ?? $track['src'] ?? $track['file'] ?? ''));
+
+            $key = strtolower(trim($language)) . '|' . strtolower(trim($label)) . '|' . ($url !== '' ? $url : 'no-url');
+            if ($key === '|' || isset($deduped[$key])) {
+                continue;
+            }
+
+            $deduped[$key] = [
+                'label' => $label !== '' ? $label : ($language !== '' ? $language : 'Audio'),
+                'language' => $language,
+            ];
+
+            if ($url !== '') {
+                $deduped[$key]['url'] = $url;
+            }
+
+            if (isset($track['default'])) {
+                $deduped[$key]['default'] = (bool) $track['default'];
+            }
+        }
+
+        return array_slice(array_values($deduped), 0, 10);
+    }
+
+    private function inferDubbedFlag(array $audioTracks, string $audioLanguage): bool
+    {
+        if ($audioTracks === []) {
+            return false;
+        }
+
+        $labels = array_map(fn (array $t): string => strtolower((string) ($t['label'] ?? '')), $audioTracks);
+
+        $hasOriginal = array_reduce($labels, fn (bool $carry, string $l): bool => $carry || str_contains($l, 'original'), false);
+        $hasDub = array_reduce(
+            $labels,
+            fn (bool $carry, string $l): bool => $carry
+                || str_contains($l, 'dub')
+                || str_contains($l, 'dubbed')
+                || str_contains($l, 'english') && (str_contains($l, 'dub') || str_contains($l, 'dubbed')),
+            false
+        );
+
+        if ($hasDub) {
+            return true;
+        }
+
+        if ($hasOriginal && count($audioTracks) === 1) {
+            return false;
+        }
+
+        return false;
+    }
+
 }
+
+

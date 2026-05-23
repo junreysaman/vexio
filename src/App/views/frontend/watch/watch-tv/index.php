@@ -11,7 +11,7 @@
   <div class="watch-layout">
     <div class="watch-main">
       <?= $this->includePartial('/frontend/watch/watch-tv/components/tv-player') ?>
-        <?= $this->includePartial('/frontend/watch/watch-tv/components/server-selector') ?>
+      <?= $this->includePartial('/frontend/watch/watch-tv/components/server-selector') ?>
       <?= $this->includePartial('/frontend/watch/watch-tv/components/quick-episode') ?>
       <?= $this->includePartial('/frontend/watch/watch-tv/components/tv-content') ?>
     </div>
@@ -22,14 +22,18 @@
 
 <?= $this->includePartial('/frontend/partials/share-modal', [
   'pageUrl' => $_SERVER['REQUEST_URI'] ?? '/',
-  'pageTitle' => $show['title'] ?? 'Watch TV Show',
-  'pageImage' => \App\Support\MediaImage::ogImageFromRow($show) ?: '/favicon.png',
+  'pageTitle' => (isset($episode) && is_array($episode) ? (string) ($episode['title'] ?? 'Watch TV Show') : ((isset($show) && is_array($show) ? ($show['title'] ?? 'Watch TV Show') : 'Watch TV Show'))),
+  'pageImage' => (isset($episode) && is_array($episode) ? \App\Support\MediaImage::ogImageFromRow($episode) : null) ?: (isset($show) && is_array($show) ? \App\Support\MediaImage::ogImageFromRow($show) : null) ?: '/favicon.png',
 ]) ?>
+
+
+
 
 <?= $this->end() ?>
 
 <?= $this->start('scripts') ?>
-<script src="/assets/frontend/js/watch-tv.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-tv.js') ?>"></script>
+<script src="/assets/frontend/js/watch-movie.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-movie.js') ?>"></script>
 <script src="/assets/frontend/js/watch-comments.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-comments.js') ?>"></script>
+
 
 <?= $this->end() ?>

@@ -24,6 +24,18 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
           <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to vexio-main</span>
         </div>
       </div>
+
+      <div class="vexio-audio-unavailable" id="vexioAudioUnavailable" hidden>
+        <div class="vexio-unavailable-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        </div>
+        <div class="vexio-unavailable-copy">
+          <span class="vexio-unavailable-kicker">Audio unavailable</span>
+          <strong>This stream has no audio track</strong>
+          <span id="vexioAudioUnavailableDetail">You can still use CC/subtitles.</span>
+        </div>
+      </div>
+
       <div class="vexio-player-unavailable" id="vexioPlayerUnavailable" hidden>
         <div class="vexio-unavailable-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M9.75 9.75 14.25 14.25M14.25 9.75 9.75 14.25"></path></svg>
