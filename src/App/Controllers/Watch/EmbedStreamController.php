@@ -336,11 +336,22 @@ class EmbedStreamController
 
         $path = strtolower((string) parse_url($url, PHP_URL_PATH));
 
+        // Be tolerant of providers that don't keep the extension in the URL path.
+        // Examples: query-based HLS playlists, redirected stream URLs, etc.
+        $hasHlsHint = str_contains($url, '.m3u8') || str_contains($path, '.m3u8') || preg_match('/\bm3u8\b/i', $url) === 1;
+        $hasMp4Hint = str_contains($url, '.mp4') || preg_match('/\bmp4\b/i', $url) === 1;
+        $hasWebmHint = str_contains($url, '.webm') || preg_match('/\bwebm\b/i', $url) === 1;
+        $hasOggHint = str_contains($url, '.ogg') || str_contains($url, '.ogv') || preg_match('/\bogg\b/i', $url) === 1;
+
         return str_ends_with($path, '.m3u8')
             || str_ends_with($path, '.mp4')
             || str_ends_with($path, '.webm')
             || str_ends_with($path, '.ogg')
-            || str_ends_with($path, '.ogv');
+            || str_ends_with($path, '.ogv')
+            || $hasHlsHint
+            || $hasMp4Hint
+            || $hasWebmHint
+            || $hasOggHint;
     }
 
     private function sourceScore(array $source): int
