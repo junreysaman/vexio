@@ -120,9 +120,7 @@ final class PublicSeoController
 
         if ($lines === []) {
             $lines = [
-                '# ads.txt — Authorised Digital Sellers (https://iabtechlab.com/ads-txt/)',
-                '# Put your seller lines in storage/seo/ads.txt OR set GOOGLE_ADS_PUBLISHER_ID in .env',
-                '# Example: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0',
+                'google.com, pub-4538119672977781, DIRECT, f08c47fec0942fa0',
             ];
         }
 
