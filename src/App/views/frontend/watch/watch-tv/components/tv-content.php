@@ -58,7 +58,7 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
           TV Series &middot; <?= escape($genres !== '' ? $genres : 'Uncategorized') ?> &middot; <?= escape((string) $releaseYear) ?>
         </div>
-        <div class="show-title"><?= escape($showTitle) ?></div>
+        <div class="show-title">Watch <?= escape($showTitle) ?> | <?= escape($releaseYear) ?></div>
 
         <div class="ep-now-label">
           <span class="en-badge">NOW PLAYING</span>
@@ -69,9 +69,9 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
         </div>
 
         <div class="show-meta-row">
-          <span class="mmeta-tag hd">4K HDR</span>
-          <span class="mmeta-tag sub">SUB</span>
-          <span class="mmeta-tag dub">DUB</span>
+          <span class="mmeta-tag hd">WATCH FREE</span>
+          <span class="mmeta-tag sub">COMPLETE</span>
+          <span class="mmeta-tag dub">HIGH QUALITY</span>
           <span class="mmeta-tag ongoing"><?= escape(strtoupper($status)) ?></span>
           <div class="mmeta-rating">
             <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>

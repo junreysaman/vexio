@@ -24,7 +24,7 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
     </div>
   </div>
 
-  <?= $this->includePartial('frontend/watch/watch-tv/ad/tv-sidebar-ad1') ?>
+  <!-- $this->includePartial('frontend/watch/watch-tv/ad/tv-sidebar-ad1') -->
 
   <div class="episode-sidebar-scroll" data-sidebar-episodes data-page-size="12">
     <?php foreach (($episodes ?? []) as $idx => $row): ?>

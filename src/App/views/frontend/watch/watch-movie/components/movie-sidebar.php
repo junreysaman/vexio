@@ -10,7 +10,7 @@
         </div>
       </div>
 
-      <?= $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-1') ?>
+      <!-- $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-1') -->
 
       <div style="overflow-y:auto;flex:1;">
         <?php $relatedItems = array_slice(($related ?? []), 0, 15); ?>
@@ -57,7 +57,7 @@
           </div>
         <?php endif; ?>
 
-        <?= $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-2') ?>
+         <!-- $this->includePartial('/frontend/watch/watch-movie/ad/sidebar-ad-2') -->
       </div>
     </div>
 

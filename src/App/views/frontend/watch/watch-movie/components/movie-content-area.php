@@ -61,11 +61,11 @@ $revenue = $item['revenue'] ?? null;
                 <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 Movie · <?= escape((string) $genres) ?> · <?= (int) $year ?>
               </div>
-              <div class="movie-title"><?= escape($title) ?></div>
+              <div class="movie-title">Watch <?= escape($title) ?> | Full Movie</div>
               <div class="movie-meta-row">
-                <span class="mmeta-tag hd">4K HDR</span>
-                <span class="mmeta-tag sub">SUB</span>
-                <span class="mmeta-tag dub">DUB</span>
+                <span class="mmeta-tag hd">FULL MOVIE</span>
+                <span class="mmeta-tag sub">HIGH QUALITY</span>
+                <span class="mmeta-tag dub">FREE</span>
                 <div class="mmeta-rating">
                   <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                   <?= escape((string) $rating) ?>
