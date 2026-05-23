@@ -197,13 +197,13 @@ class BrowseService
 
         // Country filtering
         if (!empty($countries) && is_array($countries)) {
-            $countryConditions = [];
+            $countryPlaceholders = [];
             foreach ($countries as $index => $country) {
                 $paramKey = 'country_' . $index;
-                $countryConditions[] = '(media_items.country LIKE :' . $paramKey . ' OR media_items.origin_country LIKE :' . $paramKey . ')';
-                $params[$paramKey] = '%' . $country . '%';
+                $countryPlaceholders[] = ':' . $paramKey;
+                $params[$paramKey] = $country;
             }
-            $whereConditions[] = '(' . implode(' OR ', $countryConditions) . ')';
+            $whereConditions[] = '(media_items.country IN (' . implode(',', $countryPlaceholders) . ') OR media_items.origin_country IN (' . implode(',', $countryPlaceholders) . '))';
         }
 
         $whereClause = implode(' AND ', $whereConditions);
@@ -334,7 +334,8 @@ class BrowseService
             ])));
 
             foreach (LocaleDisplay::countryList($value) as $country) {
-                $countries[$country['slug']] = [
+                $countries[$country['code']] = [
+                    'code' => $country['code'],
                     'name' => $country['name'],
                     'slug' => $country['slug'],
                 ];

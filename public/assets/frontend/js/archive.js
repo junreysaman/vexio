@@ -98,10 +98,21 @@ function renderArchiveCards() {
     card.hidden = false;
   });
 
-  const sentinel = document.getElementById('archiveInfiniteSentinel');
-  if (sentinel) sentinel.hidden = !archiveHasMore;
-
+  updateSentinelVisibility();
   document.getElementById('archiveEmpty').hidden = cards.length !== 0;
+}
+
+function updateSentinelVisibility() {
+  const sentinel = document.getElementById('archiveInfiniteSentinel');
+  if (!sentinel) return;
+
+  // Show sentinel only if we have more pages to load
+  sentinel.hidden = !archiveHasMore || archiveIsLoading;
+
+  // If no more items, ensure sentinel is hidden and not part of scroll
+  if (!archiveHasMore) {
+    sentinel.setAttribute('aria-hidden', 'true');
+  }
 }
 
 function updateActiveFilters(state) {
@@ -137,6 +148,8 @@ function updateFilterBadgeCount() {
 }
 
 async function updateFilters() {
+  if (archiveIsLoading) return; // Prevent concurrent requests
+
   const state = filterState();
   archiveCurrentPage = 1;
   archiveHasMore = true;
@@ -166,11 +179,16 @@ async function updateFilters() {
 
   try {
     const response = await fetch(`/api/browse/paginate?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
     const data = await response.json();
 
-    if (data.items && data.items.length > 0) {
-      archiveCurrentPage = data.page;
-      archiveTotalPages = data.total_pages;
+    if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+      archiveCurrentPage = parseInt(data.page) || 1;
+      archiveTotalPages = parseInt(data.total_pages) || 1;
+
+      // Calculate hasMore: we have more if current page is less than total pages
       archiveHasMore = archiveCurrentPage < archiveTotalPages;
 
       if (grid) {
@@ -181,18 +199,29 @@ async function updateFilters() {
       }
     } else {
       archiveHasMore = false;
+      if (grid) grid.innerHTML = '';
     }
 
-    document.getElementById('resultNum').textContent = data.total.toLocaleString();
-    document.getElementById('archiveEmpty').hidden = data.total !== 0;
+    // Update total count
+    const resultNum = document.getElementById('resultNum');
+    const totalItems = parseInt(data.total) || 0;
+    if (resultNum) {
+      resultNum.textContent = totalItems.toLocaleString();
+    }
 
-    const sentinel = document.getElementById('archiveInfiniteSentinel');
-    if (sentinel) sentinel.hidden = !archiveHasMore;
+    // Update empty state
+    const archiveEmpty = document.getElementById('archiveEmpty');
+    if (archiveEmpty) {
+      archiveEmpty.hidden = totalItems !== 0;
+    }
 
+    updateSentinelVisibility();
     updateActiveFilters(state);
     updateFilterBadgeCount();
   } catch (error) {
     console.error('Failed to load filtered items:', error);
+    showToast('Failed to apply filters. Please try again.');
+    archiveHasMore = false;
   } finally {
     archiveIsLoading = false;
   }
@@ -306,15 +335,17 @@ function initArchivePage() {
   if (slider) updateRating(slider);
 
   // Initialize pagination state from server data
-  if (typeof window.archivePageData !== 'undefined') {
-    archiveCurrentPage = window.archivePageData.current_page || 1;
-    archiveTotalPages = window.archivePageData.total_pages || 1;
+  if (typeof window.archivePageData !== 'undefined' && window.archivePageData) {
+    archiveCurrentPage = Math.max(1, parseInt(window.archivePageData.current_page) || 1);
+    archiveTotalPages = Math.max(1, parseInt(window.archivePageData.total_pages) || 1);
     archiveHasMore = archiveCurrentPage < archiveTotalPages;
   }
 
-  // Don't call updateFilters on init - let the server-rendered items stay
-  renderArchiveCards();
+  // Initialize the infinite scroll observer
   initArchiveInfiniteScroll();
+
+  // Render cards with proper visibility
+  renderArchiveCards();
 
   const overlay = document.getElementById('search-overlay');
   ['searchOpen', 'mobileSearchOpen'].forEach((id) => {
@@ -348,8 +379,10 @@ async function loadMoreArchiveItems() {
   if (sentinel) sentinel.classList.add('loading');
 
   const state = filterState();
+  const nextPage = archiveCurrentPage + 1;
+
   const params = new URLSearchParams({
-    page: archiveCurrentPage + 1,
+    page: nextPage,
     limit: archivePageSize,
     type: state.type,
     rating: state.rating,
@@ -367,11 +400,17 @@ async function loadMoreArchiveItems() {
 
   try {
     const response = await fetch(`/api/browse/paginate?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
     const data = await response.json();
 
-    if (data.items && data.items.length > 0) {
-      archiveCurrentPage = data.page;
-      archiveTotalPages = data.total_pages;
+    if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+      archiveCurrentPage = parseInt(data.page) || nextPage;
+      archiveTotalPages = parseInt(data.total_pages) || archiveTotalPages;
+
+      // Calculate hasMore based on pages
+      const previousHasMore = archiveHasMore;
       archiveHasMore = archiveCurrentPage < archiveTotalPages;
 
       const grid = document.getElementById('cardGrid');
@@ -383,11 +422,20 @@ async function loadMoreArchiveItems() {
       }
 
       renderArchiveCards();
+
+      // If this was the last page, hide sentinel
+      if (!archiveHasMore) {
+        updateSentinelVisibility();
+      }
     } else {
+      // No items returned, we've reached the end
       archiveHasMore = false;
+      updateSentinelVisibility();
     }
   } catch (error) {
     console.error('Failed to load more items:', error);
+    // Don't mark as having no more on error - allow retry
+    archiveHasMore = archiveCurrentPage < archiveTotalPages;
   } finally {
     archiveIsLoading = false;
     if (sentinel) sentinel.classList.remove('loading');
@@ -395,6 +443,8 @@ async function loadMoreArchiveItems() {
 }
 
 function createArchiveCard(item) {
+  if (!item || typeof item !== 'object') return null;
+
   const type = item.type || 'movie';
   const typeLabel = item.type_label || (type === 'tv_show' ? 'TV Show' : 'Movie');
   const year = item.release_year || '';
@@ -403,15 +453,25 @@ function createArchiveCard(item) {
   const created = item.created_at || '';
   const releaseDate = item.release_date || '';
   const isFeatured = !!item.is_featured;
-  const genres = item.genres || [];
-  const genreSlugs = genres.map((g) => g.url ? basename(g.url) : '');
-  const countries = item.countries || [];
-  const countrySlugs = countries.map((c) => c.slug || '');
+  const genres = Array.isArray(item.genres) ? item.genres : [];
+  const genreSlugs = genres.map((g) => {
+    if (typeof g === 'object' && g !== null && g.url) {
+      return g.url.split('/').pop() || '';
+    }
+    return '';
+  }).filter(Boolean);
+  const countries = Array.isArray(item.countries) ? item.countries : [];
+  const countryCodes = countries.map((c) => {
+    if (typeof c === 'object' && c !== null && c.code) {
+      return c.code || '';
+    }
+    return '';
+  }).filter(Boolean);
 
   const dataAttrs = 'data-title="' + escapeHtml((item.title || '').toLowerCase()) + '"'
     + ' data-type="' + escapeHtml(type) + '"'
     + ' data-genres="' + escapeHtml(genreSlugs.join(',')) + '"'
-    + ' data-countries="' + escapeHtml(countrySlugs.filter(Boolean).join(',')) + '"'
+    + ' data-countries="' + escapeHtml(countryCodes.join(',')) + '"'
     + ' data-year="' + escapeHtml(String(year)) + '"'
     + ' data-rating="' + escapeHtml(String(rating || 0)) + '"'
     + ' data-views="' + escapeHtml(String(views)) + '"'
@@ -424,7 +484,7 @@ function createArchiveCard(item) {
   card.dataset.title = (item.title || '').toLowerCase();
   card.dataset.type = type;
   card.dataset.genres = genreSlugs.join(',');
-  card.dataset.countries = countrySlugs.filter(Boolean).join(',');
+  card.dataset.countries = countryCodes.join(',');
   card.dataset.year = year;
   card.dataset.rating = rating || 0;
   card.dataset.views = views;
@@ -432,7 +492,7 @@ function createArchiveCard(item) {
   card.dataset.created = created;
 
   const poster = item.poster || '';
-  const watchUrl = item.watchUrl || '#';
+  const watchUrl = item.watchUrl || item.watch_url || '#';
 
   card.innerHTML = `
     <a href="${escapeHtml(watchUrl)}" class="card-link">
@@ -458,20 +518,50 @@ function initArchiveInfiniteScroll() {
   const sentinel = document.getElementById('archiveInfiniteSentinel');
   if (!sentinel) return;
 
+  // Set initial visibility
+  updateSentinelVisibility();
+
   const loadMore = () => {
     loadMoreArchiveItems();
   };
 
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) loadMore();
-    }, { rootMargin: '360px 0px' });
+      // Only trigger if sentinel is visible and we have more items
+      if (entries.some((entry) => entry.isIntersecting && !sentinel.hidden)) {
+        loadMore();
+      }
+    }, {
+      rootMargin: '360px 0px'
+    });
     observer.observe(sentinel);
   } else {
+    // Fallback for browsers without IntersectionObserver
     window.addEventListener('scroll', () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 360) loadMore();
+      if (sentinel.hidden) return;
+
+      const sentinelRect = sentinel.getBoundingClientRect();
+      const isVisible = sentinelRect.top <= window.innerHeight + 360;
+
+      if (isVisible) {
+        loadMore();
+      }
     }, { passive: true });
   }
 }
+
+// Expose functions to global scope for inline event handlers
+window.togglePanel = togglePanel;
+window.openFilterDrawer = openFilterDrawer;
+window.closeFilterDrawer = closeFilterDrawer;
+window.updateRating = updateRating;
+window.applyFilters = applyFilters;
+window.resetFilters = resetFilters;
+window.removeFilter = removeFilter;
+window.clearAllFilters = clearAllFilters;
+window.filterGenreList = filterGenreList;
+window.filterCountryList = filterCountryList;
+window.fillSearch = fillSearch;
+window.sortCards = sortCards;
 
 document.addEventListener('DOMContentLoaded', initArchivePage);

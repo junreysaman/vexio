@@ -21,10 +21,6 @@ window.archivePageData = {
     page_size: <?= (int) ($page_size ?? 24) ?>
 };
 </script>
-
-<?= $this->end() ?>
-
-<?= $this->start('scripts') ?>
-<script src="<?= asset('assets/frontend/js/archive.js') ?>"></script>
+<script src="<?= asset('/assets/frontend/js/archive.js') ?>"></script>
 <?= $this->end() ?>
 

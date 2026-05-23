@@ -45,7 +45,7 @@
       <div class="fc-list" id="countryList">
         <?php foreach ($countries as $country): ?>
           <label class="fc-item">
-            <input type="checkbox" name="country[]" value="<?= escape($country['slug'] ?? '') ?>" onchange="updateFilters()">
+            <input type="checkbox" name="country[]" value="<?= escape($country['code'] ?? '') ?>" onchange="updateFilters()">
             <div class="fc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
             <span class="fc-label"><?= escape($country['name'] ?? 'Unknown') ?></span>
           </label>
