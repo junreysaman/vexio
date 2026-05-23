@@ -205,6 +205,9 @@ async function playSource(source, subtitles, shouldPlay = false) {
         wrap.classList.add('is-player-rendering');
 
         const target = document.getElementById('vexioPlayerTarget');
+
+        // Keep the external loader visible until we actually get a rendered frame.
+        // This prevents flicker in production where Vidstack may satisfy readyState/loadeddata early.
         const finalizeReady = () => {
             if (attemptId !== streamAttemptId) return;
             wrap.classList.remove('is-player-rendering');
@@ -214,23 +217,67 @@ async function playSource(source, subtitles, shouldPlay = false) {
         };
 
         const videoEl = target?.querySelector('video');
-        if (videoEl) {
-            if (videoEl.readyState >= 3 || videoEl.videoWidth > 0) {
-                finalizeReady();
-            } else {
-                const onRendered = () => { videoEl.removeEventListener('playing', onRendered); videoEl.removeEventListener('loadeddata', onRendered); finalizeReady(); };
-                videoEl.addEventListener('playing', onRendered, { once: true });
-                videoEl.addEventListener('loadeddata', onRendered, { once: true });
-                setTimeout(finalizeReady, 400);
+
+        const markReadyAfterFrame = (v) => {
+            if (!v) return;
+            if (attemptId !== streamAttemptId) return;
+            // Some browsers keep readyState >= 3 but never present a frame.
+            // We want at least one frame callback or a strong loadeddata+dimension signal.
+
+            // Prefer requestVideoFrameCallback when available.
+            if (typeof v.requestVideoFrameCallback === 'function') {
+                try {
+                    v.requestVideoFrameCallback(() => finalizeReady());
+                    // Safety timeout: if callback never fires, fall back shortly.
+                    setTimeout(finalizeReady, 2500);
+                    return;
+                } catch (_e) {
+                    // continue to fallback
+                }
             }
+
+            const isProbablyRenderable = () => {
+                try {
+                    return (v.videoWidth > 0 && v.videoHeight > 0 && v.readyState >= 2);
+                } catch (_e) {
+                    return false;
+                }
+            };
+
+            const onTryFinalize = () => {
+                v.removeEventListener('playing', onTryFinalize);
+                v.removeEventListener('loadeddata', onTryFinalize);
+                if (attemptId !== streamAttemptId) return;
+                if (isProbablyRenderable()) return finalizeReady();
+            };
+
+            v.addEventListener('playing', onTryFinalize, { once: true });
+            v.addEventListener('loadeddata', onTryFinalize, { once: true });
+
+            // Fallback polling (kept short)
+            let checks = 0;
+            const poll = () => {
+                if (attemptId !== streamAttemptId) return;
+                if (isProbablyRenderable()) return finalizeReady();
+                checks += 1;
+                if (checks < 12) return requestAnimationFrame(poll);
+                setTimeout(finalizeReady, 400);
+            };
+            requestAnimationFrame(poll);
+        };
+
+        if (videoEl) {
+            markReadyAfterFrame(videoEl);
         } else {
+            // Wait until vidstack injects the actual <video> element.
             let checks = 0;
             const checkLoop = () => {
+                if (attemptId !== streamAttemptId) return;
                 const v = target?.querySelector('video');
-                if (v && (v.readyState >= 3 || v.videoWidth > 0)) return finalizeReady();
+                if (v) return markReadyAfterFrame(v);
                 checks += 1;
-                if (checks < 6) return requestAnimationFrame(checkLoop);
-                setTimeout(finalizeReady, 200);
+                if (checks < 30) return requestAnimationFrame(checkLoop);
+                setTimeout(finalizeReady, 600);
             };
             requestAnimationFrame(checkLoop);
         }

@@ -1,0 +1,4 @@
+- [x] Update player readiness detection to hide real player loader until fully ready
+- [ ] Mirror/verify for TV player JS if separate file exists
+- [ ] Run quick lint/build (if applicable)
+- [ ] Manual test: movie/tv watch pages confirm no flicker during scanning
