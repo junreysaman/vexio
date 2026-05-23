@@ -11,8 +11,7 @@ use App\Support\MediaImage;
  * - $posterRow: media row array for poster/backdrop
  * - $season: (int|null) for tv
  * - $episode: (int|null) for tv
- * - $showTitle: string|null (used for title formatting)
- *
+ */
 $sourceType = (string) ($sourceType ?? 'movie');
 $tmdbId = (int) ($sourceId ?? 0);
 $title = (string) ($title ?? 'Vexio');
