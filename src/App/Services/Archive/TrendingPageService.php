@@ -33,8 +33,11 @@ class TrendingPageService
         $items = $this->getTrendingItems();
 
         $data = [
-            'title' => 'Trending',
+            'title' => 'Trending Movies and TV Shows',
             'body_class' => 'paper-archive-trending-page',
+            'meta_description' => 'Explore trending movies, TV shows, anime, top rated picks, watched titles, and new releases currently standing out on VEXIO.',
+            'meta_keywords' => 'trending movies, trending tv shows, trending anime, top rated movies, popular series',
+            'canonical_url' => '/archive/trending',
             'items' => $items,
             'spotlight' => $items[0] ?? null,
             'spotlight_sidebar' => array_slice($items, 1, 4),

@@ -1,5 +1,26 @@
 <?php
+use App\Support\Seo;
+
 $pageLoaderEnabled = filter_var($_ENV['PAGE_LOADER_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN);
+$siteName = (string) ($project ?? 'Vexio HD');
+$pageTitle = trim((string) ($title ?? 'Welcome'));
+$fullTitle = $pageTitle !== '' ? $pageTitle . ' | ' . $siteName : $siteName;
+$seoDescription = Seo::description((string) ($meta_description ?? Seo::DEFAULT_DESCRIPTION));
+$seoKeywords = trim((string) ($meta_keywords ?? 'movies, tv shows, anime, streaming, watch online, VEXIO'));
+$seoCanonical = Seo::canonicalUrl((string) ($canonical_url ?? Seo::currentPath()));
+$seoImage = Seo::absoluteUrl((string) ($meta_image ?? Seo::DEFAULT_IMAGE));
+$seoImageAlt = trim((string) ($meta_image_alt ?? $fullTitle));
+$seoType = trim((string) ($og_type ?? 'website'));
+$seoRobots = trim((string) ($robots ?? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'));
+$structuredData = $structured_data ?? [];
+if (!is_array($structuredData)) {
+    $structuredData = [];
+}
+$structuredData = array_values(array_filter([
+    Seo::website($siteName),
+    Seo::organization($siteName, '/brand/vexio-logo-primary-1600x480.png'),
+    ...$structuredData,
+]));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -8,22 +29,35 @@ $pageLoaderEnabled = filter_var($_ENV['PAGE_LOADER_ENABLED'] ?? false, FILTER_VA
 <!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=G-KR80HH59JY"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-KR80HH59JY'); </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="index, follow">
-    <meta name="description" content="<?= escape($meta_description ?? 'Stream free movies, TV shows, and anime in one place. Discover the latest releases, trending series, and curated anime collections without signup or subscription.') ?>">
-    <meta name="keywords" content="<?= escape($meta_keywords ?? 'free movies, free tv shows, free anime, movie streaming, anime streaming, watch online, no subscription, streaming site') ?>">
-    <meta name="author" content="<?= escape($project ?? 'Vexio HD') ?>">
-    <meta property="og:title" content="<?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?>">
-    <meta property="og:description" content="<?= escape($meta_description ?? 'Stream free movies, TV shows, and anime in one place. Discover the latest releases, trending series, and curated anime collections without signup or subscription.') ?>">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="<?= escape(url(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/')) ?>">
-    <meta property="og:image" content="<?= escape($meta_image ?? '/favicon.png') ?>">
+    <meta name="robots" content="<?= escape($seoRobots) ?>">
+    <meta name="description" content="<?= escape($seoDescription) ?>">
+    <meta name="keywords" content="<?= escape($seoKeywords) ?>">
+    <meta name="author" content="<?= escape($siteName) ?>">
+    <meta name="theme-color" content="#08090d">
+    <link rel="canonical" href="<?= escape($seoCanonical) ?>">
+    <link rel="alternate" href="<?= escape($seoCanonical) ?>" hreflang="x-default">
+    <meta property="og:site_name" content="<?= escape($siteName) ?>">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="<?= escape($fullTitle) ?>">
+    <meta property="og:description" content="<?= escape($seoDescription) ?>">
+    <meta property="og:type" content="<?= escape($seoType !== '' ? $seoType : 'website') ?>">
+    <meta property="og:url" content="<?= escape($seoCanonical) ?>">
+    <meta property="og:image" content="<?= escape($seoImage) ?>">
+    <meta property="og:image:alt" content="<?= escape($seoImageAlt) ?>">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?>">
-    <meta name="twitter:description" content="<?= escape($meta_description ?? 'Stream free movies, TV shows, and anime in one place. Discover the latest releases, trending series, and curated anime collections without signup or subscription.') ?>">
+    <meta name="twitter:title" content="<?= escape($fullTitle) ?>">
+    <meta name="twitter:description" content="<?= escape($seoDescription) ?>">
+    <meta name="twitter:image" content="<?= escape($seoImage) ?>">
     <link rel="icon" href="/favicon.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/brand/vexio-app-icon-192x192.png">
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
     <link rel="dns-prefetch" href="//image.tmdb.org">
-    <title><?= escape($title ?? 'Welcome') ?> | <?= escape($project ?? 'Vexio HD') ?></title>
+    <title><?= escape($fullTitle) ?></title>
+    <?php foreach ($structuredData as $jsonLd): ?>
+    <?php if (is_array($jsonLd) && $jsonLd !== []): ?>
+    <script type="application/ld+json"><?= Seo::jsonLd($jsonLd) ?></script>
+    <?php endif; ?>
+    <?php endforeach; ?>
     <link rel="stylesheet" href="/assets/admin/css/app.css">
     <link rel="stylesheet" href="/assets/frontend/css/paper.css">
     <?php if ($pageLoaderEnabled): ?>

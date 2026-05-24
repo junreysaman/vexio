@@ -20,6 +20,9 @@ final class PublicSeoController
         '/archive/browse',
         '/archive/trending',
         '/genres',
+        '/networks',
+        '/archive/genres',
+        '/archive/networks',
         '/faq',
         '/contact',
         '/report-issue',
@@ -63,19 +66,26 @@ final class PublicSeoController
 
         $entries = [];
         foreach (self::STATIC_SITEMAP_PATHS as $path) {
-            $entries[] = ['path' => $path, 'lastmod' => null];
+            $entries[] = ['path' => $path, 'lastmod' => null, 'type' => 'static'];
         }
 
         foreach ($this->browse->getAllGenres() as $genre) {
             $path = (string) ($genre['url'] ?? '');
             if ($path !== '') {
-                $entries[] = ['path' => $path, 'lastmod' => null];
+                $entries[] = ['path' => $path, 'lastmod' => null, 'type' => 'taxonomy'];
             }
         }
 
         $remaining = $maxTotal - count($entries);
         if ($remaining > 0) {
             foreach ($this->browse->getPublishedWatchPathsForSitemap($remaining) as $row) {
+                $entries[] = $row;
+            }
+        }
+
+        $remaining = $maxTotal - count($entries);
+        if ($remaining > 0) {
+            foreach ($this->browse->getPublishedEpisodePathsForSitemap($remaining) as $row) {
                 $entries[] = $row;
             }
         }
@@ -136,7 +146,7 @@ final class PublicSeoController
     }
 
     /**
-     * @param list<array{path: string, lastmod: ?string}> $entries
+     * @param list<array{path: string, lastmod: ?string, type?: string}> $entries
      */
     private function buildSitemapXml(array $entries, string $origin): string
     {
@@ -160,6 +170,8 @@ final class PublicSeoController
                 $parts[] = '    <lastmod>' . $this->escapeXml($lastmod) . '</lastmod>';
             }
 
+            $parts[] = '    <changefreq>' . $this->changeFrequency($path, (string) ($entry['type'] ?? '')) . '</changefreq>';
+            $parts[] = '    <priority>' . $this->priority($path, (string) ($entry['type'] ?? '')) . '</priority>';
             $parts[] = '  </url>';
         }
 
@@ -176,6 +188,40 @@ final class PublicSeoController
     private function absoluteUrl(string $origin, string $path): string
     {
         return rtrim($origin, '/') . '/' . ltrim($path, '/');
+    }
+
+    private function changeFrequency(string $path, string $type): string
+    {
+        if ($path === '/' || str_starts_with($path, '/archive/')) {
+            return 'daily';
+        }
+
+        if ($type === 'movie' || $type === 'tv_show' || $type === 'episode') {
+            return 'weekly';
+        }
+
+        return 'monthly';
+    }
+
+    private function priority(string $path, string $type): string
+    {
+        if ($path === '/') {
+            return '1.0';
+        }
+
+        if (in_array($path, ['/archive/browse', '/archive/trending'], true)) {
+            return '0.9';
+        }
+
+        if ($type === 'movie' || $type === 'tv_show') {
+            return '0.8';
+        }
+
+        if ($type === 'episode') {
+            return '0.7';
+        }
+
+        return '0.6';
     }
 
     private function canonicalOrigin(Request $request): string

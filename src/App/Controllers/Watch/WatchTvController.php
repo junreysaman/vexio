@@ -7,6 +7,7 @@ namespace App\Controllers\Watch;
 use App\Services\Watch\WatchService;
 use App\Support\MediaImage;
 use App\Services\Watch\CommentService;
+use App\Support\Seo;
 use Framework\Http\Request;
 use Framework\Http\Response;
 use Framework\TemplateEngine;
@@ -66,16 +67,23 @@ class WatchTvController
     {
         $show = $data['show'] ?? [];
         $episode = $data['episode'] ?? [];
+        $title = $this->episodeTitle($show, $episode);
+        $description = Seo::description((string) ($episode['synopsis'] ?? $show['synopsis'] ?? ''), 160);
+        $canonicalUrl = (string) ($episode['watchUrl'] ?? ($episode['watch_url'] ?? ''));
+        $metaImage = MediaImage::ogImageFromRow($episode) ?: MediaImage::ogImageFromRow($show) ?: null;
 
         return $response->html($this->view->render(
             'frontend/watch/watch-tv/index',
             'layouts/frontend/paper',
             [
-                'title' => (string) ($show['title'] ?? 'Watch TV Show'),
+                'title' => $title,
                 'body_class' => 'paper-watch-watch-tv',
-                'meta_description' => $this->truncate((string) ($episode['synopsis'] ?? $show['synopsis'] ?? ''), 160),
+                'meta_description' => $description,
                 'meta_keywords' => (string) ($show['genres'] ?? ''),
-                'meta_image' => MediaImage::ogImageFromRow($episode) ?: MediaImage::ogImageFromRow($show) ?: null,
+                'meta_image' => $metaImage,
+                'meta_image_alt' => trim((string) ($show['title'] ?? 'TV show artwork')),
+                'canonical_url' => $canonicalUrl,
+                'structured_data' => $this->structuredData($show, $episode, $title, $description, $canonicalUrl, $metaImage),
                 'show' => $show,
                 'episode' => $episode,
                 'seasons' => $data['seasons'] ?? [],
@@ -93,15 +101,88 @@ class WatchTvController
         return $response->html($this->view->render('frontend/errors/not-found', 'layouts/frontend/paper', [
             'title' => $title,
             'body_class' => 'paper-not-found-page',
+            'robots' => 'noindex, nofollow',
             'message' => $message,
         ]), 404);
     }
 
-    private function truncate(string $text, int $length): string
+    private function episodeTitle(array $show, array $episode): string
     {
-        if (strlen($text) <= $length) {
-            return $text;
+        $showTitle = trim((string) ($show['title'] ?? 'TV Show'));
+        $season = max(1, (int) ($episode['season_number'] ?? 1));
+        $episodeNumber = max(1, (int) ($episode['episode_number'] ?? 1));
+        $episodeTitle = trim((string) ($episode['title'] ?? ''));
+
+        if ($episodeTitle !== '' && strcasecmp($episodeTitle, 'Series Overview') !== 0) {
+            return 'Watch ' . $showTitle . ' S' . $season . ' E' . $episodeNumber . ' - ' . $episodeTitle;
         }
-        return substr($text, 0, $length - 3) . '...';
+
+        return 'Watch ' . $showTitle . ' Season ' . $season . ' Episode ' . $episodeNumber;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function structuredData(array $show, array $episode, string $title, string $description, string $canonicalUrl, ?string $image): array
+    {
+        $showTitle = trim((string) ($show['title'] ?? 'TV Show'));
+        $episodeName = trim((string) ($episode['title'] ?? $title));
+        $season = max(1, (int) ($episode['season_number'] ?? 1));
+        $episodeNumber = max(1, (int) ($episode['episode_number'] ?? 1));
+        $genres = $this->splitList((string) ($show['genres'] ?? ''));
+        $releaseDate = trim((string) ($episode['air_date'] ?? $episode['release_date'] ?? $show['release_date'] ?? ''));
+
+        return [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'TVEpisode',
+                'name' => $episodeName !== '' ? $episodeName : $title,
+                'url' => Seo::canonicalUrl($canonicalUrl),
+                'description' => $description,
+                'image' => $image !== null ? Seo::absoluteUrl($image) : null,
+                'datePublished' => $releaseDate !== '' ? $releaseDate : null,
+                'episodeNumber' => $episodeNumber,
+                'partOfSeason' => [
+                    '@type' => 'TVSeason',
+                    'seasonNumber' => $season,
+                ],
+                'partOfSeries' => [
+                    '@type' => 'TVSeries',
+                    'name' => $showTitle,
+                    'url' => Seo::canonicalUrl((string) ($show['watchUrl'] ?? ($show['watch_url'] ?? ''))),
+                    'genre' => $genres,
+                ],
+            ],
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'WebPage',
+                'name' => $title,
+                'url' => Seo::canonicalUrl($canonicalUrl),
+                'description' => $description,
+                'primaryImageOfPage' => $image !== null ? Seo::absoluteUrl($image) : null,
+                'isPartOf' => [
+                    '@type' => 'WebSite',
+                    'name' => (string) ($_ENV['APP_NAME'] ?? 'Vexio HD'),
+                    'url' => Seo::origin() . '/',
+                ],
+            ],
+            Seo::breadcrumb([
+                ['name' => 'Home', 'url' => '/'],
+                ['name' => 'TV Shows', 'url' => '/archive/browse?type=tv_show'],
+                ['name' => $showTitle, 'url' => (string) ($show['watchUrl'] ?? ($show['watch_url'] ?? $canonicalUrl))],
+                ['name' => 'S' . $season . ' E' . $episodeNumber, 'url' => $canonicalUrl],
+            ]),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function splitList(string $value): array
+    {
+        return array_values(array_filter(array_map(
+            static fn(string $part): string => trim($part),
+            explode(',', $value)
+        ), static fn(string $part): bool => $part !== ''));
     }
 }

@@ -68,6 +68,7 @@ class SupportPageController
             return $response->html($this->view->render('frontend/errors/not-found', 'layouts/frontend/paper', [
                 'title' => 'Not Found',
                 'body_class' => 'paper-not-found-page',
+                'robots' => 'noindex, nofollow',
                 'message' => 'The support page you requested could not be found.',
             ]), 404);
         }

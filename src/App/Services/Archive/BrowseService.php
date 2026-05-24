@@ -110,6 +110,9 @@ class BrowseService
         $data = [
             'title' => 'Browse',
             'body_class' => 'paper-archive-browse',
+            'meta_description' => 'Browse the VEXIO catalogue by genre, country, rating, year, movies, and TV shows with fast filters and fresh watch pages.',
+            'meta_keywords' => 'browse movies, browse tv shows, movie genres, tv show genres, anime catalogue, VEXIO catalogue',
+            'canonical_url' => '/archive/browse',
             'items' => $paginatedData['items'],
             'total_items' => $paginatedData['total'],
             'total_pages' => $paginatedData['total_pages'],
@@ -369,7 +372,7 @@ class BrowseService
     /**
      * Published watch URLs for sitemap generation (lightweight; no genre JOIN).
      *
-     * @return list<array{path: string, lastmod: ?string}>
+     * @return list<array{path: string, lastmod: ?string, type?: string}>
      */
     public function getPublishedWatchPathsForSitemap(int $limit = 50000): array
     {
@@ -402,7 +405,61 @@ class BrowseService
                 $lastmod = $ts !== false ? date('c', $ts) : null;
             }
 
-            $out[] = ['path' => $path, 'lastmod' => $lastmod];
+            $out[] = ['path' => $path, 'lastmod' => $lastmod, 'type' => (string) ($row['type'] ?? '')];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Published episode URLs for sitemap generation.
+     *
+     * @return list<array{path: string, lastmod: ?string, type?: string}>
+     */
+    public function getPublishedEpisodePathsForSitemap(int $limit = 50000): array
+    {
+        $limit = max(1, min(100000, $limit));
+        $db = ($this->databaseFactory)();
+        TmdbMetadataSchema::ensure($db);
+
+        $rows = $db->select(
+            'SELECT media_items.tmdb_id,
+                    media_items.slug,
+                    media_items.title,
+                    media_items.type,
+                    media_episodes.season_number,
+                    media_episodes.episode_number,
+                    COALESCE(media_episodes.updated_at, media_items.updated_at) AS updated_at
+             FROM media_episodes
+             INNER JOIN media_items ON media_items.id = media_episodes.media_item_id
+             WHERE media_items.status = :item_status
+             AND media_items.type = :type
+             AND media_episodes.status = :episode_status
+             AND media_items.tmdb_id IS NOT NULL AND media_items.tmdb_id > 0
+             ORDER BY media_episodes.updated_at DESC, media_episodes.id DESC
+             LIMIT ' . $limit,
+            [
+                'item_status' => 'published',
+                'episode_status' => 'published',
+                'type' => 'tv_show',
+            ]
+        );
+
+        $out = [];
+        foreach ($rows as $row) {
+            $path = MediaUrl::watchUrlForItem($row, $row);
+            if ($path === null) {
+                continue;
+            }
+
+            $raw = $row['updated_at'] ?? null;
+            $lastmod = null;
+            if (is_string($raw) && $raw !== '') {
+                $ts = strtotime($raw);
+                $lastmod = $ts !== false ? date('c', $ts) : null;
+            }
+
+            $out[] = ['path' => $path, 'lastmod' => $lastmod, 'type' => 'episode'];
         }
 
         return $out;

@@ -44,6 +44,9 @@ class GenrePageService
         $data = [
             'title' => $genre ? (string) $genre['name'] : $copy['plural'],
             'body_class' => 'paper-archive-genre-page',
+            'meta_description' => $this->metaDescription($genre, $copy),
+            'meta_keywords' => $this->metaKeywords($genre, $copy),
+            'canonical_url' => $genre ? (string) ($genre['url'] ?? $copy['url_base']) : ($taxonomy === 'networks' ? '/networks' : '/genres'),
             'genres' => $genres,
             'featured_genres' => array_slice($rankedGenres, 0, 2),
             'main_genres' => array_slice($rankedGenres, 2, 8),
@@ -340,6 +343,36 @@ class GenrePageService
         });
 
         return $genres;
+    }
+
+    /**
+     * @param array<string, mixed>|null $genre
+     * @param array<string, string> $copy
+     */
+    private function metaDescription(?array $genre, array $copy): string
+    {
+        if ($genre !== null) {
+            $name = (string) ($genre['name'] ?? $copy['singular']);
+
+            return 'Watch and explore ' . $name . ' titles on VEXIO, including movies, TV shows, anime, related genres, and fresh catalogue picks.';
+        }
+
+        return 'Explore VEXIO ' . strtolower($copy['plural']) . ' and find movies, TV shows, anime, networks, and curated watch pages by category.';
+    }
+
+    /**
+     * @param array<string, mixed>|null $genre
+     * @param array<string, string> $copy
+     */
+    private function metaKeywords(?array $genre, array $copy): string
+    {
+        if ($genre !== null) {
+            $name = (string) ($genre['name'] ?? $copy['singular']);
+
+            return $name . ' movies, ' . $name . ' TV shows, watch ' . $name . ' online, VEXIO ' . strtolower($copy['singular']);
+        }
+
+        return strtolower($copy['plural']) . ', movie genres, tv show genres, anime genres, streaming categories';
     }
 
     private function normalizeTaxonomy(string $taxonomy): string

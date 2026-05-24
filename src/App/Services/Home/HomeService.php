@@ -44,7 +44,10 @@ class HomeService
         }
 
         $data = [
-            'title' => 'Home',
+            'title' => 'Watch Movies, TV Shows and Anime Online',
+            'meta_description' => 'Discover trending movies, TV shows, anime, new episodes, top rated titles, and genre collections on VEXIO.',
+            'meta_keywords' => 'movies online, tv shows online, anime online, trending movies, new episodes, VEXIO',
+            'canonical_url' => '/',
             'featured' => $this->getFeatured(),
             'siteStats' => $this->siteStats(),
             'trending' => $this->getTrending(),
