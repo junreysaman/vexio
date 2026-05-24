@@ -197,13 +197,32 @@ class BrowseService
 
         // Country filtering
         if (!empty($countries) && is_array($countries)) {
-            $countryPlaceholders = [];
+            $countryConditions = [];
             foreach ($countries as $index => $country) {
-                $paramKey = 'country_' . $index;
-                $countryPlaceholders[] = ':' . $paramKey;
-                $params[$paramKey] = $country;
+                $code = strtoupper(trim((string) $country));
+                if ($code === '') {
+                    continue;
+                }
+
+                $countryKey = 'country_' . $index;
+                $originCountryKey = 'origin_country_' . $index;
+                $countryCsvKey = 'country_csv_' . $index;
+                $originCountryCsvKey = 'origin_country_csv_' . $index;
+                $params[$countryKey] = $code;
+                $params[$originCountryKey] = $code;
+                $params[$countryCsvKey] = $code;
+                $params[$originCountryCsvKey] = $code;
+                $countryConditions[] = '(
+                    media_items.country = :' . $countryKey . '
+                    OR media_items.origin_country = :' . $originCountryKey . '
+                    OR FIND_IN_SET(:' . $countryCsvKey . ', REPLACE(media_items.country, \'|\', \',\')) > 0
+                    OR FIND_IN_SET(:' . $originCountryCsvKey . ', REPLACE(media_items.origin_country, \'|\', \',\')) > 0
+                )';
             }
-            $whereConditions[] = '(media_items.country IN (' . implode(',', $countryPlaceholders) . ') OR media_items.origin_country IN (' . implode(',', $countryPlaceholders) . '))';
+
+            if ($countryConditions !== []) {
+                $whereConditions[] = '(' . implode(' OR ', $countryConditions) . ')';
+            }
         }
 
         $whereClause = implode(' AND ', $whereConditions);

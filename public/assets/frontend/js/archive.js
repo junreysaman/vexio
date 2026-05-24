@@ -215,7 +215,6 @@ async function updateFilters() {
       archiveEmpty.hidden = totalItems !== 0;
     }
 
-    updateSentinelVisibility();
     updateActiveFilters(state);
     updateFilterBadgeCount();
   } catch (error) {
@@ -224,6 +223,7 @@ async function updateFilters() {
     archiveHasMore = false;
   } finally {
     archiveIsLoading = false;
+    updateSentinelVisibility();
   }
 }
 
@@ -439,6 +439,7 @@ async function loadMoreArchiveItems() {
   } finally {
     archiveIsLoading = false;
     if (sentinel) sentinel.classList.remove('loading');
+    updateSentinelVisibility();
   }
 }
 
