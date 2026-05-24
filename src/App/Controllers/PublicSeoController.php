@@ -61,9 +61,52 @@ final class PublicSeoController
 
     public function sitemap(Request $request, Response $response): Response
     {
-        $maxTotal = (int) ($_ENV['SITEMAP_MAX_URLS'] ?? 50000);
-        $maxTotal = max(100, min(50000, $maxTotal));
+        $origin = $this->canonicalOrigin($request);
+        $body = $this->buildSitemapIndex([
+            ['path' => '/sitemap-static.xml'],
+            ['path' => '/sitemap-watch.xml'],
+            ['path' => '/sitemap-episodes.xml'],
+        ], $origin);
 
+        return $this->xml($response, $body);
+    }
+
+    public function staticSitemap(Request $request, Response $response): Response
+    {
+        $body = $this->buildSitemapXml($this->staticEntries(), $this->canonicalOrigin($request));
+
+        return $this->xml($response, $body);
+    }
+
+    public function watchSitemap(Request $request, Response $response): Response
+    {
+        $limit = (int) ($_ENV['SITEMAP_WATCH_MAX_URLS'] ?? $_ENV['SITEMAP_MAX_URLS'] ?? 20000);
+        $limit = max(100, min(50000, $limit));
+        $body = $this->buildSitemapXml(
+            $this->uniqueEntries($this->browse->getPublishedWatchPathsForSitemap($limit)),
+            $this->canonicalOrigin($request)
+        );
+
+        return $this->xml($response, $body);
+    }
+
+    public function episodeSitemap(Request $request, Response $response): Response
+    {
+        $limit = (int) ($_ENV['SITEMAP_EPISODE_MAX_URLS'] ?? 20000);
+        $limit = max(100, min(50000, $limit));
+        $body = $this->buildSitemapXml(
+            $this->uniqueEntries($this->browse->getPublishedEpisodePathsForSitemap($limit)),
+            $this->canonicalOrigin($request)
+        );
+
+        return $this->xml($response, $body);
+    }
+
+    /**
+     * @return list<array{path: string, lastmod: ?string, type?: string}>
+     */
+    private function staticEntries(): array
+    {
         $entries = [];
         foreach (self::STATIC_SITEMAP_PATHS as $path) {
             $entries[] = ['path' => $path, 'lastmod' => null, 'type' => 'static'];
@@ -76,20 +119,15 @@ final class PublicSeoController
             }
         }
 
-        $remaining = $maxTotal - count($entries);
-        if ($remaining > 0) {
-            foreach ($this->browse->getPublishedWatchPathsForSitemap($remaining) as $row) {
-                $entries[] = $row;
-            }
-        }
+        return $this->uniqueEntries($entries);
+    }
 
-        $remaining = $maxTotal - count($entries);
-        if ($remaining > 0) {
-            foreach ($this->browse->getPublishedEpisodePathsForSitemap($remaining) as $row) {
-                $entries[] = $row;
-            }
-        }
-
+    /**
+     * @param list<array{path: string, lastmod: ?string, type?: string}> $entries
+     * @return list<array{path: string, lastmod: ?string, type?: string}>
+     */
+    private function uniqueEntries(array $entries): array
+    {
         $seen = [];
         $unique = [];
         foreach ($entries as $entry) {
@@ -101,12 +139,7 @@ final class PublicSeoController
             $unique[] = $entry;
         }
 
-        $body = $this->buildSitemapXml($unique, $this->canonicalOrigin($request));
-
-        return $response
-            ->status(200)
-            ->header('Content-Type', 'application/xml; charset=UTF-8')
-            ->body($body);
+        return $unique;
     }
 
     public function adsTxt(Request $request, Response $response): Response
@@ -143,6 +176,45 @@ final class PublicSeoController
             ->status(200)
             ->header('Content-Type', 'text/plain; charset=UTF-8')
             ->body($body);
+    }
+
+    private function xml(Response $response, string $body): Response
+    {
+        return $response
+            ->status(200)
+            ->header('Content-Type', 'application/xml; charset=UTF-8')
+            ->header('Cache-Control', 'public, max-age=900')
+            ->body($body);
+    }
+
+    /**
+     * @param list<array{path: string, lastmod?: ?string}> $entries
+     */
+    private function buildSitemapIndex(array $entries, string $origin): string
+    {
+        $parts = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        ];
+
+        foreach ($entries as $entry) {
+            $path = (string) ($entry['path'] ?? '');
+            if ($path === '') {
+                continue;
+            }
+
+            $parts[] = '  <sitemap>';
+            $parts[] = '    <loc>' . $this->escapeXml($this->absoluteUrl($origin, $path)) . '</loc>';
+            $lastmod = $entry['lastmod'] ?? null;
+            if (is_string($lastmod) && $lastmod !== '') {
+                $parts[] = '    <lastmod>' . $this->escapeXml($lastmod) . '</lastmod>';
+            }
+            $parts[] = '  </sitemap>';
+        }
+
+        $parts[] = '</sitemapindex>';
+
+        return implode("\n", $parts) . "\n";
     }
 
     /**

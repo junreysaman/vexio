@@ -80,6 +80,9 @@ function registerRoutes(App $app): void
         // Crawlers / monetization (Google Search Console, ads.txt validators)
         ['GET', '/robots.txt', [PublicSeoController::class, 'robots']],
         ['GET', '/sitemap.xml', [PublicSeoController::class, 'sitemap']],
+        ['GET', '/sitemap-static.xml', [PublicSeoController::class, 'staticSitemap']],
+        ['GET', '/sitemap-watch.xml', [PublicSeoController::class, 'watchSitemap']],
+        ['GET', '/sitemap-episodes.xml', [PublicSeoController::class, 'episodeSitemap']],
         ['GET', '/ads.txt', [PublicSeoController::class, 'adsTxt']],
         // Support/Info Pages
         ['GET', '/faq', [SupportPageController::class, 'faq']],
