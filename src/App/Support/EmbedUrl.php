@@ -18,7 +18,7 @@ class EmbedUrl
             return 'http://127.0.0.1:3000';
         }
 
-        return 'https://embed.vexio.asia';
+        return 'https://scraper-zeta-tawny.vercel.app';
     }
 
     public static function movie(int $tmdbId): string
