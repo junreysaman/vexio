@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /logout
+Disallow: /api/
+
+Sitemap: https://vexio.asia/sitemap.xml
