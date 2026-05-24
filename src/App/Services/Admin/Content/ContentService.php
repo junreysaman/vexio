@@ -419,8 +419,10 @@ class ContentService
         }
 
         if ($search !== '') {
-            $where[] = '(media_items.title LIKE :search OR media_items.slug LIKE :search OR media_items.synopsis LIKE :search OR media_items.tmdb_id = :tmdb_id)';
-            $params['search'] = '%' . $search . '%';
+            $where[] = '(media_items.title LIKE :search_title OR media_items.slug LIKE :search_slug OR media_items.synopsis LIKE :search_synopsis OR media_items.tmdb_id = :tmdb_id)';
+            $params['search_title'] = '%' . $search . '%';
+            $params['search_slug'] = '%' . $search . '%';
+            $params['search_synopsis'] = '%' . $search . '%';
             $params['tmdb_id'] = ctype_digit($search) ? (int) $search : 0;
         }
 
