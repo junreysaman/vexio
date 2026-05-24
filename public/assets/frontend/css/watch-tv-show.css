@@ -376,11 +376,11 @@ ul {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 20px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 50% 36%, rgba(232, 23, 63, 0.22), transparent 28%),
-    radial-gradient(circle at 38% 58%, rgba(0, 200, 240, 0.16), transparent 24%),
-    linear-gradient(180deg, rgba(6, 9, 16, 0.86), rgba(6, 9, 16, 0.98));
+    radial-gradient(circle at 50% 42%, rgba(232, 23, 63, 0.18), transparent 34%),
+    linear-gradient(180deg, #050b14, #02040a);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -389,15 +389,26 @@ ul {
   position: absolute;
   left: 0;
   right: 0;
-  height: 18px;
+  height: 22px;
+  display: flex;
+  align-items: center;
   overflow: hidden;
-  background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 10px, transparent 10px 22px),
-    rgba(4, 6, 12, 0.88);
+  background: rgba(4, 6, 12, 0.88);
   border-color: rgba(255, 255, 255, 0.06);
   border-style: solid;
   border-width: 1px 0;
+}
+.vexio-loader-film span {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 13px;
+  margin-left: 12px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
   animation: vexioFilmScroll 1.1s linear infinite;
+}
+.vexio-loader-film span:nth-child(2n) {
+  animation-delay: -0.35s;
 }
 .vexio-loader-film-top {
   top: 0;
@@ -406,10 +417,9 @@ ul {
   bottom: 0;
 }
 .vexio-loader-timecode {
-  position: absolute;
-  top: 26px;
-  right: 18px;
-  font-size: 9px;
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 2px;
   color: rgba(255, 255, 255, 0.22);
@@ -417,25 +427,14 @@ ul {
 }
 @keyframes vexioFilmScroll {
   to {
-    background-position: -22px 0, 0 0;
+    transform: translateX(-26px);
   }
 }
-.vexio-loader-mark {
-  width: 148px;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
-}
-.vexio-loader-mark img {
+.vexio-loader-rig {
+  position: relative;
+  z-index: 1;
   width: 118px;
-  max-height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 14px rgba(232, 23, 63, 0.42));
+  height: 118px;
 }
 .player-wrap.is-loading .vexio-player-loader {
   opacity: 1;
@@ -444,57 +443,90 @@ ul {
   opacity: 0;
 }
 .vexio-loader-ring {
-  width: 64px;
-  height: 64px;
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.16);
-  border-top-color: var(--cyan);
-  border-right-color: var(--accent);
-  animation: vexioSpin 0.9s linear infinite;
-  box-shadow: 0 0 28px rgba(0, 200, 240, 0.25);
+  border: 2px solid transparent;
+}
+.vexio-loader-ring-a {
+  border-top-color: #e8173f;
+  border-right-color: rgba(232, 23, 63, 0.22);
+  animation: vexioSpin 2.1s linear infinite;
+}
+.vexio-loader-ring-b {
+  inset: 12px;
+  border-bottom-color: #00c8f0;
+  border-left-color: rgba(0, 200, 240, 0.2);
+  animation: vexioSpin 2.8s linear infinite reverse;
+}
+.vexio-loader-ring-c {
+  inset: 25px;
+  border-top-color: #9b14cf;
+  border-right-color: rgba(155, 20, 207, 0.16);
+  animation: vexioSpin 1.7s linear infinite;
+}
+.vexio-loader-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4264, #e8173f 58%, #9b14cf);
+  box-shadow: 0 0 0 8px rgba(232, 23, 63, 0.08), 0 0 42px rgba(232, 23, 63, 0.4);
+  transform: translate(-50%, -50%);
+}
+.vexio-loader-core svg {
+  width: 19px;
+  height: 19px;
+  fill: #fff;
+  margin-left: 3px;
 }
 @keyframes vexioSpin {
   to {
     transform: rotate(360deg);
   }
 }
-.vexio-loader-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-}
-.vexio-loader-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #fff;
+.vexio-loader-logo {
+  position: relative;
+  z-index: 1;
+  width: min(280px, 58vw);
+  max-height: 92px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 28px rgba(232, 23, 63, 0.42));
 }
 .vexio-loader-status {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.62);
+  position: relative;
+  z-index: 1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.56);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px #000;
 }
 .vexio-loader-progress {
-  width: min(280px, 62vw);
-  height: 4px;
+  position: relative;
+  z-index: 1;
+  width: min(360px, 68vw);
+  height: 2px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
 }
 .vexio-loader-progress span {
   display: block;
-  width: 44%;
+  width: 46%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), var(--cyan));
-  animation: vexioLoadSweep 1.25s ease-in-out infinite;
+  background: linear-gradient(90deg, #e8173f, #9b14cf, #00c8f0);
+  animation: vexioLoadSweep 1.45s ease-in-out infinite;
 }
 @keyframes vexioLoadSweep {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(260%); }
+  from { transform: translateX(-120%); }
+  to { transform: translateX(240%); }
 }
 .vexio-player-watermark {
   position: absolute;

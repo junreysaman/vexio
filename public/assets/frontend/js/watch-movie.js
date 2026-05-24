@@ -8,6 +8,29 @@ let streamSources = [];
 let streamSourceIndex = 0;
 let streamStartTimer = null;
 let streamAttemptId = 0;
+let loaderTimecodeTimer = null;
+let loaderTimecodeFrame = 0;
+
+function startLoaderTimecode() {
+    if (loaderTimecodeTimer) return;
+    const timecodeNode = document.querySelector('.vexio-loader-timecode');
+    if (!timecodeNode) return;
+
+    loaderTimecodeTimer = setInterval(() => {
+        loaderTimecodeFrame = (loaderTimecodeFrame + 1) % (24 * 60 * 60);
+        const seconds = Math.floor(loaderTimecodeFrame / 24);
+        const frames = String(loaderTimecodeFrame % 24).padStart(2, '0');
+        const mins = String(Math.floor(seconds / 60) % 60).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        timecodeNode.textContent = `00:${mins}:${secs}:${frames}`;
+    }, 90);
+}
+
+function stopLoaderTimecode() {
+    if (!loaderTimecodeTimer) return;
+    clearInterval(loaderTimecodeTimer);
+    loaderTimecodeTimer = null;
+}
 
 function initProviderSwitch(sources) {
     const providerSwitch = document.getElementById('vexioProviderSwitch');
@@ -229,6 +252,8 @@ function setPlayerLoading(isLoading, status = 'Connecting to vexio-main') {
     const statusNode = document.getElementById('vexioLoaderStatus');
     if (statusNode) statusNode.textContent = status;
     wrap?.classList.toggle('is-loading', isLoading);
+    if (isLoading) startLoaderTimecode();
+    else stopLoaderTimecode();
 }
 
 function setPlayerUnavailable(message = 'No playable source found') {
@@ -237,6 +262,7 @@ function setPlayerUnavailable(message = 'No playable source found') {
     const detail = document.getElementById('vexioUnavailableDetail');
     const statusNode = document.getElementById('vexioLoaderStatus');
     clearTimeout(streamStartTimer);
+    stopLoaderTimecode();
     streamLoaded = false;
     wrap?.classList.remove('is-ready', 'is-loading', 'is-player-rendering');
     wrap?.classList.add('is-unavailable');

@@ -16,18 +16,18 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
       ></div>
         <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
       <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
-        <div class="vexio-loader-film vexio-loader-film-top" aria-hidden="true"></div>
-        <div class="vexio-loader-film vexio-loader-film-bottom" aria-hidden="true"></div>
+        <div class="vexio-loader-film vexio-loader-film-top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="vexio-loader-film vexio-loader-film-bottom" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
         <div class="vexio-loader-timecode" aria-hidden="true">00:00:00:00</div>
-        <div class="vexio-loader-mark" aria-hidden="true">
-          <img src="/brand/vexio-player-loading.png" alt="">
+        <div class="vexio-loader-rig" aria-hidden="true">
+          <div class="vexio-loader-ring vexio-loader-ring-a"></div>
+          <div class="vexio-loader-ring vexio-loader-ring-b"></div>
+          <div class="vexio-loader-ring vexio-loader-ring-c"></div>
+          <div class="vexio-loader-core"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
         </div>
-        <div class="vexio-loader-ring"></div>
-        <div class="vexio-loader-copy">
-          <span class="vexio-loader-title">Preparing stream</span>
-          <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to VEXIO server</span>
-        </div>
+        <img class="vexio-loader-logo" src="/brand/vexio-player-loading.png" alt="VEXIO">
         <div class="vexio-loader-progress" aria-hidden="true"><span></span></div>
+        <div class="vexio-loader-status" id="vexioLoaderStatus">Loading stream...</div>
       </div>
 
       <div class="vexio-audio-unavailable" id="vexioAudioUnavailable" hidden>
