@@ -63,6 +63,7 @@ function registerRoutes(App $app): void
         ['POST', '/admin/content/{id}/edit', [ContentController::class, 'update'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/delete', [ContentController::class, 'destroy'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/bulk-delete', [ContentController::class, 'bulkDestroy'], [AdminRequiredMiddleware::class]],
+        ['POST', '/admin/content/reset-views', [ContentController::class, 'resetViews'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/generate-seasons', [ContentController::class, 'generateSeasons'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/seasons/{seasonId}/generate-episodes', [ContentController::class, 'generateEpisodes'], [AdminRequiredMiddleware::class]],
         ['POST', '/admin/content/{id}/seasons/{seasonId}/edit', [ContentController::class, 'updateSeason'], [AdminRequiredMiddleware::class]],

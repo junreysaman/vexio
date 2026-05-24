@@ -213,6 +213,18 @@ a {
     margin-bottom: 20px;
 }
 
+.dashboard-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.dashboard-hero-actions form {
+    margin: 0;
+}
+
 .dashboard-visit-btn {
     display: inline-flex;
     align-items: center;
@@ -226,8 +238,10 @@ a {
     color: var(--paper-blue);
     font-size: 13px;
     font-weight: 900;
+    font-family: inherit;
     white-space: nowrap;
     box-shadow: var(--paper-shadow);
+    cursor: pointer;
 }
 
 .dashboard-visit-btn:hover {

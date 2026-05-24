@@ -6,10 +6,19 @@
         <h1>Top movies and TV episodes by views</h1>
         <p>Use this first dashboard view to spot the licensed content people are watching most.</p>
     </div>
-    <a class="dashboard-visit-btn" href="/" target="_blank" rel="noopener">
-        <i class="icon-open_in_new"></i>
-        Visit website
-    </a>
+    <div class="dashboard-hero-actions">
+        <form action="/admin/content/reset-views" method="POST" onsubmit="return confirm('Reset all title and episode view counters to 0? This cannot be undone.');">
+            <input type="hidden" name="token" value="<?= escape($_csrfToken ?? '') ?>">
+            <button class="dashboard-visit-btn" type="submit">
+                <i class="icon-refresh"></i>
+                Reset Views
+            </button>
+        </form>
+        <a class="dashboard-visit-btn" href="/" target="_blank" rel="noopener">
+            <i class="icon-open_in_new"></i>
+            Visit website
+        </a>
+    </div>
 </div>
 
 <section class="stat-grid" aria-label="Content statistics">

@@ -112,6 +112,23 @@ class ContentController
         redirectTo('/admin/content');
     }
 
+    public function resetViews(Request $request, Response $response): void
+    {
+        $reset = $this->content->resetViewCounters();
+
+        setFlash(
+            'content',
+            'Reset view counters to 0 for '
+                . number_format((int) ($reset['items'] ?? 0))
+                . ' title(s) and '
+                . number_format((int) ($reset['episodes'] ?? 0))
+                . ' episode(s).',
+            'success'
+        );
+
+        redirectTo('/admin/content');
+    }
+
     public function generateSeasons(Request $request, Response $response, string $id): void
     {
         $contentId = (int) $id;

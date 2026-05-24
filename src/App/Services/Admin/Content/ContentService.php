@@ -244,6 +244,20 @@ class ContentService
         return $items;
     }
 
+    public function resetViewCounters(): array
+    {
+        $this->db->query('UPDATE media_items SET views = 0 WHERE views <> 0');
+        $items = $this->db->rowCount();
+
+        $this->db->query('UPDATE media_episodes SET views = 0 WHERE views <> 0');
+        $episodes = $this->db->rowCount();
+
+        return [
+            'items' => $items,
+            'episodes' => $episodes,
+        ];
+    }
+
     /**
      * Loads seasons and episodes for a single TV show title for edit page context.
      */
