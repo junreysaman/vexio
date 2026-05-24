@@ -86,6 +86,8 @@ function initSidebarEpisodeList() {
 }
 
 let vexioVideo = null;
+let vexioVideoJsPlayer = null;
+let vexioVideoElement = null;
 let streamLoaded = false;
 let streamLoading = null;
 let streamSources = [];
@@ -184,6 +186,18 @@ function initProviderSwitch(sources) {
 function initVexioVideo() {
     if (vexioVideo) return vexioVideo;
     return document.querySelector('#vexioPlayerTarget video');
+}
+
+function disposeVexioPlayer() {
+    if (vexioVideoJsPlayer && typeof vexioVideoJsPlayer.dispose === 'function') {
+        try {
+            vexioVideoJsPlayer.dispose();
+        } catch (_error) { }
+    }
+
+    vexioVideoJsPlayer = null;
+    vexioVideoElement = null;
+    vexioVideo = null;
 }
 
 function sourceMimeType(source) {
@@ -301,26 +315,48 @@ function clearEmbedPlayer() {
     wrap?.classList.remove('is-embed', 'is-player-rendering');
 }
 
+function isTrustedEmbedOrigin(origin) {
+    const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
+    try {
+        return Boolean(endpoint) && new URL(endpoint, window.location.href).origin === origin;
+    } catch (_error) {
+        return false;
+    }
+}
+
+function handleEmbedMessage(event) {
+    if (!isTrustedEmbedOrigin(event.origin)) return;
+    if (event.data?.type === 'vexio:embed-ready') {
+        const wrap = document.getElementById('playerWrap');
+        wrap?.classList.remove('is-player-rendering');
+        wrap?.classList.add('is-ready');
+        setPlayerLoading(false);
+        return;
+    }
+
+    if (event.data?.type !== 'vexio:embed-error') return;
+    setPlayerUnavailable(event.data.message || 'No playable source found on this server. Try another server below.');
+}
+
 async function createNativePlayer(source, subtitles) {
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
     if (!wrap || !target || !source?.url) return null;
 
-    if (vexioVideo) {
-        try { vexioVideo.pause(); } catch (_error) { }
-    }
+    disposeVexioPlayer();
     target.replaceChildren();
 
     const video = document.createElement('video');
+    video.className = 'video-js vjs-big-play-centered vjs-theme-vexio';
     video.controls = true;
     video.preload = 'metadata';
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
     video.poster = target.dataset.poster || '';
     video.setAttribute('aria-label', target.dataset.title || wrap.dataset.title || 'Video player');
+    video.setAttribute('data-setup', '{}');
     video.style.width = '100%';
     video.style.height = '100%';
-    video.style.objectFit = 'contain';
 
     const sourceEl = document.createElement('source');
     sourceEl.src = source.url;
@@ -340,7 +376,38 @@ async function createNativePlayer(source, subtitles) {
 
     video.addEventListener('ended', triggerNextEp);
     vexioVideo = video;
+    vexioVideoElement = video;
     target.appendChild(video);
+
+    if (window.videojs && typeof window.videojs === 'function') {
+        try {
+            vexioVideoJsPlayer = window.videojs(video, {
+                controls: true,
+                fluid: true,
+                autoplay: false,
+                preload: 'metadata',
+                playbackRates: [1, 1.25, 1.5, 2],
+                controlBar: {
+                    pictureInPictureToggle: true,
+                    fullscreenToggle: true
+                }
+            });
+        } catch (_error) {
+            vexioVideoJsPlayer = null;
+        }
+    }
+
+    try {
+        const isHls = String(source?.type || '').toLowerCase() === 'hls' || String(source?.url || '').toLowerCase().includes('.m3u8');
+        const canPlayHlsNatively = video.canPlayType('application/vnd.apple.mpegurl');
+        if (isHls && !canPlayHlsNatively && window.Hls && typeof window.Hls === 'function') {
+            const hls = new window.Hls();
+            hls.attachMedia(video);
+            hls.loadSource(source.url);
+            video._vexio_hls = hls;
+        }
+    } catch (_error) { }
+
     return video;
 }
 
@@ -412,7 +479,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
         if (streamLoaded || attemptId !== streamAttemptId) return;
         const nextSource = streamSources[streamSourceIndex + 1];
         if (!nextSource) {
-            setPlayerUnavailable('No playable source found for this episode');
+            setPlayerUnavailable('No playable source found on this server. Try another server below.');
             return;
         }
         streamSourceIndex += 1;
@@ -420,7 +487,8 @@ async function playSource(source, subtitles, shouldPlay = false) {
         await playSource(nextSource, subtitles, shouldPlay);
     };
 
-    player.addEventListener('can-play', startPlayback, { once: true });
+    player.addEventListener('canplay', startPlayback, { once: true });
+    player.addEventListener('loadeddata', startPlayback, { once: true });
     player.addEventListener('error', tryNextSource, { once: true });
 
     // If the underlying <video> fails (common when proxy/manifest fetch is flaky),
@@ -450,7 +518,10 @@ async function loadVexioStream(shouldPlay = false) {
     }
 
     const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
-    if (!endpoint) return false;
+    if (!endpoint) {
+        setPlayerUnavailable('No playable source configured for this episode');
+        return false;
+    }
 
     // If endpoint is an absolute URL, load it directly as an embed iframe (no embed API).
     if (/^https?:\/\//i.test(endpoint)) {
@@ -460,12 +531,11 @@ async function loadVexioStream(shouldPlay = false) {
         streamAttemptId += 1;
         streamLoaded = false;
         streamLoading = null;
-        try { vexioVideo?.pause?.(); } catch (_error) { }
-        vexioVideo = null;
+        disposeVexioPlayer();
         clearPlayerUnavailable();
-        setPlayerLoading(false);
+        setPlayerLoading(true, 'Preparing VEXIO player');
         wrap?.classList.remove('is-ready');
-        wrap?.classList.add('is-embed');
+        wrap?.classList.add('is-embed', 'is-player-rendering');
         target?.replaceChildren(Object.assign(document.createElement('iframe'), {
             className: 'vexio-embed-frame',
             src: endpoint,
@@ -475,6 +545,9 @@ async function loadVexioStream(shouldPlay = false) {
         frame?.setAttribute('allowfullscreen', '');
         frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
         frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        frame?.addEventListener('load', () => {
+            setPlayerLoading(true, 'Waiting for playable source');
+        }, { once: true });
         return true;
     }
 
@@ -516,7 +589,7 @@ async function loadVexioStream(shouldPlay = false) {
 
             const source = streamSources[streamSourceIndex];
             if (!source) {
-                setPlayerUnavailable('No playable source found for this episode');
+                setPlayerUnavailable('No playable source found on this server. Try another server below.');
                 return false;
             }
 
@@ -564,12 +637,12 @@ function selectServer(button, _serverKey) {
         streamAttemptId += 1;
         streamLoaded = false;
         streamLoading = null;
-        try { vexioVideo?.pause?.(); } catch (_error) { }
-        vexioVideo = null;
+        disposeVexioPlayer();
         clearPlayerUnavailable();
-        setPlayerLoading(false);
+        setPlayerLoading(button?.dataset?.serverKey === 'vexio-embed', 'Preparing VEXIO player');
         wrap?.classList.remove('is-ready');
         wrap?.classList.add('is-embed');
+        wrap?.classList.toggle('is-player-rendering', button?.dataset?.serverKey === 'vexio-embed');
         target?.replaceChildren(Object.assign(document.createElement('iframe'), {
             className: 'vexio-embed-frame',
             src: url,
@@ -579,6 +652,11 @@ function selectServer(button, _serverKey) {
         frame?.setAttribute('allowfullscreen', '');
         frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
         frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        if (button?.dataset?.serverKey === 'vexio-embed') {
+            frame?.addEventListener('load', () => {
+                setPlayerLoading(true, 'Waiting for playable source');
+            }, { once: true });
+        }
     } else {
         target?.replaceChildren();
         streamLoaded = false;
@@ -643,12 +721,14 @@ function showToast(msg) {
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('message', handleEmbedMessage);
         initEpisodeList();
         initSidebarEpisodeList();
         initVexioVideo();
         loadVexioStream(false);
     });
 } else {
+    window.addEventListener('message', handleEmbedMessage);
     initEpisodeList();
     initSidebarEpisodeList();
     initVexioVideo();

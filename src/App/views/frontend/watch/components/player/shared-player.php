@@ -1,5 +1,6 @@
 <?php
 use App\Support\MediaImage;
+use App\Support\EmbedUrl;
 
 /**
  * Shared Vexio player wrapper (movie + tv)
@@ -19,13 +20,12 @@ $posterMedia = $posterRow ?? [];
 $season = $season ?? null;
 $episode = $episode ?? null;
 
-// Build a primary embed URL from known VX providers (do not call external embed API)
 $primaryEmbed = '';
 if ($tmdbId > 0) {
   if ($sourceType === 'tv' && $season !== null && $episode !== null) {
-    $primaryEmbed = 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episode;
+    $primaryEmbed = EmbedUrl::tv($tmdbId, (int) $season, (int) $episode);
   } else {
-    $primaryEmbed = 'https://vidfast.pro/movie/' . $tmdbId;
+    $primaryEmbed = EmbedUrl::movie($tmdbId);
   }
 }
 
@@ -61,11 +61,18 @@ $playerBackdrop = MediaImage::backdropFromRow($posterMedia, 'player');
   <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
 
   <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
+    <div class="vexio-loader-film vexio-loader-film-top" aria-hidden="true"></div>
+    <div class="vexio-loader-film vexio-loader-film-bottom" aria-hidden="true"></div>
+    <div class="vexio-loader-timecode" aria-hidden="true">00:00:00:00</div>
+    <div class="vexio-loader-mark" aria-hidden="true">
+      <img src="/brand/vexio-player-loading.png" alt="">
+    </div>
     <div class="vexio-loader-ring"></div>
     <div class="vexio-loader-copy">
       <span class="vexio-loader-title">Preparing stream</span>
-      <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to vexio-main</span>
+      <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to VEXIO server</span>
     </div>
+    <div class="vexio-loader-progress" aria-hidden="true"><span></span></div>
   </div>
 
   <div class="vexio-audio-unavailable" id="vexioAudioUnavailable" hidden>
@@ -86,7 +93,8 @@ $playerBackdrop = MediaImage::backdropFromRow($posterMedia, 'player');
     <div class="vexio-unavailable-copy">
       <span class="vexio-unavailable-kicker">Stream unavailable</span>
       <strong>No playable source found</strong>
-      <span id="vexioUnavailableDetail">This title does not have a browser-ready stream available right now. Please check back later.</span>
+      <span id="vexioUnavailableDetail">This server does not have a playable stream right now. Try another server from the server list below the player.</span>
+      <span class="vexio-server-hint">Select another server below if this one is unavailable.</span>
     </div>
   </div>
 

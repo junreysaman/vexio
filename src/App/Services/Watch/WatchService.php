@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Watch;
 
 use App\Database\TmdbMetadataSchema;
+use App\Support\EmbedUrl;
 use App\Support\MediaUrl;
 use Framework\Database;
 
@@ -429,10 +430,16 @@ class WatchService
 
         $servers = [
             [
+                'key' => 'vexio-embed',
+                'name' => 'VEXIO',
+                'url' => EmbedUrl::movie($tmdbId),
+                'default' => true,
+            ],
+            ...$this->animeEmbedServers($item, 1),
+            [
                 'key' => 'vx-vidfast',
                 'name' => 'VX-Vidfast',
                 'url' => 'https://vidfast.pro/movie/' . $tmdbId,
-                'default' => true,
             ],
             [
                 'key' => 'vx-vidnest',
@@ -470,8 +477,7 @@ class WatchService
         ];
         */
 
-        // No custom or additional servers allowed — only MX-VidFast remains.
-        // Any legacy `stream_link` entries are intentionally ignored to keep watch pages consistent.
+        // Keep the curated embed list deterministic; legacy `stream_link` entries are ignored.
 
         return $servers;
     }
@@ -491,10 +497,16 @@ class WatchService
 
         $servers = [
             [
+                'key' => 'vexio-embed',
+                'name' => 'VEXIO',
+                'url' => EmbedUrl::tv($tmdbId, $season, $episodeNumber),
+                'default' => true,
+            ],
+            ...$this->animeEmbedServers($show, $episodeNumber),
+            [
                 'key' => 'vx-vidfast',
                 'name' => 'VX-Vidfast',
                 'url' => 'https://vidfast.pro/tv/' . $tmdbId . '/' . $season . '/' . $episodeNumber,
-                'default' => true,
             ],
             [
                 'key' => 'vx-vidnest',
@@ -532,10 +544,64 @@ class WatchService
         ];
         */
 
-        // No custom or additional servers allowed — only MX-VidFast remains.
-        // Any legacy `stream_link` entries are intentionally ignored to keep watch pages consistent.
+        // Keep the curated embed list deterministic; legacy `stream_link` entries are ignored.
 
         return $servers;
+    }
+
+    /**
+     * @return array<int, array{key: string, name: string, url: string}>
+     */
+    private function animeEmbedServers(array $item, int $episodeNumber): array
+    {
+        $malId = $this->malIdForItem($item);
+        if ($malId < 1) {
+            return [];
+        }
+
+        return [
+            [
+                'key' => 'vx-vidlink-anime-sub',
+                'name' => 'VX-Anime Sub',
+                'url' => 'https://vidlink.pro/anime/' . $malId . '/' . max(1, $episodeNumber) . '/sub?fallback=true',
+            ],
+            [
+                'key' => 'vx-vidlink-anime-dub',
+                'name' => 'VX-Anime Dub',
+                'url' => 'https://vidlink.pro/anime/' . $malId . '/' . max(1, $episodeNumber) . '/dub?fallback=true',
+            ],
+        ];
+    }
+
+    private function malIdForItem(array $item): int
+    {
+        $itemId = (int) ($item['id'] ?? 0);
+        if ($itemId < 1) {
+            return 0;
+        }
+
+        foreach (['mal_id', 'myanimelist_id', 'my_anime_list_id', 'myanimelist'] as $key) {
+            $row = $this->db->selectOne(
+                "SELECT meta_value
+                 FROM content_meta
+                 WHERE owner_type = :owner_type
+                 AND owner_id = :owner_id
+                 AND meta_key = :meta_key
+                 LIMIT 1",
+                [
+                    'owner_type' => 'item',
+                    'owner_id' => $itemId,
+                    'meta_key' => $key,
+                ]
+            );
+
+            $value = (int) ($row['meta_value'] ?? 0);
+            if ($value > 0) {
+                return $value;
+            }
+        }
+
+        return 0;
     }
 
 }

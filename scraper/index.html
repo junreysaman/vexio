@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VEXIO Stream</title>
+<link rel="stylesheet" href="/vendor/videojs/video-js.min.css">
+<script src="/vendor/videojs/video.min.js"></script>
+<script src="/vendor/hls/hls.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: #000; font-family: system-ui, sans-serif; color: #fff; overflow: hidden; }
+
+#loader {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px; overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(232,23,63,.18), transparent 34%),
+    linear-gradient(180deg, #050b14, #02040a);
+}
+#loader-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center; filter: blur(3px) saturate(.9);
+  transition: opacity .6s ease; opacity: 0;
+}
+.loader-film {
+  position: absolute; left: 0; right: 0; height: 22px; display: flex;
+  align-items: center; overflow: hidden; background: rgba(4,6,12,.88);
+  border-color: rgba(255,255,255,.06); border-style: solid; border-width: 1px 0;
+}
+.loader-film.top { top: 0; }
+.loader-film.bottom { bottom: 0; }
+.loader-film span {
+  flex: 0 0 auto; width: 10px; height: 13px; margin-left: 12px;
+  border-radius: 2px; background: rgba(255,255,255,.08);
+  animation: film 1.1s linear infinite;
+}
+.loader-film span:nth-child(2n) { animation-delay: -.35s; }
+.loader-timecode {
+  position: relative; z-index: 1; font-size: 10px; font-weight: 800;
+  letter-spacing: 2px; color: rgba(255,255,255,.22); font-variant-numeric: tabular-nums;
+}
+.loader-rig {
+  position: relative; z-index: 1; width: 118px; height: 118px;
+}
+.loader-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; }
+.loader-ring.a { border-top-color: #e8173f; border-right-color: rgba(232,23,63,.22); animation: spin 2.1s linear infinite; }
+.loader-ring.b { inset: 12px; border-bottom-color: #00c8f0; border-left-color: rgba(0,200,240,.2); animation: spin 2.8s linear infinite reverse; }
+.loader-ring.c { inset: 25px; border-top-color: #9b14cf; border-right-color: rgba(155,20,207,.16); animation: spin 1.7s linear infinite; }
+.loader-core {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(135deg, #ff4264, #e8173f 58%, #9b14cf);
+  box-shadow: 0 0 0 8px rgba(232,23,63,.08), 0 0 42px rgba(232,23,63,.4);
+}
+.loader-logo {
+  position: relative; z-index: 1; width: min(280px, 58vw); max-height: 92px;
+  object-fit: contain; filter: drop-shadow(0 0 28px rgba(232,23,63,.42));
+}
+.loader-core svg { width: 19px; height: 19px; fill: #fff; margin-left: 3px; }
+.loader-wordmark {
+  position: relative; z-index: 1; font-size: clamp(42px, 10vw, 86px);
+  line-height: .9; font-weight: 900; letter-spacing: .1em;
+  background: linear-gradient(135deg, #ff9caf, #e8173f 50%, #00c8f0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.loader-progress {
+  position: relative; z-index: 1; width: min(360px, 68vw); height: 2px;
+  border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.12);
+}
+.loader-progress span {
+  display: block; width: 46%; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg,#e8173f,#9b14cf,#00c8f0);
+  animation: sweep 1.45s ease-in-out infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes film { to { transform: translateX(-26px); } }
+@keyframes sweep { from { transform: translateX(-120%); } to { transform: translateX(240%); } }
+#loader-text { position: relative; z-index: 1; font-size: .78rem; font-weight: 800; color: rgba(255,255,255,.56); letter-spacing: .16em; text-transform: uppercase; text-shadow: 0 1px 4px #000; }
+
+#player { position: fixed; inset: 0; display: none; background: #000; }
+#player .video-js { width: 100%; height: 100%; display: block; }
+.vjs-theme-vexio .vjs-error-display,
+.vjs-theme-vexio .vjs-modal-dialog {
+  display: none !important;
+}
+.vjs-theme-vexio .vjs-control-bar {
+  left: 18px; right: 18px; bottom: 18px; width: auto; height: 58px;
+  display: flex; align-items: center; gap: 8px; padding: 0 14px;
+  border: 1px solid rgba(255,255,255,.11); border-radius: 8px;
+  background: linear-gradient(180deg, rgba(10,14,24,.72), rgba(4,7,13,.88));
+  backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow: 0 18px 50px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.vjs-theme-vexio .vjs-control { width: 38px; height: 46px; color: rgba(255,255,255,.9); }
+.vjs-theme-vexio .vjs-button > .vjs-icon-placeholder::before,
+.vjs-theme-vexio .vjs-icon-placeholder::before { font-size: 23px; line-height: 46px; }
+.vjs-theme-vexio .vjs-play-control { color: #fff; width: 44px; }
+.vjs-theme-vexio .vjs-play-control .vjs-icon-placeholder::before { font-size: 32px; }
+.vjs-theme-vexio .vjs-progress-control { flex: 1 1 auto; min-width: 120px; }
+.vjs-theme-vexio .vjs-progress-holder {
+  height: 5px; margin: 0 10px; border-radius: 999px; background: rgba(255,255,255,.16);
+}
+.vjs-theme-vexio .vjs-play-progress,
+.vjs-theme-vexio .vjs-volume-level {
+  border-radius: inherit; background: linear-gradient(90deg, #e8173f, #00c8f0);
+}
+.vjs-theme-vexio .vjs-play-progress::before {
+  top: -5px; right: -7px; color: #fff; font-size: 14px; text-shadow: 0 0 12px rgba(232,23,63,.72);
+}
+.vjs-theme-vexio .vjs-load-progress,
+.vjs-theme-vexio .vjs-load-progress div { border-radius: inherit; background: rgba(255,255,255,.2); }
+.vjs-theme-vexio .vjs-time-control {
+  display: block; width: auto; min-width: 0; height: 46px; padding: 0 2px;
+  font-size: 12px; font-weight: 800; line-height: 46px; color: rgba(255,255,255,.88);
+}
+.vjs-theme-vexio .vjs-time-divider { min-width: 8px; padding: 0 1px; text-align: center; }
+.vjs-theme-vexio .vjs-remaining-time { display: none; }
+.vjs-theme-vexio .vjs-volume-panel { width: 42px !important; }
+.vjs-theme-vexio .vjs-volume-panel:hover { width: 118px !important; }
+.vjs-theme-vexio .vjs-volume-bar.vjs-slider-horizontal {
+  height: 4px; border-radius: 999px; background: rgba(255,255,255,.18);
+}
+.vjs-theme-vexio .vjs-subs-caps-button,
+.vjs-theme-vexio .vjs-playback-rate,
+.vjs-theme-vexio .vjs-picture-in-picture-control,
+.vjs-theme-vexio .vjs-fullscreen-control { margin-left: 2px; }
+.vjs-theme-vexio .vjs-big-play-button {
+  width: 58px; height: 58px; line-height: 58px;
+  margin-top: -29px; margin-left: -29px;
+  border: 1px solid rgba(255,255,255,.18); border-radius: 50%;
+  color: #fff; background: rgba(8,12,20,.72);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 14px 34px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.vjs-theme-vexio .vjs-big-play-button .vjs-icon-placeholder::before {
+  font-size: 34px; line-height: 58px; text-shadow: none;
+}
+.vjs-theme-vexio:hover .vjs-big-play-button {
+  border-color: rgba(232,23,63,.72);
+  background: rgba(18,18,28,.82);
+  box-shadow: 0 14px 36px rgba(232,23,63,.22), inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.vjs-theme-vexio .vjs-slider { background-color: rgba(255,255,255,.16); }
+.vjs-theme-vexio .vjs-menu-button-popup .vjs-menu {
+  width: 15em; left: -6.5em; bottom: 1.8em;
+}
+.vjs-theme-vexio .vjs-menu-content {
+  padding: 6px; background: rgba(5,8,16,.96);
+  border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.44);
+}
+.vjs-theme-vexio .vjs-menu li.vjs-selected,
+.vjs-theme-vexio .vjs-menu li.vjs-menu-item:focus,
+.vjs-theme-vexio .vjs-menu li.vjs-menu-item:hover {
+  border-radius: 6px; background: linear-gradient(90deg, rgba(232,23,63,.88), rgba(0,200,240,.64));
+}
+@media (max-width: 640px) {
+  .vjs-theme-vexio .vjs-control-bar {
+    left: 8px; right: 8px; bottom: 8px; height: 54px; gap: 2px; padding: 0 8px;
+  }
+  .vjs-theme-vexio .vjs-control { width: 32px; height: 42px; }
+  .vjs-theme-vexio .vjs-button > .vjs-icon-placeholder::before,
+  .vjs-theme-vexio .vjs-icon-placeholder::before { font-size: 21px; line-height: 42px; }
+  .vjs-theme-vexio .vjs-duration,
+  .vjs-theme-vexio .vjs-time-divider,
+  .vjs-theme-vexio .vjs-picture-in-picture-control,
+  .vjs-theme-vexio .vjs-playback-rate { display: none; }
+}
+
+#usage {
+  position: fixed; inset: 0; display: none; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  background: #000; gap: 10px;
+}
+#usage p { font-size: 1.05rem; color: rgba(255,255,255,.65); line-height: 2; }
+
+#err {
+  position: fixed; inset: 0; display: none; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  gap: 14px; padding: 28px; background:
+    radial-gradient(circle at 50% 36%, rgba(232,23,63,.22), transparent 34%),
+    linear-gradient(180deg, rgba(6,9,16,.92), #05070d);
+}
+#err-icon {
+  width: 62px; height: 62px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(232,23,63,.42);
+  color: #ff5a76; background: rgba(232,23,63,.13);
+  box-shadow: 0 0 34px rgba(232,23,63,.2);
+}
+#err-icon svg { width: 32px; height: 32px; }
+#err-kicker { font-size: .68rem; font-weight: 900; letter-spacing: .18em; color: #00c8f0; text-transform: uppercase; }
+#err-title { font-size: clamp(2rem, 5vw, 3.2rem); line-height: .95; font-weight: 800; color: #fff; letter-spacing: .04em; }
+#err-copy { max-width: 560px; color: rgba(240,244,255,.72); font-size: .95rem; line-height: 1.6; }
+#err-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+#err-link, #err-retry {
+  border: 1px solid rgba(255,255,255,.16); border-radius: 8px;
+  padding: 10px 14px; color: #fff; text-decoration: none; cursor: pointer;
+  background: rgba(255,255,255,.06); font-weight: 800; font-size: .84rem;
+}
+#err-retry { background: linear-gradient(135deg, #e8173f, #9b14cf); border-color: transparent; }
+#err-link:hover, #err-retry:hover { filter: brightness(1.12); }
+#err-detail {
+  max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+  font-size: .78rem; color: rgba(255,255,255,.38); white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div id="loader-bg"></div>
+  <div class="loader-film top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="loader-film bottom" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="loader-timecode" id="loader-timecode">00:00:00:00</div>
+  <div class="loader-rig" aria-hidden="true">
+    <div class="loader-ring a"></div>
+    <div class="loader-ring b"></div>
+    <div class="loader-ring c"></div>
+    <div class="loader-core"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+  </div>
+  <img class="loader-logo" src="/brand/vexio-player-loading.png" alt="VEXIO">
+  <div class="loader-progress" aria-hidden="true"><span></span></div>
+  <div id="loader-text">Loading stream...</div>
+</div>
+
+<div id="usage">
+  <p>
+    <span style="color:#fff;font-size:1.2rem">Stream</span><br><br>
+    <code style="color:rgba(255,255,255,.8)">?id=550</code> &nbsp;— movie<br>
+    <code style="color:rgba(255,255,255,.8)">?id=456&amp;s=1&amp;e=1</code> &nbsp;— TV episode
+  </p>
+</div>
+
+<div id="err">
+  <div id="err-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M9.75 9.75 14.25 14.25M14.25 9.75 9.75 14.25"></path></svg>
+  </div>
+  <div id="err-kicker">Stream unavailable</div>
+  <div id="err-title">No playable source found</div>
+  <div id="err-copy">This title does not have a browser-ready stream from the default VEXIO server right now. Select another server in the watch page server list.</div>
+  <div id="err-actions">
+    <button id="err-retry" type="button" onclick="location.reload()">Retry</button>
+    <a id="err-link" href="#">Try fallback provider</a>
+  </div>
+  <div id="err-detail"></div>
+</div>
+
+<div id="player">
+  <video id="v" class="video-js vjs-big-play-centered vjs-theme-vexio" controls autoplay playsinline preload="auto"></video>
+</div>
+
+<script>
+var TMDB_KEY = '3a73619bbb8fc6d47742d1b5b2b707b5';
+
+var MESSAGES = [
+  'Loading stream...', 'Contacting VEXIO server...', 'Preparing secure playback...',
+  'Checking playable sources...', 'Loading manifest...', 'Preparing controls...',
+  'Almost ready...'
+];
+var msgEl = document.getElementById('loader-text');
+var msgIdx = 0;
+var timecodeEl = document.getElementById('loader-timecode');
+var msgTimer = setInterval(function() {
+  msgIdx = (msgIdx + 1) % MESSAGES.length;
+  msgEl.textContent = MESSAGES[msgIdx];
+}, 2200);
+var tcFrame = 0;
+var tcTimer = setInterval(function() {
+  tcFrame = (tcFrame + 1) % (24 * 60 * 60);
+  var seconds = Math.floor(tcFrame / 24);
+  var frames = String(tcFrame % 24).padStart(2, '0');
+  var mins = String(Math.floor(seconds / 60) % 60).padStart(2, '0');
+  var secs = String(seconds % 60).padStart(2, '0');
+  timecodeEl.textContent = '00:' + mins + ':' + secs + ':' + frames;
+}, 90);
+
+var p = new URLSearchParams(location.search);
+var id = p.get('id'), s = p.get('s'), e = p.get('e');
+
+function requestJson(url) {
+  if (typeof fetch === 'function') {
+    return fetch(url).then(function(r) { return r.json(); });
+  }
+
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onload = function() {
+      try {
+        resolve(JSON.parse(xhr.responseText || '{}'));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    xhr.onerror = function() { reject(new Error('Network request failed')); };
+    xhr.send();
+  });
+}
+
+function showPlayer() {
+  clearInterval(msgTimer);
+  clearInterval(tcTimer);
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('player').style.display = 'block';
+  try {
+    window.parent && window.parent.postMessage({ type: 'vexio:embed-ready' }, '*');
+  } catch (e) {}
+}
+
+function showPlayerWhenReady(video, player) {
+  var done = false;
+  var failed = false;
+  var ready = function() {
+    if (done || failed) return;
+    done = true;
+    showPlayer();
+    Promise.resolve(player ? player.play() : video.play()).catch(function(){});
+  };
+  var fail = function(message) {
+    if (done || failed) return;
+    failed = true;
+    showErr(message || 'This server did not return a playable video. Select another server below.');
+  };
+
+  if (player && typeof player.ready === 'function') {
+    player.ready(function() {
+      setTimeout(ready, 600);
+    });
+  }
+
+  if (player && typeof player.readyState === 'function' && player.readyState() >= 1) {
+    ready();
+    return;
+  }
+
+  if (!player && video.readyState >= 2) {
+    ready();
+    return;
+  }
+
+  if (player && typeof player.one === 'function') {
+    ['loadedmetadata', 'loadeddata', 'canplay', 'playing'].forEach(function(eventName) {
+      player.one(eventName, ready);
+    });
+  } else {
+    video.addEventListener('loadeddata', ready, { once: true });
+    video.addEventListener('canplay', ready, { once: true });
+  }
+
+  video.addEventListener('error', function() {
+    fail(video.error?.message || 'The media could not be loaded from this server.');
+  }, { once: true });
+
+  if (player && typeof player.one === 'function') {
+    player.one('error', function() {
+      fail(player.error()?.message || 'The media could not be loaded from this server.');
+    });
+  }
+
+  setTimeout(function() {
+    ready();
+  }, 8000);
+}
+
+function showErr(msg) {
+  clearInterval(msgTimer);
+  clearInterval(tcTimer);
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('err').style.display = 'flex';
+  document.getElementById('err-detail').textContent = msg || '';
+  try {
+    window.parent && window.parent.postMessage({
+      type: 'vexio:embed-error',
+      message: msg || 'No playable source found. Select another server below.'
+    }, '*');
+  } catch (e) {}
+  var vidsrcUrl = s
+    ? 'https://vidsrc.xyz/embed/tv?tmdb=' + id + '&season=' + s + '&episode=' + (e || '1')
+    : 'https://vidsrc.xyz/embed/movie?tmdb=' + id;
+  document.getElementById('err-link').href = vidsrcUrl;
+}
+
+function loadBackdrop(id, isTv) {
+  var type = isTv ? 'tv' : 'movie';
+  requestJson('https://api.themoviedb.org/3/' + type + '/' + id + '?api_key=' + TMDB_KEY)
+    .then(function(d) {
+      var img = d.backdrop_path || d.poster_path;
+      if (!img) return;
+      var url = 'https://wsrv.nl/?url=' + encodeURIComponent('https://image.tmdb.org/t/p/w1280' + img) + '&bg=black&blur=3';
+      var bg = document.getElementById('loader-bg');
+      var preload = new Image();
+      preload.onload = function() { bg.style.backgroundImage = 'url(' + url + ')'; bg.style.opacity = '1'; };
+      preload.src = url;
+    })
+    .catch(function() {});
+}
+
+if (!id) {
+  clearInterval(msgTimer);
+  clearInterval(tcTimer);
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('usage').style.display = 'flex';
+} else {
+  loadBackdrop(id, !!s);
+  var api = '/api?' + (s ? 'id='+id+'&s='+s+'&e='+(e||'1') : 'id='+id);
+  requestJson(api)
+    .then(function(d) {
+      if (d.error) return showErr(d.error);
+      if (d.requiresEmbed && d.embedUrl) {
+        location.replace(d.embedUrl);
+        return;
+      }
+      window.__vexioStreamDebug = { subtitleCount: (d.subtitles || []).length, provider: d.provider || '' };
+      play(d.url, d.subtitles || []);
+    })
+    .catch(function(err) { showErr(err.message); });
+}
+
+function makeTrackData(data, index) {
+  var trackUrl = data.url || data.src || data.file;
+  if (!trackUrl) return null;
+  return {
+    kind: 'captions',
+    src: /^https?:\/\//i.test(trackUrl) ? '/api?url=' + encodeURIComponent(trackUrl) : trackUrl,
+    label: data.label || data.language || data.lang || ('Subtitle ' + (index + 1)),
+    srclang: (data.srclang || data.lang || data.language || 'en').toString().slice(0, 12),
+    default: false
+  };
+}
+
+function applySubtitles(video, subtitles) {
+  var tracks = (subtitles || []).map(makeTrackData).filter(Boolean);
+  video.querySelectorAll('track').forEach(function(track) { track.remove(); });
+  video.dataset.subtitleCount = String(tracks.length);
+  if (!tracks.length) return;
+
+  var defaultIndex = tracks.findIndex(function(track) {
+    return /^(en|eng|english)$/i.test(track.srclang) || /english/i.test(track.label);
+  });
+  if (defaultIndex < 0) defaultIndex = 0;
+
+  tracks.forEach(function(trackData, index) {
+    trackData.default = index === defaultIndex;
+    var track = document.createElement('track');
+    Object.keys(trackData).forEach(function(key) {
+      if (trackData[key] === true) track.setAttribute(key, '');
+      else if (trackData[key] !== false && trackData[key] != null) track.setAttribute(key, trackData[key]);
+    });
+    video.appendChild(track);
+  });
+}
+
+function play(rawUrl, subtitles) {
+  var src = '/api?url=' + encodeURIComponent(rawUrl);
+  var v = document.getElementById('v');
+  window.__vexioStreamDebug = { subtitleCount: (subtitles || []).length, source: src };
+  applySubtitles(v, subtitles);
+  var player = null;
+  if (window.videojs) {
+    player = window.videojs(v, {
+      controls: true,
+      autoplay: true,
+      preload: 'auto',
+      responsive: true,
+      fluid: false,
+      playbackRates: [0.5, 1, 1.25, 1.5, 2],
+      controlBar: {
+        playToggle: true,
+        currentTimeDisplay: true,
+        timeDivider: true,
+        durationDisplay: true,
+        progressControl: true,
+        remainingTimeDisplay: false,
+        volumePanel: { inline: false },
+        playbackRateMenuButton: true,
+        subtitlesButton: true,
+        chaptersButton: true,
+        pictureInPictureToggle: true,
+        fullscreenToggle: true
+      }
+    });
+  }
+  if (player) {
+    player.src({ src: src, type: 'application/x-mpegURL' });
+    player.on('error', function() {
+      showErr(player.error()?.message || 'The media could not be loaded from this server.');
+    });
+    showPlayerWhenReady(v, player);
+  } else if (window.Hls && Hls.isSupported()) {
+    var hls = new Hls({ enableWorker: true });
+    hls.loadSource(src);
+    hls.attachMedia(v);
+    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+      showPlayerWhenReady(v, null);
+    });
+    hls.on(Hls.Events.ERROR, function(_, d) {
+      if (d.fatal) showErr(d.details || 'HLS fatal error');
+    });
+  } else {
+    v.src = src;
+    showPlayerWhenReady(v, null);
+  }
+}
+</script>
+</body>
+</html>

@@ -34,6 +34,6 @@
 <?= $this->start('scripts') ?>
 <script src="/assets/vendor/videojs/video.min.js"></script>
 <script src="/assets/vendor/hls/hls.min.js"></script>
-<script src="/assets/frontend/js/watch-movie.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-movie.js') ?>"></script>
+<script src="/assets/frontend/js/watch-tv.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-tv.js') ?>"></script>
 <script src="/assets/frontend/js/watch-comments.js?v=<?= filemtime(dirname(__DIR__, 6) . '/public/assets/frontend/js/watch-comments.js') ?>"></script>
 <?= $this->end() ?>

@@ -257,6 +257,29 @@ function clearEmbedPlayer() {
     wrap?.classList.remove('is-embed', 'is-player-rendering');
 }
 
+function isTrustedEmbedOrigin(origin) {
+    const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
+    try {
+        return Boolean(endpoint) && new URL(endpoint, window.location.href).origin === origin;
+    } catch (_error) {
+        return false;
+    }
+}
+
+function handleEmbedMessage(event) {
+    if (!isTrustedEmbedOrigin(event.origin)) return;
+    if (event.data?.type === 'vexio:embed-ready') {
+        const wrap = document.getElementById('playerWrap');
+        wrap?.classList.remove('is-player-rendering');
+        wrap?.classList.add('is-ready');
+        setPlayerLoading(false);
+        return;
+    }
+
+    if (event.data?.type !== 'vexio:embed-error') return;
+    setPlayerUnavailable(event.data.message || 'No playable source found on this server. Try another server below.');
+}
+
 async function createNativePlayer(source, subtitles) {
     const wrap = document.getElementById('playerWrap');
     const target = document.getElementById('vexioPlayerTarget');
@@ -266,7 +289,7 @@ async function createNativePlayer(source, subtitles) {
     target.replaceChildren();
 
     const video = document.createElement('video');
-    video.className = 'video-js vjs-big-play-centered vjs-default-skin';
+    video.className = 'video-js vjs-big-play-centered vjs-theme-vexio';
     video.controls = true;
     video.preload = 'metadata';
     video.playsInline = true;
@@ -507,7 +530,7 @@ async function playSource(source, subtitles, shouldPlay = false) {
         if (streamLoaded || attemptId !== streamAttemptId) return;
         const nextSource = streamSources[streamSourceIndex + 1];
         if (!nextSource) {
-            setPlayerUnavailable('No playable source found for this movie');
+            setPlayerUnavailable('No playable source found on this server. Try another server below.');
             return;
         }
         streamSourceIndex += 1;
@@ -515,7 +538,8 @@ async function playSource(source, subtitles, shouldPlay = false) {
         await playSource(nextSource, subtitles, shouldPlay);
     };
 
-    player.addEventListener('can-play', startPlayback, { once: true });
+    player.addEventListener('canplay', startPlayback, { once: true });
+    player.addEventListener('loadeddata', startPlayback, { once: true });
     player.addEventListener('error', tryNextSource, { once: true });
 
     // If the underlying <video> fails (common when proxy/manifest fetch is flaky),
@@ -546,7 +570,10 @@ async function loadVexioStream(shouldPlay = false) {
     }
 
     const endpoint = document.getElementById('playerWrap')?.dataset.playerSourceUrl || '';
-    if (!endpoint) return false;
+    if (!endpoint) {
+        setPlayerUnavailable('No playable source configured for this movie');
+        return false;
+    }
 
     if (/^https?:\/\//i.test(endpoint)) {
         const wrap = document.getElementById('playerWrap');
@@ -558,9 +585,9 @@ async function loadVexioStream(shouldPlay = false) {
         try { vexioVideo?.pause?.(); } catch (_error) { }
         vexioVideo = null;
         clearPlayerUnavailable();
-        setPlayerLoading(false);
+        setPlayerLoading(true, 'Preparing VEXIO player');
         wrap?.classList.remove('is-ready');
-        wrap?.classList.add('is-embed');
+        wrap?.classList.add('is-embed', 'is-player-rendering');
         target?.replaceChildren(Object.assign(document.createElement('iframe'), {
             className: 'vexio-embed-frame',
             src: endpoint,
@@ -570,6 +597,9 @@ async function loadVexioStream(shouldPlay = false) {
         frame?.setAttribute('allowfullscreen', '');
         frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
         frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        frame?.addEventListener('load', () => {
+            setPlayerLoading(true, 'Waiting for playable source');
+        }, { once: true });
         return true;
     }
 
@@ -611,7 +641,7 @@ async function loadVexioStream(shouldPlay = false) {
 
             const source = streamSources[streamSourceIndex];
             if (!source) {
-                setPlayerUnavailable('No playable source found for this movie');
+                setPlayerUnavailable('No playable source found on this server. Try another server below.');
                 return false;
             }
 
@@ -662,9 +692,10 @@ function selectServer(button, _serverKey) {
         try { vexioVideo?.pause?.(); } catch (_error) { }
         vexioVideo = null;
         clearPlayerUnavailable();
-        setPlayerLoading(false);
+        setPlayerLoading(button?.dataset?.serverKey === 'vexio-embed', 'Preparing VEXIO player');
         wrap?.classList.remove('is-ready');
         wrap?.classList.add('is-embed');
+        wrap?.classList.toggle('is-player-rendering', button?.dataset?.serverKey === 'vexio-embed');
         target?.replaceChildren(Object.assign(document.createElement('iframe'), {
             className: 'vexio-embed-frame',
             src: url,
@@ -674,6 +705,11 @@ function selectServer(button, _serverKey) {
         frame?.setAttribute('allowfullscreen', '');
         frame?.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
         frame?.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+        if (button?.dataset?.serverKey === 'vexio-embed') {
+            frame?.addEventListener('load', () => {
+                setPlayerLoading(true, 'Waiting for playable source');
+            }, { once: true });
+        }
     } else {
         target?.replaceChildren();
         streamLoaded = false;
@@ -735,10 +771,12 @@ function showToast(msg) {
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('message', handleEmbedMessage);
         initVexioVideo();
         loadVexioStream(false);
     });
 } else {
+    window.addEventListener('message', handleEmbedMessage);
     initVexioVideo();
     loadVexioStream(false);
 }

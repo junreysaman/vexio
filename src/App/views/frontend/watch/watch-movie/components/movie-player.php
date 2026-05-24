@@ -1,9 +1,8 @@
 <?php
 use App\Support\MediaImage;
 
-// Use VX embed links directly (do not call embed API)
 $tmdbIdVal = (int) ($item['tmdb_id'] ?? 0);
-$sourceUrl = $tmdbIdVal > 0 ? ('https://vidfast.pro/movie/' . $tmdbIdVal) : '';
+$sourceUrl = (string) ($item['embed_url'] ?? $item['embedUrl'] ?? '');
 $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
 ?>
 <div class="watch-layout">
@@ -17,11 +16,18 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
       ></div>
         <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
       <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
+        <div class="vexio-loader-film vexio-loader-film-top" aria-hidden="true"></div>
+        <div class="vexio-loader-film vexio-loader-film-bottom" aria-hidden="true"></div>
+        <div class="vexio-loader-timecode" aria-hidden="true">00:00:00:00</div>
+        <div class="vexio-loader-mark" aria-hidden="true">
+          <img src="/brand/vexio-player-loading.png" alt="">
+        </div>
         <div class="vexio-loader-ring"></div>
         <div class="vexio-loader-copy">
           <span class="vexio-loader-title">Preparing stream</span>
-          <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to vexio-main</span>
+          <span class="vexio-loader-status" id="vexioLoaderStatus">Connecting to VEXIO server</span>
         </div>
+        <div class="vexio-loader-progress" aria-hidden="true"><span></span></div>
       </div>
 
       <div class="vexio-audio-unavailable" id="vexioAudioUnavailable" hidden>
@@ -42,7 +48,8 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
         <div class="vexio-unavailable-copy">
           <span class="vexio-unavailable-kicker">Stream unavailable</span>
           <strong>No playable source found</strong>
-          <span id="vexioUnavailableDetail">This title does not have a browser-ready stream available right now. Please check back later.</span>
+          <span id="vexioUnavailableDetail">This server does not have a playable stream right now. Try another server from the server list below the player.</span>
+          <span class="vexio-server-hint">Select another server below if this one is unavailable.</span>
         </div>
       </div>
       <img class="vexio-player-watermark" src="/brand/vexio-logo-compact.svg" alt="Vexio" loading="eager">
