@@ -10,6 +10,31 @@ let streamStartTimer = null;
 let streamAttemptId = 0;
 let loaderTimecodeTimer = null;
 let loaderTimecodeFrame = 0;
+let loaderMessageTimer = null;
+let loaderMessageIndex = 0;
+const LOADER_MESSAGES = [
+    'Loading stream...',
+    'Contacting VEXIO server...',
+    'Preparing secure playback...',
+    'Checking playable sources...',
+    'Loading manifest...',
+    'Preparing controls...',
+    'Almost ready...'
+];
+
+function initLoaderBackdrop() {
+    const bg = document.getElementById('vexioLoaderBg');
+    const poster = document.getElementById('vexioPlayerTarget')?.dataset.poster || '';
+    if (!bg || !poster || bg.dataset.loaded === poster) return;
+
+    const preload = new Image();
+    preload.onload = () => {
+        bg.style.backgroundImage = `url("${poster}")`;
+        bg.classList.add('has-backdrop');
+        bg.dataset.loaded = poster;
+    };
+    preload.src = poster;
+}
 
 function startLoaderTimecode() {
     if (loaderTimecodeTimer) return;
@@ -30,6 +55,25 @@ function stopLoaderTimecode() {
     if (!loaderTimecodeTimer) return;
     clearInterval(loaderTimecodeTimer);
     loaderTimecodeTimer = null;
+}
+
+function startLoaderMessages() {
+    const statusNode = document.getElementById('vexioLoaderStatus');
+    if (!statusNode) return;
+
+    statusNode.textContent = LOADER_MESSAGES[loaderMessageIndex];
+    if (loaderMessageTimer) return;
+
+    loaderMessageTimer = setInterval(() => {
+        loaderMessageIndex = (loaderMessageIndex + 1) % LOADER_MESSAGES.length;
+        statusNode.textContent = LOADER_MESSAGES[loaderMessageIndex];
+    }, 2200);
+}
+
+function stopLoaderMessages() {
+    if (!loaderMessageTimer) return;
+    clearInterval(loaderMessageTimer);
+    loaderMessageTimer = null;
 }
 
 function initProviderSwitch(sources) {
@@ -247,13 +291,17 @@ function inferDubSubModeFromTracks(audioTracks) {
 }
 
 
-function setPlayerLoading(isLoading, status = 'Connecting to vexio-main') {
+function setPlayerLoading(isLoading, _status = 'Loading stream...') {
     const wrap = document.getElementById('playerWrap');
-    const statusNode = document.getElementById('vexioLoaderStatus');
-    if (statusNode) statusNode.textContent = status;
     wrap?.classList.toggle('is-loading', isLoading);
-    if (isLoading) startLoaderTimecode();
-    else stopLoaderTimecode();
+    if (isLoading) {
+        initLoaderBackdrop();
+        startLoaderTimecode();
+        startLoaderMessages();
+    } else {
+        stopLoaderTimecode();
+        stopLoaderMessages();
+    }
 }
 
 function setPlayerUnavailable(message = 'No playable source found') {
@@ -263,6 +311,7 @@ function setPlayerUnavailable(message = 'No playable source found') {
     const statusNode = document.getElementById('vexioLoaderStatus');
     clearTimeout(streamStartTimer);
     stopLoaderTimecode();
+    stopLoaderMessages();
     streamLoaded = false;
     wrap?.classList.remove('is-ready', 'is-loading', 'is-player-rendering');
     wrap?.classList.add('is-unavailable');
@@ -798,11 +847,13 @@ function showToast(msg) {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('message', handleEmbedMessage);
+        initLoaderBackdrop();
         initVexioVideo();
         loadVexioStream(false);
     });
 } else {
     window.addEventListener('message', handleEmbedMessage);
+    initLoaderBackdrop();
     initVexioVideo();
     loadVexioStream(false);
 }

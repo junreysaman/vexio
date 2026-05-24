@@ -16,6 +16,7 @@ $playerBackdrop = MediaImage::backdropFromRow($item, 'player');
       ></div>
         <div class="vexio-player-backdrop" id="vexioPlayerBackdrop" aria-hidden="true"></div>
       <div class="vexio-player-loader" id="vexioPlayerLoader" aria-live="polite">
+        <div class="vexio-loader-bg" id="vexioLoaderBg" aria-hidden="true"></div>
         <div class="vexio-loader-film vexio-loader-film-top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
         <div class="vexio-loader-film vexio-loader-film-bottom" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
         <div class="vexio-loader-timecode" aria-hidden="true">00:00:00:00</div>

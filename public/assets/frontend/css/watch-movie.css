@@ -285,6 +285,18 @@
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
+.vexio-loader-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(3px) saturate(0.9);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.vexio-loader-bg.has-backdrop {
+  opacity: 1;
+}
 .vexio-loader-film {
   position: absolute;
   left: 0;
