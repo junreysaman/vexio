@@ -343,6 +343,16 @@ function isTrustedEmbedOrigin(origin) {
 
 function handleEmbedMessage(event) {
     if (!isTrustedEmbedOrigin(event.origin)) return;
+    if (event.data?.type === 'vexio:request-fullscreen') {
+        const wrap = document.getElementById('playerWrap');
+        if (document.fullscreenElement) {
+            document.exitFullscreen?.();
+        } else {
+            wrap?.requestFullscreen?.();
+        }
+        return;
+    }
+
     if (event.data?.type === 'vexio:embed-ready') {
         const wrap = document.getElementById('playerWrap');
         wrap?.classList.remove('is-player-rendering');
