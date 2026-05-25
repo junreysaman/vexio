@@ -1,3 +1,0 @@
-- [ ] Modify WatchService::related() to add randomness to ORDER BY for “More Like This”
-- [ ] Ensure related() still returns LIMIT 6 and works for both TV show watch page and movie watch page
-- [ ] Run minimal verification (load watch TV page, confirm list order varies across hard refresh)
