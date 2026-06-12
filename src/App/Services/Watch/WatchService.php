@@ -174,7 +174,7 @@ class WatchService
                                 AND m.type = :type
                                 AND m.id <> :exclude_id
                          ORDER BY shared.shared_count DESC, RAND()
-                         LIMIT 6",
+                         LIMIT 10",
                         ['type' => $type, 'current_id' => $excludeId, 'exclude_id' => $excludeId]
                 );
     }

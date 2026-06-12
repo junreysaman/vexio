@@ -21,9 +21,9 @@
 </div>
 
 <?= $this->includePartial('/frontend/partials/share-modal', [
-  'pageUrl' => $_SERVER['REQUEST_URI'] ?? '/',
-  'pageTitle' => (isset($episode) && is_array($episode) ? (string) ($episode['title'] ?? 'Watch TV Show') : ((isset($show) && is_array($show) ? ($show['title'] ?? 'Watch TV Show') : 'Watch TV Show'))),
-  'pageImage' => (isset($episode) && is_array($episode) ? \App\Support\MediaImage::ogImageFromRow($episode) : null) ?: (isset($show) && is_array($show) ? \App\Support\MediaImage::ogImageFromRow($show) : null) ?: '/favicon.png',
+  'pageUrl' => isset($show) && is_array($show) ? (string) ($show['watchUrl'] ?? ($show['watch_url'] ?? ($_SERVER['REQUEST_URI'] ?? '/'))) : ($_SERVER['REQUEST_URI'] ?? '/'),
+  'pageTitle' => isset($show) && is_array($show) ? (string) ($show['title'] ?? 'Watch TV Show') : 'Watch TV Show',
+  'pageImage' => isset($show) && is_array($show) ? (\App\Support\MediaImage::ogImageFromRow($show) ?: '/favicon.png') : '/favicon.png',
 ]) ?>
 
 

@@ -14,6 +14,8 @@ $genreNames = is_array($show['genre_names'] ?? null)
   : array_filter(array_map('trim', explode(',', $genres)));
 $genreLinks = is_array($show['genre_links'] ?? null) ? $show['genre_links'] : [];
 $networkLinks = is_array($show['network_links'] ?? null) ? $show['network_links'] : [];
+$showShareUrl = (string) ($show['watchUrl'] ?? ($show['watch_url'] ?? ($_SERVER['REQUEST_URI'] ?? '/')));
+$showShareImage = MediaImage::ogImageFromRow($show) ?: MediaImage::srcOnly($posterMedia);
 $rating = $show['tmdb_rating'] ?? 'N/A';
 $ratingValue = is_numeric($rating) ? max(0.0, min(10.0, (float) $rating)) : 0.0;
 $ratingPercent = $ratingValue * 10;
@@ -92,7 +94,7 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
           </button>
           <button class="btn-secondary" onclick="showToast('Added to Watchlist')">Watchlist</button>
           <button class="btn-icon liked" id="likeBtn" onclick="toggleLike()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></button>
-          <button class="btn-icon" onclick="openShareModal('<?= escape(url($_SERVER['REQUEST_URI'] ?? '/')) ?>', '<?= escape($showTitle) ?>', '<?= escape($poster) ?>')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
+          <button class="btn-icon" onclick="openShareModal(<?= escape(json_encode(\App\Support\Seo::canonicalUrl($showShareUrl), JSON_HEX_APOS | JSON_HEX_QUOT)) ?>, <?= escape(json_encode($showTitle, JSON_HEX_APOS | JSON_HEX_QUOT)) ?>, <?= escape(json_encode(\App\Support\Seo::absoluteUrl($showShareImage ?: '/favicon.png'), JSON_HEX_APOS | JSON_HEX_QUOT)) ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
         </div>
       </div>
     </div>
@@ -154,7 +156,7 @@ $runtimeLabel = $runtime > 0 ? $runtime . 'm' : 'Episode';
 
     <div class="tab-panel active" id="tab-related">
       <div class="trend-grid">
-        <?php foreach (array_slice(($related ?? []), 0, 6) as $item): ?>
+        <?php foreach (array_slice(($related ?? []), 0, 10) as $item): ?>
           <?php
             $rType = (string) ($item['type'] ?? 'tv_show');
             echo $this->includePartial('/frontend/partials/card', [
