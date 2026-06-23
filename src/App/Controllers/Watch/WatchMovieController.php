@@ -34,6 +34,7 @@ class WatchMovieController
         $description = Seo::description((string) ($item['synopsis'] ?? ''), 160);
         $canonicalUrl = (string) ($item['watchUrl'] ?? ($item['watch_url'] ?? ''));
         $metaImage = MediaImage::ogImageFromRow($item) ?: null;
+        $metaImageSize = MediaImage::ogImageDimensionsFromRow($item);
         
         return $response->html($this->view->render(
             'frontend/watch/watch-movie/index',
@@ -44,7 +45,10 @@ class WatchMovieController
                 'meta_description' => $description,
                 'meta_keywords' => (string) ($item['genres'] ?? ''),
                 'meta_image' => $metaImage,
-                'meta_image_alt' => trim((string) ($item['title'] ?? 'Movie poster')),
+                'meta_image_alt' => trim((string) ($item['title'] ?? 'Movie artwork')),
+                'meta_image_width' => $metaImageSize['width'],
+                'meta_image_height' => $metaImageSize['height'],
+                'og_type' => 'video.movie',
                 'canonical_url' => $canonicalUrl,
                 'structured_data' => $this->structuredData($item, $title, $description, $canonicalUrl, $metaImage),
                 'item' => $item,

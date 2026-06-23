@@ -69,8 +69,9 @@ class WatchTvController
         $episode = $data['episode'] ?? [];
         $title = $this->showTitle($show);
         $description = Seo::description((string) ($show['synopsis'] ?? $episode['synopsis'] ?? ''), 160);
-        $canonicalUrl = (string) ($show['watchUrl'] ?? ($show['watch_url'] ?? ($episode['watchUrl'] ?? ($episode['watch_url'] ?? ''))));
+        $canonicalUrl = (string) ($episode['watchUrl'] ?? ($episode['watch_url'] ?? ($show['watchUrl'] ?? ($show['watch_url'] ?? ''))));
         $metaImage = MediaImage::ogImageFromRow($show) ?: MediaImage::ogImageFromRow($episode) ?: null;
+        $metaImageSize = MediaImage::ogImageDimensionsFromRow($show ?: $episode);
 
         return $response->html($this->view->render(
             'frontend/watch/watch-tv/index',
@@ -82,6 +83,8 @@ class WatchTvController
                 'meta_keywords' => (string) ($show['genres'] ?? ''),
                 'meta_image' => $metaImage,
                 'meta_image_alt' => trim((string) ($show['title'] ?? 'TV show artwork')),
+                'meta_image_width' => $metaImageSize['width'],
+                'meta_image_height' => $metaImageSize['height'],
                 'og_type' => 'video.tv_show',
                 'canonical_url' => $canonicalUrl,
                 'structured_data' => $this->structuredData($show, $episode, $title, $description, $canonicalUrl, $metaImage),

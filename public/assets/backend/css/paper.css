@@ -1264,3 +1264,14 @@ button.icon-action {
         grid-column: auto;
     }
 }
+
+.hero-control-box {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(0, 123, 255, 0.06), rgba(255, 255, 255, 0.92));
+    padding: 14px;
+}
+
+.hero-control-box .form-control {
+    background: #fff;
+}

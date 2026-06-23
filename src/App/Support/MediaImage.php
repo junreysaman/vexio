@@ -229,16 +229,37 @@ final class MediaImage
     }
 
     /**
-     * Best share/OG image URL for a catalogue row (poster, then backdrop).
+     * Best share/OG image URL for a catalogue row.
+     *
+     * Facebook link previews strongly prefer a landscape image. Use the backdrop
+     * first, then fall back to the poster when no backdrop exists.
      */
     public static function ogImageFromRow(array $row): string
     {
-        $poster = self::srcOnly(self::posterFromRow($row, 'detail'));
-        if ($poster !== '') {
-            return $poster;
+        $backdrop = self::srcOnly(self::backdropFromRow($row, 'heroBackdrop'));
+        if ($backdrop !== '') {
+            return $backdrop;
         }
 
-        return self::srcOnly(self::backdropFromRow($row, 'heroBackdrop'));
+        return self::srcOnly(self::posterFromRow($row, 'detail'));
+    }
+
+    /**
+     * @return array{width: int, height: int}
+     */
+    public static function ogImageDimensionsFromRow(array $row): array
+    {
+        $backdrop = self::srcOnly(self::backdropFromRow($row, 'heroBackdrop'));
+        if ($backdrop !== '') {
+            return ['width' => 1280, 'height' => 720];
+        }
+
+        $poster = self::srcOnly(self::posterFromRow($row, 'detail'));
+        if ($poster !== '') {
+            return ['width' => 780, 'height' => 1170];
+        }
+
+        return ['width' => 1600, 'height' => 480];
     }
 
     public static function adminPosterSrc(array $row): string

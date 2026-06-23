@@ -31,7 +31,7 @@ class HomeService
      */
     public function pageData(): array
     {
-        $cacheKey = 'home:pageData:v9';
+        $cacheKey = 'home:pageData:v10';
         $useCache = filter_var($_ENV['HOME_PAGE_CACHE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN);
         $ttl = (int) ($_ENV['HOME_PAGE_CACHE_TTL'] ?? 120);
         $ttl = max(15, min(3600, $ttl));
@@ -133,7 +133,7 @@ class HomeService
              FROM media_items
              WHERE status = :status
              AND is_featured = 1
-             ORDER BY release_date DESC, release_year DESC, tmdb_rating DESC, tmdb_popularity DESC, id DESC
+             ORDER BY COALESCE(hero_featured_at, release_date, updated_at, created_at) DESC, release_date DESC, release_year DESC, tmdb_rating DESC, tmdb_popularity DESC, id DESC
              LIMIT 10',
             ['status' => 'published']
         );

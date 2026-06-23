@@ -7,6 +7,11 @@ $formData = array_merge($item ?? [], $oldFormData ?? []);
 $contentId = (int) ($item['id'] ?? 0);
 $type = (string) ($formData['type'] ?? 'movie');
 $status = (string) ($formData['status'] ?? 'draft');
+$heroFeaturedAt = '';
+if (!empty($formData['hero_featured_at'])) {
+    $heroTimestamp = strtotime((string) $formData['hero_featured_at']);
+    $heroFeaturedAt = $heroTimestamp ? date('Y-m-d\TH:i', $heroTimestamp) : '';
+}
 $poster = MediaImage::adminPosterSrc($formData) ?: null;
 $backdrop = MediaImage::adminBackdropSrc($formData) ?: null;
 $remoteOnly = !MediaImage::downloadsImagesEnabled();
@@ -139,9 +144,23 @@ $episodes = $hierarchy['episodes'] ?? [];
                         <input class="form-control r-0 light s-12" id="views" name="views" type="number" min="0" value="<?= escape((string) ($formData['views'] ?? 0)) ?>">
                     </div>
 
-                    <div class="custom-control custom-checkbox mt-3">
-                        <input type="checkbox" class="custom-control-input" id="is_featured" name="is_featured" value="1" <?= !empty($formData['is_featured']) ? 'checked' : '' ?>>
-                        <label class="custom-control-label" for="is_featured">Feature in homepage hero</label>
+                    <div class="hero-control-box mt-3">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="is_featured" name="is_featured" value="1" <?= !empty($formData['is_featured']) ? 'checked' : '' ?>>
+                            <label class="custom-control-label" for="is_featured">Feature in homepage hero</label>
+                        </div>
+                        <p class="text-muted small mb-3 mt-2">Hero order uses this hero date first, then release date/rating. Use this instead of changing the real movie or TV release date.</p>
+
+                        <div class="form-group mb-2">
+                            <label class="col-form-label s-12" for="hero_featured_at">HERO DATE / PRIORITY</label>
+                            <input class="form-control r-0 light s-12" id="hero_featured_at" name="hero_featured_at" type="datetime-local" value="<?= escape($heroFeaturedAt) ?>">
+                            <small class="form-text text-muted">Set this to the latest season/feature date when you want a title to return to the hero.</small>
+                        </div>
+
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="hero_bump_now" name="hero_bump_now" value="1">
+                            <label class="custom-control-label" for="hero_bump_now">Make hero date now on save</label>
+                        </div>
                     </div>
                 </div>
             </div>

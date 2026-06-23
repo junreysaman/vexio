@@ -10,6 +10,15 @@ $seoKeywords = trim((string) ($meta_keywords ?? 'movies, tv shows, anime, stream
 $seoCanonical = Seo::canonicalUrl((string) ($canonical_url ?? Seo::currentPath()));
 $seoImage = Seo::absoluteUrl((string) ($meta_image ?? Seo::DEFAULT_IMAGE));
 $seoImageAlt = trim((string) ($meta_image_alt ?? $fullTitle));
+$seoImageWidth = (int) ($meta_image_width ?? 1600);
+$seoImageHeight = (int) ($meta_image_height ?? 480);
+$seoImageType = strtolower((string) pathinfo((string) parse_url($seoImage, PHP_URL_PATH), PATHINFO_EXTENSION));
+$seoImageMime = match ($seoImageType) {
+    'jpg', 'jpeg' => 'image/jpeg',
+    'webp' => 'image/webp',
+    'gif' => 'image/gif',
+    default => 'image/png',
+};
 $seoType = trim((string) ($og_type ?? 'website'));
 $seoRobots = trim((string) ($robots ?? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'));
 $structuredData = $structured_data ?? [];
@@ -43,6 +52,10 @@ $structuredData = array_values(array_filter([
     <meta property="og:type" content="<?= escape($seoType !== '' ? $seoType : 'website') ?>">
     <meta property="og:url" content="<?= escape($seoCanonical) ?>">
     <meta property="og:image" content="<?= escape($seoImage) ?>">
+    <meta property="og:image:secure_url" content="<?= escape($seoImage) ?>">
+    <meta property="og:image:type" content="<?= escape($seoImageMime) ?>">
+    <meta property="og:image:width" content="<?= $seoImageWidth > 0 ? $seoImageWidth : 1600 ?>">
+    <meta property="og:image:height" content="<?= $seoImageHeight > 0 ? $seoImageHeight : 480 ?>">
     <meta property="og:image:alt" content="<?= escape($seoImageAlt) ?>">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?= escape($fullTitle) ?>">

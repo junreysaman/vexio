@@ -12,7 +12,7 @@ Dotenv\Dotenv::createImmutable($root)->safeLoad();
 
 try {
     match ($command) {
-        'install' => installDatabase($root),
+        'install' => installDatabase($root, $arguments),
         'publish-scheduled' => publishScheduledEpisodes($root),
         'sync-networks' => syncNetworks($root, $arguments),
         'hydrate-images' => hydrateImages($root, $arguments),
@@ -34,7 +34,8 @@ function showHelp(): void
 {
     echo "Paper-PHPFramework CLI\n";
     echo "Usage:\n";
-    echo "  php cli.php install                                      Create the database and import database.sql\n";
+    echo "  php cli.php install                                      Create the database and import database.sql only when empty\n";
+    echo "  php cli.php install --fresh                              DANGER: drop/recreate tables from database.sql\n";
     echo "  php cli.php publish-scheduled                            Publish scheduled/draft episodes whose air date has passed\n";
     echo "  php cli.php sync-networks [--limit=50] [--loop]           Backfill TV network taxonomy links from existing TMDB IDs\n";
     echo "  php cli.php hydrate-images [--scope=all] [--limit=50] [--loop]\n";
@@ -2389,42 +2390,70 @@ function publishScheduledEpisodes(string $root): void
     }
 }
 
-function installDatabase(string $root): void
+function installDatabase(string $root, array $arguments = []): void
 {
-$driver = envValue('DB_DRIVER', 'mysql');
-$host = envValue('DB_HOST', 'localhost');
-$port = envValue('DB_PORT', '3306');
-$database = envValue('DB_NAME', 'paper_phpframework');
-$username = envValue('DB_USER', 'root');
-$password = envValue('DB_PASSWORD', '');
-$sqlPath = $root . '/database.sql';
+    $driver = envValue('DB_DRIVER', 'mysql');
+    $host = envValue('DB_HOST', 'localhost');
+    $port = envValue('DB_PORT', '3306');
+    $database = envValue('DB_NAME', 'paper_phpframework');
+    $username = envValue('DB_USER', 'root');
+    $password = envValue('DB_PASSWORD', '');
+    $sqlPath = $root . '/database.sql';
+    $fresh = in_array('--fresh', $arguments, true) || in_array('--force', $arguments, true);
 
-if ($driver !== 'mysql') {
-throw new RuntimeException('Only mysql is supported by this starter installer.');
+    if ($driver !== 'mysql') {
+        throw new RuntimeException('Only mysql is supported by this starter installer.');
+    }
+
+    if (!is_file($sqlPath)) {
+        throw new RuntimeException('Missing database.sql in the project root.');
+    }
+
+    $databaseName = str_replace('`', '``', $database);
+    $dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
+
+    try {
+        $pdo = new PDO($dsn, $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        $pdo->exec("USE `{$databaseName}`");
+
+        $existingTables = databaseTableNames($pdo);
+        if ($existingTables !== [] && !$fresh) {
+            echo "Install skipped to protect your existing database.\n";
+            echo "Database: {$database}\n";
+            echo "Existing tables found: " . implode(', ', array_slice($existingTables, 0, 8));
+            echo count($existingTables) > 8 ? ', ...' : '';
+            echo "\n\n";
+            echo "Use normal pages/admin tools to trigger safe schema updates.\n";
+            echo "Only run `php cli.php install --fresh` when you intentionally want to wipe and rebuild the database.\n";
+            return;
+        }
+
+        if ($fresh) {
+            echo "Fresh install requested. Existing Vexio tables may be dropped by database.sql.\n";
+        }
+
+        $pdo->exec((string) file_get_contents($sqlPath));
+
+        echo "Database imported successfully.\n";
+        echo "Database: {$database}\n";
+    } catch (Throwable $exception) {
+        throw new RuntimeException("Database import failed: {$exception->getMessage()}", 0, $exception);
+    }
 }
 
-if (!is_file($sqlPath)) {
-throw new RuntimeException('Missing database.sql in the project root.');
-}
+function databaseTableNames(PDO $pdo): array
+{
+    $rows = $pdo->query('SHOW FULL TABLES WHERE Table_type = \'BASE TABLE\'')->fetchAll(PDO::FETCH_NUM);
 
-$databaseName = str_replace('`', '``', $database);
-$dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
-
-try {
-$pdo = new PDO($dsn, $username, $password, [
-PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-]);
-
-$pdo->exec("CREATE DATABASE IF NOT EXISTS `{$databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-$pdo->exec("USE `{$databaseName}`");
-$pdo->exec((string) file_get_contents($sqlPath));
-
-echo "Database imported successfully.\n";
-echo "Database: {$database}\n";
-} catch (Throwable $exception) {
-throw new RuntimeException("Database import failed: {$exception->getMessage()}", 0, $exception);
-}
+    return array_values(array_filter(array_map(
+        static fn (array $row): string => (string) ($row[0] ?? ''),
+        $rows ?: []
+    )));
 }
 
 function envValue(string $key, string $default = ''): string

@@ -19,6 +19,7 @@ class TmdbMetadataSchema
 
         // Backfill slugs for any items that were inserted without one.
         self::backfillMediaItemSlugs($db);
+        self::ensureMediaItemHeroColumns($db);
 
         // Safety-net: create auxiliary tables if they were somehow dropped.
         foreach (self::tables() as $sql) {
@@ -43,6 +44,54 @@ class TmdbMetadataSchema
                 'slug' => MediaUrl::slugify((string) ($item['title'] ?? 'Untitled')),
             ]);
         }
+    }
+
+
+    private static function ensureMediaItemHeroColumns(Database $db): void
+    {
+        if (!$db->tableExists('media_items')) {
+            return;
+        }
+
+        if (!self::columnExists($db, 'media_items', 'hero_featured_at')) {
+            $db->query(
+                'ALTER TABLE media_items
+                 ADD COLUMN hero_featured_at DATETIME DEFAULT NULL AFTER is_featured'
+            );
+        }
+
+        if (!self::indexExists($db, 'media_items', 'idx_media_items_hero')) {
+            $db->query(
+                'ALTER TABLE media_items
+                 ADD INDEX idx_media_items_hero (status, is_featured, hero_featured_at, release_date)'
+            );
+        }
+    }
+
+    private static function columnExists(Database $db, string $table, string $column): bool
+    {
+        return $db->exists(
+            'SELECT 1
+             FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+             AND table_name = :table
+             AND column_name = :column
+             LIMIT 1',
+            ['table' => $table, 'column' => $column]
+        );
+    }
+
+    private static function indexExists(Database $db, string $table, string $index): bool
+    {
+        return $db->exists(
+            'SELECT 1
+             FROM information_schema.statistics
+             WHERE table_schema = DATABASE()
+             AND table_name = :table
+             AND index_name = :index
+             LIMIT 1',
+            ['table' => $table, 'index' => $index]
+        );
     }
 
     private static function tables(): array

@@ -387,6 +387,8 @@ class ContentController
             'stream_link' => trim((string) $request->post('stream_link', '')),
             'release_year' => trim((string) $request->post('release_year', '')),
             'is_featured' => (int) $request->post('is_featured', 0),
+            'hero_featured_at' => trim((string) $request->post('hero_featured_at', '')),
+            'hero_bump_now' => (int) $request->post('hero_bump_now', 0),
             'tmdb_rating' => trim((string) $request->post('tmdb_rating', '')),
             'tmdb_popularity' => trim((string) $request->post('tmdb_popularity', '')),
             'tmdb_vote_count' => (int) $request->post('tmdb_vote_count', 0),
@@ -437,6 +439,10 @@ class ContentController
 
         if (!$this->content->validStatus((string) $data['status'])) {
             $this->backWithError('Choose a valid publishing status.', $data, $contentId);
+        }
+
+        if ($data['hero_featured_at'] !== '' && strtotime((string) $data['hero_featured_at']) === false) {
+            $this->backWithError('Hero date must be a valid date and time.', $data, $contentId);
         }
 
         foreach (['release_year'] as $field) {

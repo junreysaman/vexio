@@ -127,12 +127,34 @@ class ContentService
             'stream_link' => trim((string) ($data['stream_link'] ?? '')) ?: null,
             'release_year' => $this->nullableInt($data['release_year'] ?? null),
             'is_featured' => !empty($data['is_featured']) ? 1 : 0,
+            'hero_featured_at' => $this->heroFeaturedAt($data),
             'tmdb_rating' => $this->nullableFloat($data['tmdb_rating'] ?? null),
             'tmdb_popularity' => $this->nullableFloat($data['tmdb_popularity'] ?? null),
             'tmdb_vote_count' => max(0, (int) ($data['tmdb_vote_count'] ?? 0)),
             'views' => max(0, (int) ($data['views'] ?? 0)),
             'status' => (string) $data['status'],
         ]);
+    }
+
+
+    private function heroFeaturedAt(array $data): ?string
+    {
+        if (empty($data['is_featured'])) {
+            return null;
+        }
+
+        if (!empty($data['hero_bump_now'])) {
+            return date('Y-m-d H:i:s');
+        }
+
+        $value = trim((string) ($data['hero_featured_at'] ?? ''));
+        if ($value === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp === false ? null : date('Y-m-d H:i:s', $timestamp);
     }
 
     /**
